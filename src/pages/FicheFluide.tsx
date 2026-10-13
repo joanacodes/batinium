@@ -39,6 +39,7 @@ export default function PageFicheFluide({ ficheId }: { ficheId: string }) {
   const [enregistreA, setEnregistreA] = useState<Date | null>(null);
   const [signer, setSigner] = useState<'operateur' | 'detenteur' | null>(null);
   const [nomClient, setNomClient] = useState('');
+  const [qualiteClient, setQualiteClient] = useState('');
   const [machineOuverte, setMachineOuverte] = useState(false);
   const [travail, setTravail] = useState(false);
 
@@ -87,7 +88,9 @@ export default function PageFicheFluide({ ficheId }: { ficheId: string }) {
     if (!f) return;
     setTravail(true);
     try {
-      await signerFicheFluide(f.id, qui, qui === 'detenteur' ? nomClient : technicien?.nom ?? undefined);
+      await signerFicheFluide(f.id, qui,
+        qui === 'detenteur' ? nomClient : technicien?.nom ?? undefined,
+        qui === 'detenteur' ? qualiteClient : undefined);
       setSigner(null);
       await recharger();
     } catch (e) {
@@ -195,6 +198,20 @@ export default function PageFicheFluide({ ficheId }: { ficheId: string }) {
               </button>
             </div>
           )}
+          {/* Sous le seuil, la fiche est complète sans le client : sa signature
+              reste possible, une fois, comme preuve de passage. */}
+          {f.statut === 'signee' && !f.signature_detenteur_le && f.signature_detenteur_requise === false && (
+            <div className="panneau sans-impression" style={{ display: 'flex', gap: 12,
+                                                              alignItems: 'center', flexWrap: 'wrap' }}>
+              <span style={{ flex: 1 }} className="statut">
+                Fiche complète. La signature du client n’est pas exigée sous 3 kg de HCFC et
+                5 t éq. CO2 de HFC ; vous pouvez la recueillir quand même.
+              </span>
+              <button className="action discret" onClick={() => setSigner('detenteur')}>
+                Faire signer le client (facultatif)
+              </button>
+            </div>
+          )}
           <DocumentFiche f={f} signatures={signatures} />
         </>
       )}
@@ -207,6 +224,13 @@ export default function PageFicheFluide({ ficheId }: { ficheId: string }) {
               En signant, la fiche reçoit son numéro et ne peut plus être modifiée. Une
               erreur se corrigera par une fiche rectificative.
             </p>
+          )}
+          {signer === 'detenteur' && !travail && (
+            <div style={{ marginBottom: 10 }}>
+              <label>Qualité du signataire</label>
+              <input value={qualiteClient} placeholder="Propriétaire, gestionnaire, syndic…"
+                     onChange={(e) => setQualiteClient(e.target.value)} />
+            </div>
           )}
           {travail ? <p className="statut">Enregistrement de la signature…</p> : (
             <Signature cible={{ fiche_fluide_id: f.id }} role={signer}
@@ -281,15 +305,20 @@ function Editeur({ f, machine, controles, pret, onPatch, onCorrigerMachine, onSi
             <span className="statut">Il manque : {manque.libelle.toLowerCase()}.</span>
           )}
         </div>
+        <p className="statut" style={{ marginTop: 8 }}>
+          {f.signature_detenteur_requise === false
+            ? 'Signature du client facultative : charge sous 3 kg de HCFC et 5 t éq. CO2 de HFC. La fiche sera complète dès votre signature.'
+            : 'Signature du client exigée après la vôtre : charge au-delà de 3 kg de HCFC ou de 5 t éq. CO2 de HFC, ou inconnue.'}
+        </p>
       </div>
 
       <Rubrique numero={1} titre="Opérateur (entreprise intervenante)">
         <Lecture f={f} partie="operateur" />
       </Rubrique>
-      <Rubrique numero={2} titre="Détenteur (client, propriétaire de l’équipement)">
+      <Rubrique numero={2} titre="Détenteur de l’équipement">
         <Lecture f={f} partie="detenteur" />
       </Rubrique>
-      <Rubrique numero={3} titre="Équipement">
+      <Rubrique numero={3} titre="Équipement concerné">
         <Lecture f={f} partie="equipement" />
         {machine && (
           <button className="lien-discret" style={{ marginTop: 6 }} onClick={onCorrigerMachine}>
@@ -381,33 +410,41 @@ function Editeur({ f, machine, controles, pret, onPatch, onCorrigerMachine, onSi
         )}
       </Rubrique>
 
+      {/* Les lettres sont celles du Cerfa : la notice, le BSFF et le bilan
+          annuel y renvoient, une autre lettre ferait lire une autre quantité. */}
       <Rubrique numero={6} titre="Manipulation du fluide frigorigène (kg)">
         <div style={{ display: 'grid', gap: 16, gridTemplateColumns: '1fr 1fr' }}>
           <div style={{ display: 'grid', gap: 8 }}>
-            <strong>Quantité chargée totale (A = B + C + D) : {A.toLocaleString('fr-FR')} kg</strong>
-            <Kg libelle="dont fluide vierge (B)" valeur={f.charge_vierge}
+            <strong>Quantité chargée totale (A + B + C) : {A.toLocaleString('fr-FR')} kg</strong>
+            <Kg libelle="A — dont fluide vierge" valeur={f.charge_vierge}
                 onChange={(v) => void onPatch({ charge_vierge: kg(v) })} />
-            <Kg libelle="dont fluide recyclé (C)" valeur={f.charge_recyclee}
+            <Kg libelle="B — dont fluide recyclé (récupéré et réintroduit)" valeur={f.charge_recyclee}
                 onChange={(v) => void onPatch({ charge_recyclee: kg(v) })} />
-            <Kg libelle="dont fluide régénéré (D)" valeur={f.charge_regeneree}
+            <Kg libelle="C — dont fluide régénéré" valeur={f.charge_regeneree}
                 onChange={(v) => void onPatch({ charge_regeneree: kg(v) })} />
           </div>
           <div style={{ display: 'grid', gap: 8 }}>
-            <strong>Quantité récupérée totale (E = F + G) : {E.toLocaleString('fr-FR')} kg</strong>
-            <Kg libelle="destinée au traitement (F)" valeur={f.recup_traitement}
+            <strong>Quantité récupérée totale (D + E) : {E.toLocaleString('fr-FR')} kg</strong>
+            <Kg libelle="D — dont fluide destiné au traitement" valeur={f.recup_traitement}
                 onChange={(v) => void onPatch({ recup_traitement: kg(v) })} />
-            <Kg libelle="conservée pour réutilisation (G)" valeur={f.recup_reutilisation}
+            <Kg libelle="E — dont fluide conservé pour réutilisation" valeur={f.recup_reutilisation}
                 onChange={(v) => void onPatch({ recup_reutilisation: kg(v) })} />
           </div>
         </div>
         <div style={{ display: 'grid', gap: 12, gridTemplateColumns: '1fr 1fr', marginTop: 12 }}>
+          <div>
+            <label>Dénomination du fluide chargé si changement</label>
+            <input defaultValue={f.fluide_charge_si_changement ?? ''}
+                   placeholder={`Vide si c’est le ${f.equipement?.fluide ?? 'fluide de la plaque'}`}
+                   onBlur={(e) => void onPatch({ fluide_charge_si_changement: e.target.value || null })} />
+          </div>
           <div>
             <label>Identification du/des contenant(s)</label>
             <input defaultValue={f.contenants ?? ''}
                    onBlur={(e) => void onPatch({ contenants: e.target.value || null })} />
           </div>
           <div>
-            <label>Dénomination ADR/RID</label>
+            <label>Dénomination ADR/RID du déchet</label>
             <input defaultValue={f.denomination_adr ?? ''}
                    onBlur={(e) => void onPatch({ denomination_adr: e.target.value || null })} />
           </div>
@@ -417,8 +454,8 @@ function Editeur({ f, machine, controles, pret, onPatch, onCorrigerMachine, onSi
                    onBlur={(e) => void onPatch({ destination: e.target.value || null })} />
           </div>
           <div>
-            <label>N° BSFF</label>
-            <input defaultValue={f.bsff ?? ''} placeholder="Bordereau Trackdéchets"
+            <label>N° du BSFF (Trackdéchets)</label>
+            <input defaultValue={f.bsff ?? ''} placeholder="FF-AAAAMMJJ-…"
                    onBlur={(e) => void onPatch({ bsff: e.target.value || null })} />
           </div>
         </div>
@@ -490,7 +527,7 @@ function Lecture({ f, partie }: { f: FicheFluide; partie: 'operateur' | 'detente
         f.operateur.attestation_capacite_expire_le && `valable jusqu’au ${dateFr(f.operateur.attestation_capacite_expire_le)}`]
         .filter(Boolean).join(' — ')],
       ['Technicien', f.operateur.technicien?.nom],
-      ['N° certificat d’aptitude', f.operateur.technicien?.aptitude_fluides_num],
+      ['N° d’attestation d’aptitude', f.operateur.technicien?.aptitude_fluides_num],
     ] : partie === 'detenteur' ? [
       ['Nom / raison sociale', f.detenteur.nom],
       ['SIRET', f.detenteur.siret],
@@ -500,7 +537,7 @@ function Lecture({ f, partie }: { f: FicheFluide; partie: 'operateur' | 'detente
       ['Marque / modèle', [f.equipement.marque, f.equipement.modele].filter(Boolean).join(' ')],
       ['N° de série', f.equipement.numero_serie],
       ['Localisation (pièce)', f.equipement.piece],
-      ['Fluide', f.equipement.fluide && `${f.equipement.fluide}${f.equipement.prp != null ? ` (PRP ${f.equipement.prp})` : ''}`],
+      ['Fluide', libelleFluide(f.equipement)],
       ['Charge totale', f.equipement.charge_kg != null ? `${f.equipement.charge_kg} kg` : null],
       ['Tonnage équivalent CO2', f.equipement.tonnage_co2 != null ? `${f.equipement.tonnage_co2} t éq. CO2` : null],
       ['Hermétiquement scellé', f.equipement.hermetique == null ? null : f.equipement.hermetique ? 'oui' : 'non'],
@@ -537,13 +574,10 @@ function DocumentFiche({ f, signatures }: { f: FicheFluide; signatures: Document
   }, [signatures]);
 
   const o = f.operateur, d = f.detenteur, e = f.equipement;
-  const t = Number(e.tonnage_co2 ?? NaN);
-  const seuil = e.hermetique ? 10 : 5;
-  // Les cases du Cerfa sont les fréquences de base ; la détection permanente
-  // se coche à part et double la durée.
-  const caseFrequence = Number.isNaN(t) ? null
-    : t < seuil ? 'non' : t < 50 ? '12' : t < 500 ? '6' : '3';
   const coche = (oui: boolean) => (oui ? '☒' : '☐');
+  // Sous le seuil, la case du détenteur reste vide à bon droit : l'imprimer
+  // sans explication ferait croire à une fiche incomplète.
+  const detenteurDispense = !f.signature_detenteur_le && f.signature_detenteur_requise === false;
 
   return (
     <div className="document">
@@ -551,8 +585,8 @@ function DocumentFiche({ f, signatures }: { f: FicheFluide; signatures: Document
         <div>
           <h2 style={{ marginBottom: 2 }}>Fiche d’intervention — fluides frigorigènes</h2>
           <div className="doc-petit">
-            Modèle Cerfa n° 15497*04 — art. R.543-82 du Code de l’environnement, arrêté du
-            29 février 2016<br />
+            Modèle Cerfa n° 15497*04 — art. R.543-82 et R.543-79 du Code de l’environnement,
+            arrêté du 29 février 2016<br />
             Équipement de réfrigération, climatisation ou pompe à chaleur
           </div>
         </div>
@@ -563,7 +597,7 @@ function DocumentFiche({ f, signatures }: { f: FicheFluide; signatures: Document
         </div>
       </div>
 
-      <TitreRubrique n={1} titre="Opérateur (entreprise intervenante)" note="titulaire de l’attestation de capacité" />
+      <TitreRubrique n={1} titre="Opérateur" note="titulaire de l’attestation de capacité" />
       <div className="doc-petit">
         <strong>{o.raison_sociale}</strong> — {o.adresse}<br />
         SIRET : {o.siret ?? '—'} · Tél : {[o.telephone, o.portable].filter(Boolean).join(' / ') || '—'}<br />
@@ -572,18 +606,18 @@ function DocumentFiche({ f, signatures }: { f: FicheFluide; signatures: Document
         {o.attestation_capacite_categorie && ` — Catégorie ${o.attestation_capacite_categorie}`}
         {o.attestation_capacite_expire_le && ` — valable jusqu’au ${dateFr(o.attestation_capacite_expire_le)}`}
       </div>
-      <Champs paires={[['Technicien', o.technicien?.nom], ['N° certificat d’aptitude', o.technicien?.aptitude_fluides_num]]} />
+      <Champs paires={[['Technicien', o.technicien?.nom], ['N° d’attestation d’aptitude', o.technicien?.aptitude_fluides_num]]} />
 
-      <TitreRubrique n={2} titre="Détenteur (client, propriétaire de l’équipement)" />
+      <TitreRubrique n={2} titre="Détenteur" />
       <Champs paires={[['Nom / raison sociale', d.nom], ['SIRET', d.siret]]} />
       <Champs paires={[['Adresse de l’installation', d.adresse], ['Tél', d.telephone]]} />
 
-      <TitreRubrique n={3} titre="Équipement" />
+      <TitreRubrique n={3} titre="Équipement concerné" />
       <Champs paires={[['Marque / modèle', [e.marque, e.modele].filter(Boolean).join(' ')], ['N° de série', e.numero_serie]]} />
-      <Champs paires={[['Localisation (pièce)', e.piece], ['Fluide', e.fluide && `${e.fluide}${e.prp != null ? ` (PRP ${e.prp})` : ''}`],
+      <Champs paires={[['Localisation (pièce)', e.piece], ['Fluide', libelleFluide(e)],
                        ['Charge totale', e.charge_kg != null ? `${e.charge_kg} kg` : null]]} />
       <Champs paires={[['Tonnage équivalent CO2', e.tonnage_co2 != null ? `${e.tonnage_co2} t éq. CO2` : null],
-                       ['Équipement hermétiquement scellé', `${coche(e.hermetique === true)} oui  ${coche(e.hermetique === false)} non`]]} />
+                       ['Hermétiquement scellé et étiqueté', `${coche(e.hermetique === true)} oui  ${coche(e.hermetique === false)} non`]]} />
 
       <TitreRubrique n={4} titre="Nature de l’intervention" />
       <div className="doc-petit" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 2 }}>
@@ -593,75 +627,93 @@ function DocumentFiche({ f, signatures }: { f: FicheFluide; signatures: Document
         ))}
       </div>
 
-      <TitreRubrique n={5} titre="Contrôle d’étanchéité" />
-      <Champs paires={[['Détecteur manuel de fuite — identification', f.detecteur_identification],
+      <TitreRubrique n="5 à 10" titre="Contrôle d’étanchéité" />
+      <Champs paires={[['5. Détecteur manuel de fuite — identification', f.detecteur_identification],
                        ['contrôlé le', f.detecteur_controle_le && dateFr(f.detecteur_controle_le)]]} />
       <div className="doc-petit">
-        Système permanent de détection de fuite : {coche(f.detection_permanente === true)} oui{' '}
-        {coche(f.detection_permanente === false)} non<br />
-        Fréquence minimale du contrôle périodique :{' '}
-        {coche(caseFrequence === '12')} 12 mois (5 à &lt; 50 t éq. CO2){' '}
-        {coche(caseFrequence === '6')} 6 mois (50 à &lt; 500 t éq. CO2){' '}
-        {coche(caseFrequence === '3')} 3 mois (≥ 500 t éq. CO2){' '}
-        {coche(caseFrequence === 'non')} Non soumis (&lt; 5 t éq. CO2, ou &lt; 10 t si hermétiquement scellé)<br />
-        <span style={{ fontStyle: 'italic' }}>Avec détection permanente : fréquence doublée (24 / 12 / 6 mois).</span><br />
-        Fuites constatées : {coche(f.fuites_constatees === true)} oui {coche(f.fuites_constatees === false)} non
+        6. Présence d’un système permanent de détection de fuites :{' '}
+        {coche(f.detection_permanente === true)} oui {coche(f.detection_permanente === false)} non
+      </div>
+      <GrilleFrequence f={f} />
+      <div className="doc-petit">
+        10. Fuites constatées lors du contrôle d’étanchéité :{' '}
+        {coche(f.fuites_constatees === true)} oui {coche(f.fuites_constatees === false)} non
       </div>
       {f.fuites.length > 0 && (
         <table className="doc-table">
           <thead>
-            <tr><th>Localisation de la fuite</th><th style={{ width: 110 }}>Réparation faite</th>
-                <th style={{ width: 120 }}>Réparation à faire</th></tr>
+            <tr><th style={{ width: 30 }}>N°</th><th>Localisation de la fuite</th>
+                <th style={{ width: 90 }}>Réalisée</th><th style={{ width: 90 }}>À faire</th></tr>
           </thead>
           <tbody>
             {f.fuites.map((x, i) => (
-              <tr key={i}><td>{x.localisation}</td><td>{coche(x.reparation_faite)}</td>
+              <tr key={i}><td>{i + 1}</td><td>{x.localisation}</td><td>{coche(x.reparation_faite)}</td>
                   <td>{coche(x.reparation_a_faire)}</td></tr>
             ))}
           </tbody>
         </table>
       )}
 
-      <TitreRubrique n={6} titre="Manipulation du fluide frigorigène" note="quantités en kg" />
+      <TitreRubrique n="11 à 13" titre="Manipulation du fluide frigorigène" note="quantités en kg" />
       <table className="doc-table">
         <tbody>
-          <tr><td><strong>Quantité CHARGÉE totale (A = B + C + D)</strong></td><td className="num">{kg(f.charge_totale)}</td>
-              <td><strong>Quantité RÉCUPÉRÉE totale (E = F + G)</strong></td><td className="num">{kg(f.recup_totale)}</td></tr>
-          <tr><td>dont fluide vierge (B)</td><td className="num">{kg(f.charge_vierge)}</td>
-              <td>destinée au traitement (F)</td><td className="num">{kg(f.recup_traitement)}</td></tr>
-          <tr><td>dont fluide recyclé (C)</td><td className="num">{kg(f.charge_recyclee)}</td>
-              <td>conservée pour réutilisation (G)</td><td className="num">{kg(f.recup_reutilisation)}</td></tr>
-          <tr><td>dont fluide régénéré (D)</td><td className="num">{kg(f.charge_regeneree)}</td><td /><td /></tr>
+          <tr><td><strong>Quantité chargée totale (A + B + C)</strong></td><td className="num">{kg(f.charge_totale)}</td>
+              <td><strong>Quantité de fluide récupérée totale (D + E)</strong></td><td className="num">{kg(f.recup_totale)}</td></tr>
+          <tr><td>A — dont fluide vierge</td><td className="num">{kg(f.charge_vierge)}</td>
+              <td>D — dont fluide destiné au traitement</td><td className="num">{kg(f.recup_traitement)}</td></tr>
+          <tr><td>B — dont fluide recyclé (récupéré et réintroduit)</td><td className="num">{kg(f.charge_recyclee)}</td>
+              <td>E — dont fluide conservé pour réutilisation</td><td className="num">{kg(f.recup_reutilisation)}</td></tr>
+          <tr><td>C — dont fluide régénéré</td><td className="num">{kg(f.charge_regeneree)}</td><td /><td /></tr>
         </tbody>
       </table>
-      <Champs paires={[['Identification du/des contenant(s)', f.contenants]]} />
-      <Champs paires={[['Dénomination ADR/RID', f.denomination_adr]]} />
-      <Champs paires={[['Installation de destination du fluide récupéré', f.destination], ['N° BSFF', f.bsff]]} />
+      <Champs paires={[['Dénomination du fluide chargé si changement', f.fluide_charge_si_changement],
+                       ['Si connu, numéro du BSFF (Trackdéchets)', f.bsff]]} />
+      <Champs paires={[['Identification du ou des contenants', f.contenants]]} />
+      <Champs paires={[['12. Dénomination ADR/RID', f.denomination_adr]]} />
+      <Champs paires={[['13. Installation prévue de destination du fluide récupéré', f.destination]]} />
 
-      <TitreRubrique n={7} titre="Observations" />
+      <TitreRubrique n={14} titre="Observations" />
       <div className="doc-encadre" style={{ minHeight: 40, whiteSpace: 'pre-line' }}>{f.observations ?? ''}</div>
 
-      <TitreRubrique n={8} titre="Signatures" />
+      <div className="doc-petit" style={{ margin: '12px 0 6px', textAlign: 'center', fontStyle: 'italic' }}>
+        Je soussigné certifie que l’opération ci-dessus a été effectuée.
+      </div>
       <div className="doc-signature">
         <div>
-          <strong>OPÉRATEUR (technicien)</strong>
-          <div className="doc-petit">Nom : {f.signature_operateur_nom ?? ''} — Date : {f.signature_operateur_le ? dateFr(f.signature_operateur_le) : ''}</div>
+          <strong>OPÉRATEUR</strong>
+          <div className="doc-petit">
+            Nom : {f.signature_operateur_nom ?? ''} — Qualité : {f.signature_operateur_qualite ?? ''}
+          </div>
+          <div className="doc-petit">Date : {f.signature_operateur_le ? dateFr(f.signature_operateur_le) : ''}</div>
           <div className="doc-cadre" style={{ display: 'grid', placeItems: 'center' }}>
             {images.operateur && <img src={images.operateur} alt="Signature du technicien" style={{ maxHeight: 84, maxWidth: '100%' }} />}
           </div>
         </div>
         <div>
-          <strong>DÉTENTEUR (client)</strong>
-          <div className="doc-petit">Nom : {f.signature_detenteur_nom ?? ''} — Date : {f.signature_detenteur_le ? dateFr(f.signature_detenteur_le) : ''}</div>
-          <div className="doc-cadre" style={{ display: 'grid', placeItems: 'center' }}>
-            {images.detenteur && <img src={images.detenteur} alt="Signature du client" style={{ maxHeight: 84, maxWidth: '100%' }} />}
-          </div>
+          <strong>DÉTENTEUR</strong>
+          {detenteurDispense ? (
+            <div className="doc-petit" style={{ marginTop: 4 }}>
+              Signature non requise : charge inférieure à 3 kg de HCFC et à 5 t éq. CO2 de HFC
+              (article R.543-82 du Code de l’environnement).
+            </div>
+          ) : (
+            <>
+              <div className="doc-petit">
+                Nom : {f.signature_detenteur_nom ?? ''} — Qualité : {f.signature_detenteur_qualite ?? ''}
+              </div>
+              <div className="doc-petit">Date : {f.signature_detenteur_le ? dateFr(f.signature_detenteur_le) : ''}</div>
+              <div className="doc-cadre" style={{ display: 'grid', placeItems: 'center' }}>
+                {images.detenteur && <img src={images.detenteur} alt="Signature du client" style={{ maxHeight: 84, maxWidth: '100%' }} />}
+              </div>
+            </>
+          )}
         </div>
       </div>
 
       <footer className="doc-pied">
-        Fiche établie en deux exemplaires, conservée 5 ans par l’opérateur et par le détenteur.
-        Un exemplaire est remis au détenteur à l’issue de l’intervention.
+        Le détenteur d’un équipement dont la charge en HCFC est supérieure à 3 kg ou dont la charge
+        en HFC est supérieure à 5 t éq. CO2 doit conserver l’original de ce document pendant au
+        moins 5 ans (article R. 543-82 du Code de l’environnement).
         {f.statut === 'rectifiee' && <><br /><strong>Fiche rectifiée — remplacée par une fiche rectificative.</strong></>}
       </footer>
       {/* TODO (phase ultérieure) : ranger le PDF dans la bibliothèque, aux deux
@@ -672,7 +724,68 @@ function DocumentFiche({ f, signatures }: { f: FicheFluide; signatures: Document
   );
 }
 
-function TitreRubrique({ n, titre, note }: { n: number; titre: string; note?: string }) {
+/**
+ * Les rubriques 7 à 9 du Cerfa, telles que le formulaire les imprime, avec la
+ * case de la machine cochée. La fréquence vient de la base et a été figée à
+ * la signature : la recalculer ici, ce serait imprimer autre chose que ce qui
+ * a été signé si la règle changeait un jour.
+ */
+const PALIERS: Record<'HCFC' | 'HFC' | 'HFO', [string, string, string]> = {
+  HCFC: ['2 kg ≤ Q < 30 kg', '30 kg ≤ Q < 300 kg', 'Q ≥ 300 kg'],
+  HFC: ['5 t ≤ t éq. CO2 < 50 t', '50 t ≤ t éq. CO2 < 500 t', 't éq. CO2 ≥ 500 t'],
+  HFO: ['1 kg ≤ Q < 10 kg', '10 kg ≤ Q < 100 kg', 'Q ≥ 100 kg'],
+};
+
+function GrilleFrequence({ f }: { f: FicheFluide }) {
+  const famille = f.equipement.famille ?? null;
+  const freq = f.frequence_applicable;
+  const mois = freq && freq !== 'non_soumis' ? Number(freq.split('_')[0]) : null;
+  // La ligne 9 ne vaut que pour les HFC et les HFO ; le palier se lit sur la
+  // ligne 8, l'intervalle doublé sur la 9.
+  const avecDetection = f.detection_permanente === true && (famille === 'HFC' || famille === 'HFO');
+  const palier = mois == null ? -1 : [12, 6, 3].indexOf(avecDetection ? mois / 2 : mois);
+  const coche = (oui: boolean) => (oui ? '☒' : '☐');
+  return (
+    <>
+      <table className="doc-table">
+        <tbody>
+          <tr><td colSpan={4}><strong>Fréquence minimale du contrôle périodique</strong></td></tr>
+          {(['HCFC', 'HFC', 'HFO'] as const).map((fam) => (
+            <tr key={fam}>
+              <td>7. {fam === 'HFC' ? 'HFC / PFC' : fam}</td>
+              {PALIERS[fam].map((p, i) => <td key={p}>{coche(famille === fam && palier === i)} {p}</td>)}
+            </tr>
+          ))}
+          <tr>
+            <td>8. Sans détection permanente</td>
+            {['12 mois', '6 mois', '3 mois'].map((m, i) => <td key={m}>{coche(!avecDetection && palier === i)} {m}</td>)}
+          </tr>
+          <tr>
+            <td>9. Avec détection permanente (HFC, HFO)</td>
+            {['24 mois', '12 mois', '6 mois'].map((m, i) => <td key={m}>{coche(avecDetection && palier === i)} {m}</td>)}
+          </tr>
+        </tbody>
+      </table>
+      {freq === 'non_soumis' && (
+        <div className="doc-petit">Équipement non soumis au contrôle d’étanchéité périodique.</div>
+      )}
+      {freq == null && (
+        <div className="doc-petit">Fréquence non déterminée : fluide ou charge inconnus.</div>
+      )}
+    </>
+  );
+}
+
+/** « R32 (HFC, PRP 675) » : la famille dit dans quelle unité lire le seuil. */
+function libelleFluide(e: { fluide?: string | null; famille?: string | null; prp?: number | null }):
+  string | null {
+  if (!e.fluide) return null;
+  const details = [e.famille, e.prp != null ? `PRP ${Number(e.prp).toLocaleString('fr-FR')}` : null]
+    .filter(Boolean);
+  return details.length ? `${e.fluide} (${details.join(', ')})` : e.fluide;
+}
+
+function TitreRubrique({ n, titre, note }: { n: number | string; titre: string; note?: string }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
                   background: 'var(--encre)', color: '#fff', padding: '3px 8px', margin: '12px 0 6px',

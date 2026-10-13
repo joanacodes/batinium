@@ -1,15 +1,17 @@
 import { supabase } from './supabase';
 import { entrepriseId, membre } from './session';
 import type { Intervention, Membre, Parametres } from './types';
-import { frequence, tonnage, type FrequenceControle, type Machine } from './machines';
+import type { FamilleFluide, FrequenceControle, Machine } from './machines';
 
 /**
  * La fiche d'intervention fluides — Cerfa 15497*04.
  *
  * Une fiche par machine et par intervention sur le fluide. Elle se remplit en
  * brouillon, se signe par le technicien — elle reçoit alors son numéro et se
- * fige —, puis par le client. Une fiche signée ne se corrige pas : on en
- * établit une rectificative, et les deux restent.
+ * fige —, puis par le client quand la charge l'exige (au-delà de 3 kg de HCFC
+ * ou de 5 t éq. CO2 de HFC ; en dessous, sa signature est facultative). Une
+ * fiche signée ne se corrige pas : on en établit une rectificative, et les
+ * deux restent.
  *
  * Ce que ce module ne fait pas, la base le fait : l'attribution du numéro, la
  * copie figée des rubriques 1 à 3, les autocontrôles bloquants et
@@ -83,6 +85,7 @@ export interface EquipementFige {
   numero_serie?: string | null;
   piece?: string | null;
   fluide?: string | null;
+  famille?: FamilleFluide | null;
   prp?: number | null;
   charge_kg?: number | null;
   tonnage_co2?: number | null;
@@ -118,9 +121,11 @@ export interface FicheFluide {
   charge_regeneree: number;
   recup_traitement: number;
   recup_reutilisation: number;
-  /** Colonnes générées : A = B + C + D, E = F + G. */
+  /** Colonnes générées, lettres du Cerfa : chargé A + B + C, récupéré D + E. */
   charge_totale: number;
   recup_totale: number;
+  /** Le fluide chargé quand ce n'est pas celui de la plaque. */
+  fluide_charge_si_changement: string | null;
   contenants: string | null;
   denomination_adr: string | null;
   destination: string | null;
@@ -130,6 +135,13 @@ export interface FicheFluide {
   signature_operateur_nom: string | null;
   signature_detenteur_le: string | null;
   signature_detenteur_nom: string | null;
+  signature_operateur_qualite: string | null;
+  signature_detenteur_qualite: string | null;
+  /**
+   * Posée par la base : vrai au-delà de 3 kg de HCFC ou de 5 t éq. CO2 de
+   * HFC. Faux, la fiche est complète dès la signature du technicien.
+   */
+  signature_detenteur_requise: boolean | null;
   date_intervention: string;
   created_at: string;
   updated_at: string;
@@ -259,7 +271,8 @@ export async function majFicheFluide(id: string, patch: Partial<FicheFluide>): P
   // Les colonnes calculées ou posées par la base ne repartent jamais d'ici.
   const {
     charge_totale: _a, recup_totale: _e, numero: _n, statut: _s,
-    operateur: _o, detenteur: _d, equipement: _q, ...modifiable
+    operateur: _o, detenteur: _d, equipement: _q, signature_detenteur_requise: _r,
+    ...modifiable
   } = patch;
   ok(await supabase.from('fiche_fluide').update(modifiable).eq('id', id).select('id'));
 }
@@ -275,10 +288,10 @@ export async function manquesFiche(id: string, pour: 'operateur' | 'detenteur'):
  * vérifie qu'elle existe.
  */
 export async function signerFicheFluide(
-  id: string, qui: 'operateur' | 'detenteur', nom?: string,
+  id: string, qui: 'operateur' | 'detenteur', nom?: string, qualite?: string,
 ): Promise<string> {
   return ok(await supabase.rpc('signer_fiche_fluide', {
-    p_id: id, p_qui: qui, p_nom: nom ?? null,
+    p_id: id, p_qui: qui, p_nom: nom ?? null, p_qualite: qualite ?? null,
   }));
 }
 
@@ -304,9 +317,8 @@ export function autocontrolesFiche(
   f: Pick<FicheFluide, 'nature' | 'charge_vierge' | 'charge_recyclee' | 'charge_regeneree'
     | 'recup_traitement' | 'recup_reutilisation' | 'contenants' | 'destination' | 'bsff'
     | 'detecteur_identification' | 'detecteur_controle_le' | 'fuites_constatees'
-    | 'date_intervention' | 'detection_permanente'>,
-  machine: Pick<Machine, 'numero_serie' | 'charge_kg' | 'prp' | 'hermetique'
-    | 'detection_permanente'> | null,
+    | 'date_intervention' | 'frequence_applicable'>,
+  machine: Pick<Machine, 'numero_serie'> | null,
   plaquePhotographiee: boolean,
   technicien: Pick<Membre, 'aptitude_fluides_num' | 'aptitude_fluides_expire_le'> | null,
   parametres: Pick<Parametres, 'attestation_capacite' | 'attestation_capacite_expire_le'> | null,
@@ -319,13 +331,12 @@ export function autocontrolesFiche(
   const charge = Number(f.charge_vierge) + Number(f.charge_recyclee) + Number(f.charge_regeneree);
   const recup = Number(f.recup_traitement) + Number(f.recup_reutilisation);
 
-  const freq = machine
-    ? frequence(tonnage(machine.charge_kg, machine.prp), machine.hermetique,
-                f.detection_permanente ?? machine.detection_permanente)
-    : null;
+  // La fréquence est celle que la base a calculée sur le brouillon, relu à
+  // chaque chargement : la refaire ici, c'était deux règles qui finiraient
+  // par diverger, et la fiche signée ne connaît que celle de la base.
   const controleExige = f.nature.includes('controle_periodique')
     || f.nature.includes('controle_non_periodique')
-    || (freq != null && freq !== 'non_soumis');
+    || (f.frequence_applicable != null && f.frequence_applicable !== 'non_soumis');
 
   const controles: Autocontrole[] = [
     { libelle: 'Machine vérifiée : photo de la plaque et numéro de série',

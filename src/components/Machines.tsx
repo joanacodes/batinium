@@ -27,6 +27,7 @@ export function MachinesChantier({ chantierId, siteId, onErreur }: {
   onErreur: (message: string) => void;
 }) {
   const [machines, setMachines] = useState<MachineAvecChantier[]>([]);
+  const [fluides, setFluides] = useState<FluideFrigorigene[]>([]);
   const [plaques, setPlaques] = useState<Set<string>>(new Set());
   const [factures, setFactures] = useState<Set<string> | null>(null);
   const [charge, setCharge] = useState(false);
@@ -35,8 +36,13 @@ export function MachinesChantier({ chantierId, siteId, onErreur }: {
 
   const recharger = useCallback(async () => {
     try {
-      const m = await listerMachines({ chantierId });
+      // La famille du fluide décide de l'unité du seuil : elle se lit au
+      // référentiel, elle ne se recopie pas sur la machine.
+      const [m, fl] = await Promise.all([
+        listerMachines({ chantierId }), listerFluides().catch(() => []),
+      ]);
       setMachines(m);
+      setFluides(fl);
       setPlaques(await machinesAvecPlaque(m.map((x) => x.id)));
       // Un technicien n'a pas accès aux achats : on ne cherche même pas, et
       // l'écran n'affichera aucun jugement de cohérence.
@@ -100,7 +106,8 @@ export function MachinesChantier({ chantierId, siteId, onErreur }: {
             <tbody>
               {machines.map((m) => {
                 const t = m.tonnage_co2 ?? tonnage(m.charge_kg, m.prp);
-                const f = frequence(t, m.hermetique, m.detection_permanente);
+                const famille = fluides.find((x) => x.code === codeFluide(m.fluide))?.famille;
+                const f = frequence(famille, m.charge_kg, t, m.hermetique, m.detection_permanente);
                 const verifiee = Boolean(m.numero_serie) && plaques.has(m.id);
                 const incoherente = factures !== null && m.produit_id != null
                   && !factures.has(m.produit_id);
@@ -210,9 +217,11 @@ export function FormulaireMachine({ machine, cible, onFait, onErreur }: {
   useEffect(() => { void listerFluides().then(setFluides).catch(() => setFluides([])); }, []);
   useEffect(() => { void verifierPlaque(); }, [verifierPlaque]);
 
-  const prp = fluides.find((f) => f.code === codeFluide(s.fluide))?.prp ?? null;
+  const fluide = fluides.find((f) => f.code === codeFluide(s.fluide));
+  const prp = fluide?.prp ?? null;
   const t = tonnage(s.charge_kg ?? null, prp);
-  const freq = frequence(t, Boolean(s.hermetique), Boolean(s.detection_permanente));
+  const freq = frequence(fluide?.famille, s.charge_kg ?? null, t,
+                         Boolean(s.hermetique), Boolean(s.detection_permanente));
 
   /** Une machine hors devis doit exister avant qu'on lui accroche une photo. */
   async function creer() {
@@ -343,7 +352,7 @@ export function FormulaireMachine({ machine, cible, onFait, onErreur }: {
             <option value="">—</option>
             {fluides.map((f) => (
               <option key={f.code} value={f.code} disabled={!f.actif && codeFluide(s.fluide) !== f.code}>
-                {f.libelle} — PRP {f.prp}
+                {f.libelle} — PRP {Number(f.prp).toLocaleString('fr-FR')}
               </option>
             ))}
           </select>
@@ -360,7 +369,7 @@ export function FormulaireMachine({ machine, cible, onFait, onErreur }: {
           <input type="checkbox" style={{ width: 'auto', marginRight: 6 }} checked={Boolean(s.hermetique)}
                  onChange={(e) => set('hermetique', e.target.checked)} />
           Hermétiquement scellé{' '}
-          <Bulle texte="Un équipement hermétiquement scellé n’est soumis au contrôle d’étanchéité qu’à partir de 10 t éq. CO2, au lieu de 5.">
+          <Bulle texte="Seulement s’il est scellé en usine et étiqueté comme tel par le fabricant : un split assemblé sur place ne l’est jamais. Pour un HFC, le contrôle d’étanchéité ne commence alors qu’à 10 t éq. CO2 au lieu de 5 ; pour un HFO, à 2 kg au lieu de 1.">
             <span className="statut">?</span>
           </Bulle>
         </label>
@@ -369,7 +378,7 @@ export function FormulaireMachine({ machine, cible, onFait, onErreur }: {
                  checked={Boolean(s.detection_permanente)}
                  onChange={(e) => set('detection_permanente', e.target.checked)} />
           Détection permanente de fuite{' '}
-          <Bulle texte="Avec un système permanent de détection, la périodicité du contrôle d’étanchéité est doublée.">
+          <Bulle texte="Avec un système permanent de détection, l’intervalle entre deux contrôles d’étanchéité est doublé (24, 12 ou 6 mois). Pour les HFC et les HFO seulement, pas pour les HCFC.">
             <span className="statut">?</span>
           </Bulle>
         </label>

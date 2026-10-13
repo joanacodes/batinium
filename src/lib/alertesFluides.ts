@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 import type { Alerte } from './alertes';
-import { frequence, moisFrequence, tonnage } from './machines';
+import { codeFluide, frequence, listerFluides, moisFrequence, tonnage } from './machines';
 
 /**
  * Les alertes du registre des machines et des fiches fluides.
@@ -20,17 +20,17 @@ const dans = (n: number) => jour(new Date(Date.now() + n * JOUR));
 
 interface MachineLue {
   id: string; chantier_id: string | null; numero_serie: string | null;
-  mise_en_service_le: string | null; charge_kg: number | null; prp: number | null;
-  hermetique: boolean; detection_permanente: boolean; marque: string | null;
-  modele: string | null; piece: string | null; statut: string;
+  mise_en_service_le: string | null; fluide: string | null; charge_kg: number | null;
+  prp: number | null; hermetique: boolean; detection_permanente: boolean;
+  marque: string | null; modele: string | null; piece: string | null; statut: string;
 }
 
 export async function alertesFluides(): Promise<Alerte[]> {
   const a: Alerte[] = [];
 
-  const [machines, poses, fiches] = await Promise.all([
+  const [machines, poses, fiches, fluides] = await Promise.all([
     supabase.from('equipement')
-      .select('id, chantier_id, numero_serie, mise_en_service_le, charge_kg, prp, hermetique, detection_permanente, marque, modele, piece, statut')
+      .select('id, chantier_id, numero_serie, mise_en_service_le, fluide, charge_kg, prp, hermetique, detection_permanente, marque, modele, piece, statut')
       .eq('statut', 'actif').then((r) => (r.data ?? []) as MachineLue[]),
     supabase.from('intervention').select('chantier_id, fin_le, date_prevue')
       .eq('type', 'pose').eq('statut', 'terminee')
@@ -44,7 +44,9 @@ export async function alertesFluides(): Promise<Alerte[]> {
         created_at: string; signature_operateur_le: string | null; date_intervention: string;
         detenteur: { nom?: string | null } | null;
       }[]),
+    listerFluides().catch(() => []),
   ]);
+  const familleDe = new Map(fluides.map((f) => [f.code, f.famille]));
 
   const nomMachine = (m: MachineLue) =>
     ([m.marque, m.modele].filter(Boolean).join(' ') || 'Machine')
@@ -71,7 +73,9 @@ export async function alertesFluides(): Promise<Alerte[]> {
     });
   }
 
-  // 2. Fiche signée par le technicien, client toujours absent.
+  // 2. Fiche signée par le technicien, client toujours absent. Seules les
+  //    fiches qui exigent sa signature restent dans cet état : sous 3 kg de
+  //    HCFC ou 5 t éq. CO2 de HFC, la base les clôt dès le technicien.
   for (const f of fiches) {
     if (f.statut !== 'signee_operateur' || !f.signature_operateur_le) continue;
     if (jour(f.signature_operateur_le) > ilYa(7)) continue;
@@ -112,7 +116,9 @@ export async function alertesFluides(): Promise<Alerte[]> {
     if (!d || f.date_intervention > d) dernierControle.set(f.equipement_id, f.date_intervention);
   }
   for (const m of machines) {
-    const mois = moisFrequence(frequence(tonnage(m.charge_kg, m.prp), m.hermetique, m.detection_permanente));
+    const famille = familleDe.get(codeFluide(m.fluide) ?? '');
+    const mois = moisFrequence(frequence(famille, m.charge_kg, tonnage(m.charge_kg, m.prp),
+                                         m.hermetique, m.detection_permanente));
     if (!mois) continue;
     const depart = dernierControle.get(m.id) ?? m.mise_en_service_le;
     if (!depart) continue;

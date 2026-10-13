@@ -38,10 +38,15 @@ export type MachineAvecChantier = Machine & {
   chantier: Pick<Chantier, 'id' | 'numero' | 'libelle' | 'tiers_id'> | null;
 };
 
+/** HFC : seuils en t éq. CO2. HCFC et HFO : en kg. HC et CO2 : hors F-gaz. */
+export type FamilleFluide = 'HFC' | 'HCFC' | 'HFO' | 'HC' | 'CO2';
+
 export interface FluideFrigorigene {
   code: string;
   libelle: string;
   prp: number;
+  famille: FamilleFluide;
+  inflammable: boolean;
   denomination_adr: string | null;
   actif: boolean;
 }
@@ -92,12 +97,34 @@ export function tonnage(chargeKg: number | null, prp: number | null): number | n
   return Math.round(Number(chargeKg) * prp) / 1000;
 }
 
+/**
+ * Rubriques 7 à 9 du Cerfa : le seuil se lit en tonnes pour un HFC, en
+ * kilogrammes pour un HCFC ou un HFO, et la détection permanente n'allonge
+ * l'intervalle que pour les HFC et les HFO. Nul quand on ne sait pas : une
+ * machine dont on ignore le fluide ou la charge n'est pas « non soumise ».
+ */
 export function frequence(
+  famille: FamilleFluide | null | undefined, chargeKg: number | null,
   tonnageCo2: number | null, hermetique: boolean, detection: boolean,
 ): FrequenceControle | null {
-  if (tonnageCo2 == null) return null;
-  if (tonnageCo2 < (hermetique ? 10 : 5)) return 'non_soumis';
-  let mois = tonnageCo2 < 50 ? 12 : tonnageCo2 < 500 ? 6 : 3;
+  const kg = chargeKg == null ? null : Number(chargeKg);
+  let mois: number;
+  if (famille === 'HC' || famille === 'CO2') return 'non_soumis';
+  if (famille === 'HFC') {
+    if (tonnageCo2 == null) return null;
+    if (tonnageCo2 < 5 || (hermetique && tonnageCo2 < 10)) return 'non_soumis';
+    mois = tonnageCo2 < 50 ? 12 : tonnageCo2 < 500 ? 6 : 3;
+  } else if (famille === 'HFO') {
+    if (kg == null) return null;
+    if (kg < 1 || (hermetique && kg < 2)) return 'non_soumis';
+    mois = kg < 10 ? 12 : kg < 100 ? 6 : 3;
+  } else if (famille === 'HCFC') {
+    if (kg == null) return null;
+    if (kg < 2) return 'non_soumis';
+    return `${kg < 30 ? 12 : kg < 300 ? 6 : 3}_mois` as FrequenceControle;
+  } else {
+    return null;
+  }
   if (detection) mois *= 2;
   return `${mois}_mois` as FrequenceControle;
 }
