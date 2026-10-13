@@ -14,6 +14,11 @@
 //
 // Chaque appel devient une demande, rattachée au client si son numéro est connu.
 // L'insertion est idempotente : Allo rejoue ses webhooks, on ne veut pas de doublons.
+//
+// Le nom de l'appelant ne vient pas avec l'appel : la fonction le demande au
+// carnet de contacts d'Allô, avec la clé posée dans Connexions. Celle-ci doit
+// porter le droit CRM_READ, en plus de WEBHOOKS_READ_WRITE pour l'installation.
+// Le rattachement par numéro s'appuie sur le SQL 34.
 // =============================================================================
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
@@ -25,13 +30,311 @@ const ENTREPRISE_ID = Deno.env.get('ENTREPRISE_ID') ?? '';
 
 const db = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
 
-/** Normalise un numéro français pour pouvoir le rapprocher d'une fiche client. */
+/**
+ * Normalise un numéro français pour pouvoir le rapprocher d'une fiche client.
+ *
+ * Même règle, à la lettre, que `normaliser_telephone()` en base (SQL 34). Ici
+ * on écrit `demande.telephone`, là-bas on le compare aux fiches : que les deux
+ * divergent et un appel ne retrouve plus son client, sans un mot.
+ */
 function normaliser(tel: string | null | undefined): string | null {
   if (!tel) return null;
-  const n = tel.replace(/[^0-9+]/g, '');
+  const n = tel.replace(/\(0\)/g, '').replace(/[^0-9+]/g, '');
   if (n.startsWith('+33')) return '0' + n.slice(3);
+  if (n.startsWith('0033')) return '0' + n.slice(4);
   if (n.startsWith('33') && n.length === 11) return '0' + n.slice(2);
-  return n;
+  return n || null;
+}
+
+/** Le format qu'attend l'API d'Allô : +33612345678. */
+function versE164(tel: string): string | null {
+  const n = normaliser(tel);
+  if (!n) return null;
+  if (n.startsWith('+')) return n;
+  if (/^0[1-9]\d{8}$/.test(n)) return '+33' + n.slice(1);
+  return null;
+}
+
+const json = (corps: unknown, status = 200) =>
+  new Response(JSON.stringify(corps), { status, headers: CORS });
+
+/**
+ * Le client qui porte ce numéro, s'il est seul à le porter.
+ *
+ * La comparaison se fait en base (SQL 34), sur la forme normalisée des deux
+ * côtés : la fiche porte le numéro tel qu'on l'a tapé, avec ses espaces, et
+ * l'ancienne comparaison exacte ne retrouvait presque jamais personne.
+ */
+async function tiersDuNumero(entreprise: string, telephone: string): Promise<string | null> {
+  const { data, error } = await db.rpc('tiers_par_telephone',
+    { p_entreprise: entreprise, p_telephone: telephone });
+  if (!error) return (data as string | null) ?? null;
+
+  // SQL 34 pas encore passé : l'ancienne comparaison, qui ne retrouve que les
+  // fiches où le numéro a été tapé sans espace. Mieux que rien, en attendant.
+  const { data: t } = await db.from('tiers').select('id')
+    .eq('entreprise_id', entreprise).eq('telephone', telephone).limit(1).maybeSingle();
+  return t?.id ?? null;
+}
+
+/** La clé d'API Allô de l'entreprise, posée depuis Connexions. */
+async function cleAllo(entreprise: string): Promise<string | null> {
+  const { data } = await db.from('connecteur_secret')
+    .select('valeur').eq('entreprise_id', entreprise).eq('cle', 'allo_api').maybeSingle();
+  return data?.valeur ?? null;
+}
+
+/**
+ * Un appel à l'API d'Allô avec la clé de l'entreprise.
+ *
+ * Deux formes d'en-tête, pour la même raison qu'à l'installation : leur
+ * documentation montre encore l'ancienne. Un délai borné, parce que le
+ * webhook doit répondre à Allô en vingt secondes, recherche comprise.
+ */
+async function appelerAllo(cle: string, chemin: string, corps: unknown,
+                           delaiMs: number): Promise<Response> {
+  let r: Response | null = null;
+  for (const autorisation of [`Api-Key ${cle}`, cle]) {
+    r = await fetch(`https://api.withallo.com${chemin}`, {
+      method: corps === undefined ? 'GET' : 'POST',
+      headers: { Authorization: autorisation, 'Content-Type': 'application/json' },
+      body: corps === undefined ? undefined : JSON.stringify(corps),
+      signal: AbortSignal.timeout(delaiMs),
+    });
+    if (r.status !== 401) return r;
+  }
+  return r!;
+}
+
+const texte = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
+
+/**
+ * Le nom d'un contact Allô.
+ *
+ * Leur fiche sépare `name` (le prénom) et `last_name`. Certains contacts
+ * importés portent pourtant le nom complet dans `name` : on n'y ajoute pas un
+ * nom de famille qu'il contient déjà. Et un contact créé par Allô lui-même,
+ * sans nom, porte souvent son numéro à la place : ce n'est pas un nom.
+ */
+function nomContact(p: Record<string, unknown>): string | null {
+  const prenom = texte(p.name ?? p.first_name);
+  const famille = texte(p.last_name);
+  let complet = !famille ? prenom
+    : !prenom ? famille
+    : prenom.toLowerCase().includes(famille.toLowerCase()) ? prenom
+    : `${prenom} ${famille}`;
+  if (!complet && p.company && typeof p.company === 'object') {
+    complet = texte((p.company as Record<string, unknown>).name);
+  }
+  return /\p{L}/u.test(complet) ? complet : null;
+}
+
+/** Les personnes d'une réponse de recherche, où que l'API les range. */
+function personnes(d: unknown): Record<string, unknown>[] {
+  const o = (d ?? {}) as Record<string, unknown>;
+  const data = (o.data ?? {}) as Record<string, unknown>;
+  for (const c of [data.results, data.people, data.items, o.data, o.results, o.people, o.items]) {
+    if (Array.isArray(c)) {
+      return c.filter((x) => x && typeof x === 'object') as Record<string, unknown>[];
+    }
+  }
+  return [];
+}
+
+/** Les numéros d'une fiche contact, chaînes ou objets selon les versions. */
+function numerosContact(p: Record<string, unknown>): string[] {
+  const brut = p.numbers ?? p.phone_numbers ?? p.phones;
+  if (!Array.isArray(brut)) return [];
+  return brut.map((n) => {
+    if (typeof n === 'string') return n;
+    if (!n || typeof n !== 'object') return '';
+    const o = n as Record<string, unknown>;
+    return texte(o.number ?? o.phone_number ?? o.value ?? o.e164);
+  }).filter(Boolean);
+}
+
+type Recherche =
+  | { statut: 'trouve'; nom: string }
+  | { statut: 'absent' }
+  | { statut: 'refus' | 'limite' | 'panne'; message: string };
+
+/**
+ * Le nom qu'Allô connaît pour ce numéro, dans son carnet de contacts.
+ *
+ * Il faut à la clé le droit CRM_READ. Le filtre sur le numéro est exact ; on
+ * revérifie quand même les numéros rendus, quand il y en a : mieux vaut
+ * « sans nom » qu'un nom faux sur la mauvaise personne.
+ */
+async function contactAllo(cle: string, telephone: string, delaiMs: number): Promise<Recherche> {
+  const e164 = versE164(telephone);
+  if (!e164) return { statut: 'absent' };
+
+  let r: Response;
+  try {
+    r = await appelerAllo(cle, '/v2/api/crm/people/search',
+      { filters: { phone_number: e164 }, page: 1, size: 5 }, delaiMs);
+  } catch (e) {
+    return { statut: 'panne', message: `Allô ne répond pas : ${(e as Error).message}` };
+  }
+  if (r.status === 401 || r.status === 403) {
+    return {
+      statut: 'refus',
+      message: 'Allô refuse à la clé enregistrée la lecture des contacts. Il lui faut le '
+        + 'droit CRM_READ : créez une clé qui le porte dans Allô, Réglages → API, puis '
+        + 'enregistrez-la dans Batinium, Connexions, carte Allô.',
+    };
+  }
+  if (r.status === 429) {
+    return {
+      statut: 'limite',
+      message: 'Allô limite le nombre de recherches par jour, et la limite est atteinte. '
+        + 'Les numéros restants seront cherchés si vous relancez demain.',
+    };
+  }
+  if (!r.ok) {
+    return { statut: 'panne', message: `Allô a répondu ${r.status} à la recherche d’un contact.` };
+  }
+
+  const cible = normaliser(telephone);
+  for (const p of personnes(await r.json().catch(() => null))) {
+    const numeros = numerosContact(p);
+    if (numeros.length && !numeros.some((n) => normaliser(n) === cible)) continue;
+    const nom = nomContact(p);
+    if (nom) return { statut: 'trouve', nom };
+  }
+  return { statut: 'absent' };
+}
+
+/**
+ * Le nom porté par l'événement lui-même, s'il y en a un.
+ *
+ * Le format documenté de `call.completed` n'en porte pas. On lit quand même
+ * les champs plausibles : s'ils apparaissent un jour, c'est une recherche
+ * chez Allô de moins.
+ */
+function nomDansAppel(appel: AppelAllo): string | null {
+  if (texte(appel.caller_name)) return texte(appel.caller_name);
+  const contact = appel.contact
+    ?? (Array.isArray(appel.contacts) ? appel.contacts[0] : null);
+  return contact && typeof contact === 'object'
+    ? nomContact(contact as Record<string, unknown>) : null;
+}
+
+/** Le membre de la direction qui appelle, ou la réponse qui le refuse. */
+async function direction(req: Request): Promise<{ entreprise_id: string } | Response> {
+  const jetonUtilisateur = req.headers.get('authorization')?.replace('Bearer ', '');
+  if (!jetonUtilisateur) return json({ erreur: 'Authentification requise.' }, 401);
+
+  const { data: utilisateur } = await db.auth.getUser(jetonUtilisateur);
+  if (!utilisateur?.user) return json({ erreur: 'Session expirée. Reconnectez-vous.' }, 401);
+
+  const { data: membre } = await db.from('membre')
+    .select('entreprise_id, role').eq('user_id', utilisateur.user.id)
+    .eq('actif', true).maybeSingle();
+  if (!membre || membre.role !== 'direction') return json({ erreur: 'Réservé à la direction.' }, 403);
+  return { entreprise_id: membre.entreprise_id };
+}
+
+/**
+ * Les droits d'une clé Allô : celle qu'on s'apprête à enregistrer, ou à
+ * défaut celle qui l'est déjà.
+ *
+ * Vérifier avant d'enregistrer : une clé fausse posée par-dessus une bonne
+ * couperait les enregistrements sans que personne ne sache pourquoi. Et l'état
+ * affiché vient d'un vrai échange avec Allô, pas de la présence d'une valeur.
+ */
+async function droitsAllo(req: Request): Promise<Response> {
+  try {
+    const membre = await direction(req);
+    if (membre instanceof Response) return membre;
+
+    const corps = await req.json().catch(() => ({}));
+    const cle = texte(corps?.cle_api) || await cleAllo(membre.entreprise_id);
+    if (!cle) return json({ cle: 'aucune', scopes: [] });
+
+    const r = await appelerAllo(cle, '/v2/api/me', undefined, 8000);
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      return json({
+        erreur: `Allô ne reconnaît pas cette clé (${d?.error?.message ?? d?.message ?? `réponse ${r.status}`}). `
+          + 'Vérifiez qu’elle a été copiée en entier — elle commence par ak_live_ — et '
+          + 'qu’elle n’a pas été révoquée.',
+      }, 400);
+    }
+    return json({ cle: 'valide', scopes: d?.data?.scopes ?? d?.scopes ?? [] });
+  } catch (e) {
+    return json({ erreur: (e as Error).message }, 500);
+  }
+}
+
+// Par passage : assez pour l'historique d'une petite entreprise, assez peu
+// pour tenir dans le temps d'exécution d'une fonction et dans le quota
+// quotidien de l'API d'Allô.
+const NUMEROS_PAR_PASSAGE = 150;
+const EN_PARALLELE = 4;
+
+/**
+ * Les noms des appels déjà reçus.
+ *
+ * Pour les appels arrivés avant ce correctif, ou quand Allô a tardé à
+ * répondre pendant l'appel. Un numéro n'est demandé qu'une fois même s'il a
+ * appelé dix fois, et les plus récents passent d'abord : ce sont ceux qu'on
+ * rappelle.
+ *
+ * Seuls les appels sans nom et sans client sont concernés. Un client connu
+ * a déjà le sien, celui de sa fiche, et un nom saisi à la main n'est jamais
+ * remplacé.
+ */
+async function retrouverNoms(req: Request): Promise<Response> {
+  try {
+    const membre = await direction(req);
+    if (membre instanceof Response) return membre;
+
+    const cle = await cleAllo(membre.entreprise_id);
+    if (!cle) {
+      return json({
+        erreur: 'Aucune clé d’API Allô enregistrée. Ajoutez-en une dans Connexions, carte '
+          + 'Allô, avec le droit CRM_READ.',
+      }, 400);
+    }
+
+    const { data: lignes, error } = await db.from('demande').select('telephone')
+      .eq('entreprise_id', membre.entreprise_id).eq('source', 'allo')
+      .is('nom', null).is('tiers_id', null).not('telephone', 'is', null)
+      .order('recu_le', { ascending: false }).limit(5000);
+    if (error) return json({ erreur: error.message }, 500);
+
+    const numeros = [...new Set((lignes ?? []).map((l) => String(l.telephone)))];
+    const lot = numeros.slice(0, NUMEROS_PAR_PASSAGE);
+    let examines = 0, trouves = 0, nommees = 0, pannes = 0;
+    let arret: string | null = null;
+
+    for (let i = 0; i < lot.length && !arret; i += EN_PARALLELE) {
+      const tranche = lot.slice(i, i + EN_PARALLELE);
+      const resultats = await Promise.all(tranche.map((t) => contactAllo(cle, t, 8000)));
+      for (const [j, r] of resultats.entries()) {
+        if (r.statut === 'refus' || r.statut === 'limite') { arret = r.message; continue; }
+        // Quelques échecs isolés ne doivent pas tout arrêter ; une série dit
+        // qu'Allô est en panne, et insister ne ferait que brûler le quota.
+        if (r.statut === 'panne') { if (++pannes >= 5) arret = r.message; continue; }
+        examines++;
+        if (r.statut !== 'trouve') continue;
+        trouves++;
+        const { data: maj, error: e } = await db.from('demande').update({ nom: r.nom })
+          .eq('entreprise_id', membre.entreprise_id).eq('source', 'allo')
+          .eq('telephone', tranche[j]).is('nom', null).select('id');
+        if (e) return json({ erreur: e.message }, 500);
+        nommees += maj?.length ?? 0;
+      }
+    }
+
+    return json({
+      ok: true, numeros: numeros.length, examines, trouves, nommees, pannes,
+      restants: numeros.length - examines, arret,
+    });
+  } catch (e) {
+    return json({ erreur: (e as Error).message }, 500);
+  }
 }
 
 /** Déduit l'urgence du contenu de l'appel. Grossier mais utile pour trier. */
@@ -255,7 +558,6 @@ interface AppelAllo {
   duration?: number;
   summary?: string;
   transcript?: string;
-  recording_url?: string;
   created_at?: string;
   [k: string]: unknown;
 }
@@ -331,6 +633,15 @@ Deno.serve(async (req) => {
    */
   if (adresseAction(req) === 'audio') {
     return await relayerAudio(req);
+  }
+
+  // Les droits de la clé Allô, et les noms des appels déjà reçus. Mêmes
+  // précautions que l'installation : l'appelant prouve qu'il est direction.
+  if (adresseAction(req) === 'droits') {
+    return await droitsAllo(req);
+  }
+  if (adresseAction(req) === 'noms') {
+    return await retrouverNoms(req);
   }
 
   // Le jeton de l'URL désigne l'entreprise à lui seul : il est unique sur
@@ -448,21 +759,33 @@ Deno.serve(async (req) => {
       { status: 200, headers: CORS });
   }
 
-  // Rattachement au client existant, par numéro
-  let tiersId: string | null = null;
-  if (telephone) {
-    const { data } = await db.from('tiers').select('id')
-      .eq('entreprise_id', entreprise).eq('telephone', telephone).limit(1).maybeSingle();
-    tiersId = data?.id ?? null;
+  // Rattachement au client existant, par numéro, quelle que soit la façon dont
+  // il a été tapé dans la fiche.
+  const tiersId = telephone ? await tiersDuNumero(entreprise, telephone) : null;
+
+  // Le nom. La fin d'appel d'Allô n'en porte pas, seulement le numéro. Un
+  // client connu n'en a pas besoin : l'écran lit celui de sa fiche. Pour un
+  // inconnu, on le demande au carnet de contacts d'Allô — brièvement, Allô
+  // n'attend notre réponse que vingt secondes. Un nom manqué ici se rattrape
+  // depuis l'écran des demandes.
+  let nom = nomDansAppel(appel);
+  if (!nom && !tiersId && telephone) {
+    const cle = await cleAllo(entreprise);
+    if (cle) {
+      const r = await contactAllo(cle, telephone, 4000);
+      if (r.statut === 'trouve') nom = r.nom;
+    }
   }
 
   // La demande. `upsert` sur (entreprise_id, source, source_ref) rend l'appel idempotent.
+  // Le nom et le client sont absents plutôt que nuls quand on ne les a pas :
+  // un webhook rejoué ne doit pas effacer ce qui a été posé entre-temps.
   const { data: demande, error } = await db.from('demande').upsert({
     entreprise_id: entreprise,
     source: 'allo',
     source_ref: reference,
     recu_le: appel.created_at ?? new Date().toISOString(),
-    nom: appel.caller_name ?? null,
+    ...(nom ? { nom } : {}),
     telephone,
     besoin: resume.slice(0, 200) || (manque ? 'Appel manqué' : 'Appel reçu'),
     resume,
@@ -472,18 +795,19 @@ Deno.serve(async (req) => {
     urgence: urgence(`${resume} ${transcription}`),
     statut: manque ? 'a_rappeler' : 'nouvelle',
     repondu: false,
-    tiers_id: tiersId,
-  }, { onConflict: 'entreprise_id,source,source_ref' }).select('id').single();
+    ...(tiersId ? { tiers_id: tiersId } : {}),
+  }, { onConflict: 'entreprise_id,source,source_ref' }).select('id, tiers_id').single();
 
   if (error) {
     console.error('Insertion de la demande impossible', error);
     return new Response(JSON.stringify({ erreur: error.message }), { status: 500 });
   }
 
-  // Le fil du client, pour retrouver qui a appelé quand
+  // Le fil du client, pour retrouver qui a appelé quand. Il suit le client de
+  // la demande telle qu'elle est en base, rattachement manuel compris.
   await db.from('fil').upsert({
     entreprise_id: entreprise,
-    tiers_id: tiersId,
+    ...(demande.tiers_id ? { tiers_id: demande.tiers_id } : {}),
     demande_id: demande.id,
     type: manque ? 'appel_manque' : 'appel_entrant',
     sujet: resume.slice(0, 200) || (manque ? 'Appel manqué' : 'Appel reçu'),

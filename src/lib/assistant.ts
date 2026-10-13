@@ -84,7 +84,7 @@ export async function contexteAssistant(): Promise<Record<string, unknown>> {
       .filter((d) => !d.repondu && !['perdue', 'spam'].includes(d.statut))
       .slice(0, MAX_PAR_LISTE)
       .map((d) => ({
-        nom: d.nom, telephone: d.telephone, recu_le: d.recu_le.slice(0, 10),
+        nom: d.nom || d.tiers?.nom || null, telephone: d.telephone, recu_le: d.recu_le.slice(0, 10),
         besoin: court(d.besoin), urgence: d.urgence, statut: d.statut,
         rappeler_le: d.rappeler_le, url: '#/demandes',
       })),

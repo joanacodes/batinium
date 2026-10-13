@@ -63,9 +63,10 @@ fluides sans jamais reculer (compteur par entreprise, type et année).
 
 Dossier `sql/`, numérotés, rejouables, autovérifiés. **Exécutés sur Supabase :
 01 à 31.** Livrés, corrigés le 13 octobre, mais **pas encore exécutés : 32 et
-33** (phase 1).
+33** (phase 1) **et 34** (appels rattachés à leur client, indépendant des deux
+autres).
 
-Depuis le 13 octobre, `sql/` contient 01 à 03 et 12 à 33, plus
+Depuis le 13 octobre, `sql/` contient 01 à 03 et 12 à 34, plus
 `essai_achats.sql` : les scripts 12 à 31 ont été reconstitués depuis la
 conversation où ils avaient été livrés, et tous (01 à 33) ont tourné sans
 erreur, vérifications comprises, sur une base Postgres 16 locale où les
@@ -99,6 +100,7 @@ tiennent entre eux.
 | 31 | IA partagée : plafond mensuel par entreprise, `consommation_ia()` |
 | **32** | **Machines : référentiel des fluides (PRP du règlement 2024/573, famille), tonnage CO2, fréquence de contrôle par famille, photo de plaque** — à exécuter |
 | **33** | **Fiche fluides Cerfa : table, numérotation `FF-AAAA-NNNN` par `prochain_numero_fiche()`, autocontrôles, signature du client selon le seuil, immuabilité, rectification** — à exécuter |
+| **34** | **Appels et clients : `normaliser_telephone()`, `tiers_par_telephone()`, rattachement des demandes à l'arrivée et quand une fiche client prend leur numéro, reprise des appels déjà reçus** — à exécuter, indépendant de 32 et 33 |
 
 Fichiers d'essai : `essai_achats.sql` (jeu de factures fournisseurs, se
 retire par `delete from achat where numero like 'ESSAI-%'`).
@@ -246,7 +248,11 @@ leur prix, leur unité et leur TVA ; les autres restent à zéro.
   et `sms.received` retenus, dédoublonnage par `webhook-id`, appels sortants
   ignorés (à rediscuter avec Fabrice si la ligne est professionnelle),
   enregistrements relayés avec la clé d'API. La signature HMAC d'Allô n'est
-  **pas** vérifiée.
+  **pas** vérifiée. Le nom de l'appelant n'arrive pas avec l'appel : depuis
+  le 13 octobre, la fonction le demande au carnet de contacts d'Allô (droit
+  `CRM_READ` sur la clé), et l'écran lit celui de la fiche client quand
+  l'appel y est rattaché (SQL 34). Bouton « Retrouver les noms » dans
+  Demandes et dans Connexions pour les appels déjà reçus.
 - **IA** : fonction écrite et à jour (tâche `plaque` comprise). Déploiement à
   vérifier dans Connexions.
 - **Google** : rien de configuré. `GOOGLE.md` décrit les six étapes.
@@ -274,6 +280,24 @@ octet à celui de la fin du lot 37 ; `.env.local` n'y est pas et ne doit pas y
 ---
 
 ## 5. Où le travail s'est arrêté
+
+### Appels sans nom — corrigé le 13 octobre, à déployer
+
+Les appels Allô s'affichaient « sans nom ». Deux causes : la fin d'appel
+d'Allô ne porte que le numéro (le webhook lisait un `caller_name` qui
+n'existe pas), et le rattachement au client comparait le numéro reçu
+(0612345678) au numéro tapé dans la fiche (06 12 34 56 78) — il échouait dès
+qu'une espace s'y trouvait.
+
+**À faire, dans cet ordre** : exécuter `sql/34_appels_clients.sql` (il peut
+passer avant 32 et 33), redéployer `allo-webhook` avec `--no-verify-jwt`,
+vérifier dans Connexions, carte Allô, que la clé enregistrée porte
+`CRM_READ` (sinon en enregistrer une qui le porte), puis cliquer
+« Retrouver les noms » dans Demandes.
+
+Ce qui reste sans nom après cela : les numéros que ni les fiches clients ni
+les contacts Allô ne connaissent. Les clients créés autrefois depuis un appel
+sans nom portent son numéro comme nom : à renommer dans leur fiche.
 
 ### Phase 1 — intégrée et corrigée le 13 octobre, SQL à exécuter
 
@@ -439,7 +463,11 @@ Relevés le 13 octobre dans le code du lot 37, à traiter :
   impriment 50 / 30 / 20.
 - Webhook Allô : la référence gardée est le `webhook-id` de la livraison et
   non l'identifiant de l'appel ; une livraison rejouée remet la demande à
-  « nouvelle » ; le texte des SMS reçus est perdu.
+  « nouvelle » (son nom et son client, eux, ne sont plus effacés) ; le texte
+  des SMS reçus est perdu.
+- La recherche des noms chez Allô suppose la forme de réponse de leur API
+  `crm/people/search` d'après leur documentation, sans essai réel depuis ce
+  dépôt : le premier clic sur « Retrouver les noms » en est le test.
 
 ---
 

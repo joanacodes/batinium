@@ -261,6 +261,98 @@ export async function audioDemande(demandeId: string): Promise<string> {
 }
 
 
+/** Une action de la fonction allo-webhook réservée à la direction. */
+async function actionAllo<T>(action: string, corps: Record<string, unknown> = {}): Promise<T> {
+  const { data: session } = await supabase.auth.getSession();
+  const acces = session.session?.access_token;
+  if (!acces) throw new Error('Session expirée. Reconnectez-vous.');
+
+  const base = import.meta.env.VITE_SUPABASE_URL as string;
+  const r = await fetch(`${base}/functions/v1/allo-webhook?action=${action}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${acces}` },
+    body: JSON.stringify(corps),
+  });
+  const texte = await r.text().catch(() => '');
+  let d: Record<string, unknown> = {};
+  try { d = JSON.parse(texte) as Record<string, unknown>; } catch { /* réponse en texte brut */ }
+
+  if (!r.ok) {
+    // Même diagnostic que pour l'audio : un 401 qui parle de jeton vient de la
+    // partie « webhook » de la fonction, donc d'une version déployée qui ne
+    // connaît pas encore cette action.
+    if (r.status === 401 && /jeton/i.test(texte)) {
+      throw new Error(
+        'La fonction serveur n’est pas à jour. Redéployez-la avec « npx supabase '
+        + 'functions deploy allo-webhook --no-verify-jwt ».');
+    }
+    throw new Error(String(d.erreur ?? (texte || `Le serveur a répondu ${r.status}.`)));
+  }
+  return d as T;
+}
+
+export interface DroitsAllo { cle: 'aucune' | 'valide'; scopes: string[] }
+
+/**
+ * Les droits d'une clé Allô, constatés chez Allô.
+ *
+ * Sans argument, ceux de la clé enregistrée — qu'on ne peut pas relire, mais
+ * qu'on peut faire vérifier par le serveur. Avec une clé, ceux de cette clé,
+ * avant de l'enregistrer.
+ */
+export async function droitsAllo(cleApi?: string): Promise<DroitsAllo> {
+  return actionAllo<DroitsAllo>('droits', cleApi ? { cle_api: cleApi } : {});
+}
+
+/**
+ * Enregistre la clé d'API Allô, après l'avoir fait vérifier.
+ *
+ * Dans cet ordre : une clé fausse posée par-dessus une bonne couperait
+ * l'écoute des enregistrements, sans que personne ne sache pourquoi.
+ */
+export async function enregistrerCleAllo(cleApi: string): Promise<DroitsAllo> {
+  const droits = await droitsAllo(cleApi);
+  await poserSecret('allo_api', cleApi);
+  return droits;
+}
+
+export interface NomsRetrouves {
+  numeros: number; examines: number; trouves: number; nommees: number;
+  pannes: number; restants: number; arret: string | null;
+}
+
+/** Demande au carnet de contacts d'Allô le nom des appels qui n'en ont pas. */
+export async function retrouverNomsAllo(): Promise<NomsRetrouves> {
+  return actionAllo<NomsRetrouves>('noms');
+}
+
+const compte = (n: number, un: string, plusieurs: string) => `${n} ${n > 1 ? plusieurs : un}`;
+
+/** Le résultat d'une recherche de noms, dit en clair. */
+export function compteRenduNoms(r: NomsRetrouves): string {
+  if (!r.numeros) {
+    return 'Rien à chercher : chaque appel reçu a déjà un nom ou un client.';
+  }
+  const phrases: string[] = [];
+  if (r.examines) {
+    phrases.push(r.trouves
+      ? `Allô connaît ${compte(r.trouves, 'numéro', 'numéros')} sur ${r.examines} : `
+        + `${compte(r.nommees, 'appel porte', 'appels portent')} maintenant un nom.`
+      : `Aucun des ${compte(r.examines, 'numéro cherché', 'numéros cherchés')} n’a de nom `
+        + 'dans vos contacts Allô. Il se saisit alors à la main, ou en créant le client.');
+  }
+  if (r.arret) phrases.push(`Recherche interrompue : ${r.arret}`);
+  else if (r.pannes) {
+    phrases.push(`${compte(r.pannes, 'recherche n’a', 'recherches n’ont')} pas abouti : `
+      + 'relancez plus tard pour ces numéros.');
+  }
+  if (r.restants > 0 && !r.arret) {
+    phrases.push(`Il reste ${compte(r.restants, 'numéro', 'numéros')} : relancez pour continuer.`);
+  }
+  return phrases.join(' ');
+}
+
+
 export interface ConsommationIA { jetons: number; appels: number; quota: number }
 
 /** Ce que l'entreprise a consommé ce mois-ci, et ce qu'elle a le droit de consommer. */

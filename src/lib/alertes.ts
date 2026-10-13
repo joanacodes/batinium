@@ -61,21 +61,21 @@ export async function calculerAlertes(): Promise<Alerte[]> {
     if (d.urgence === 'panne') {
       a.push({
         cle: `demande:panne:${d.id}`, gravite: 'urgent',
-        titre: `Panne signalée par ${d.nom ?? d.telephone ?? 'un client'}`,
+        titre: `Panne signalée par ${d.nom || d.tiers?.nom || d.telephone || 'un client'}`,
         detail: extrait || undefined, lien: '#/demandes', date: d.recu_le,
       });
     } else if (jours >= 2) {
       a.push({
         cle: `demande:attente:${d.id}:${jours >= 7 ? 'semaine' : 'jours'}`,
         gravite: jours >= 7 ? 'urgent' : 'attention',
-        titre: `${d.nom ?? d.telephone ?? 'Un client'} attend depuis ${jours} jours`,
+        titre: `${d.nom || d.tiers?.nom || d.telephone || 'Un client'} attend depuis ${jours} jours`,
         detail: extrait || undefined, lien: '#/demandes', date: d.recu_le,
       });
     }
     if (d.rappeler_le && d.rappeler_le <= aujourdhui) {
       a.push({
         cle: `demande:rappel:${d.id}:${d.rappeler_le}`, gravite: 'urgent',
-        titre: `Rappel prévu : ${d.nom ?? d.telephone ?? 'client'}`,
+        titre: `Rappel prévu : ${d.nom || d.tiers?.nom || d.telephone || 'client'}`,
         lien: '#/demandes', date: d.rappeler_le,
       });
     }

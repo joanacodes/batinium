@@ -7,7 +7,8 @@ import { diagnosticAllo, diagnosticIA } from '../lib/ia';
 import {
   activerConnecteur, desactiverConnecteur, listerConnecteurs, poserSecret, renouvelerJeton,
   consommationIA, installerChezAllo, secretPose, testerWebhook, urlWebhook,
-  type ConsommationIA, type Connecteur, type ResultatTest,
+  compteRenduNoms, droitsAllo, enregistrerCleAllo, retrouverNomsAllo,
+  type ConsommationIA, type Connecteur, type DroitsAllo, type ResultatTest,
 } from '../lib/connecteurs';
 import Modale from '../components/Modale';
 
@@ -229,8 +230,38 @@ function ReglageAllo({ connecteur, deployee, onErreur, onChange }: {
   const [forme, setForme] = useState<'parametre' | 'chemin'>('parametre');
   const [cleApi, setCleApi] = useState('');
   const [installation, setInstallation] = useState<ResultatTest | null>(null);
+  const [nouvelleCle, setNouvelleCle] = useState('');
+  const [droits, setDroits] = useState<DroitsAllo | null>(null);
+  const [retourNoms, setRetourNoms] = useState<{ ok: boolean; texte: string } | null>(null);
   const url = connecteur?.jeton
     ? urlWebhook('allo-webhook', connecteur.jeton, forme) : null;
+
+  // Les retours restent dans la fenêtre : l'erreur de page s'afficherait
+  // derrière elle, là où personne ne la lit.
+  async function verifierCle() {
+    setTravail(true); setRetourNoms(null);
+    try { setDroits(await droitsAllo()); }
+    catch (e) { setRetourNoms({ ok: false, texte: (e as Error).message }); }
+    setTravail(false);
+  }
+
+  async function enregistrerCle() {
+    setTravail(true); setRetourNoms(null);
+    try {
+      setDroits(await enregistrerCleAllo(nouvelleCle.trim()));
+      setNouvelleCle('');
+    } catch (e) { setRetourNoms({ ok: false, texte: (e as Error).message }); }
+    setTravail(false);
+  }
+
+  async function chercherNoms() {
+    setTravail(true); setRetourNoms(null);
+    try {
+      const r = await retrouverNomsAllo();
+      setRetourNoms({ ok: !r.arret, texte: compteRenduNoms(r) });
+    } catch (e) { setRetourNoms({ ok: false, texte: (e as Error).message }); }
+    setTravail(false);
+  }
 
   async function installer() {
     if (!connecteur?.jeton) return;
@@ -348,8 +379,9 @@ npx supabase functions deploy allo-webhook --no-verify-jwt`}</pre>
               <a href="https://web.withallo.com/settings/api" target="_blank" rel="noopener">
                 web.withallo.com/settings/api
               </a>{' '}
-              — puis <strong>Create API Key</strong>, en cochant le droit{' '}
-              <code>WEBHOOKS_READ_WRITE</code>. Elle commence par <code>ak_live_</code> et
+              — puis <strong>Create API Key</strong>, en cochant les droits{' '}
+              <code>WEBHOOKS_READ_WRITE</code> et <code>CRM_READ</code> — le second sert à
+              retrouver le nom des appelants. Elle commence par <code>ak_live_</code> et
               ne s’affiche qu’une fois.
             </p>
             <div style={{ display: 'flex', gap: 8 }}>
@@ -362,9 +394,10 @@ npx supabase functions deploy allo-webhook --no-verify-jwt`}</pre>
               </button>
             </div>
             <p className="statut" style={{ marginTop: 6 }}>
-              Cette clé n’est pas enregistrée : elle part une fois vers Allô, puis elle
-              est oubliée. Batinium ne demande à être prévenu que de deux choses — la fin
-              d’un appel et un SMS reçu.
+              La clé est gardée dans une table que personne ne peut relire, pas même
+              depuis ce compte : seul le serveur s’en sert, pour écouter les enregistrements
+              et retrouver le nom des appelants. Batinium ne demande à être prévenu que de
+              deux choses — la fin d’un appel et un SMS reçu.
             </p>
 
             {installation && (
@@ -421,6 +454,47 @@ npx supabase functions deploy allo-webhook --no-verify-jwt`}</pre>
             )}
           </div>
 
+          <div>
+            <h3 style={{ marginBottom: 6 }}>4. Les noms des appelants</h3>
+            <p className="statut" style={{ marginBottom: 8 }}>
+              Allô n’envoie que le numéro de l’appelant, jamais son nom. Batinium le cherche
+              d’abord dans vos fiches clients, quelle que soit la façon dont le numéro y a
+              été tapé ; sinon dans vos contacts Allô. Pour ces derniers, la clé enregistrée
+              doit porter le droit <code>CRM_READ</code>.
+            </p>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+              <button className="action discret" disabled={travail}
+                      onClick={() => void verifierCle()}>
+                Vérifier la clé enregistrée
+              </button>
+              {droits && <span className="statut">{libelleDroits(droits)}</span>}
+            </div>
+            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+              <input type="password" value={nouvelleCle} autoComplete="off"
+                     placeholder="Remplacer par une autre clé d’API Allô" style={{ flex: 1 }}
+                     onChange={(e) => setNouvelleCle(e.target.value)} />
+              <button className="action discret" disabled={travail || !nouvelleCle.trim()}
+                      onClick={() => void enregistrerCle()}>
+                Enregistrer la clé
+              </button>
+            </div>
+            <p className="statut" style={{ margin: '12px 0 8px' }}>
+              Les appels arrivés avant ce réglage restent sans nom tant qu’on ne les a pas
+              cherchés. Un nom saisi à la main n’est jamais remplacé.
+            </p>
+            <button className="action" disabled={travail} onClick={() => void chercherNoms()}>
+              {travail ? 'Recherche en cours…' : 'Retrouver les noms des appels reçus'}
+            </button>
+
+            {retourNoms && (
+              <div style={{ marginTop: 10, padding: 10,
+                            background: retourNoms.ok ? 'var(--bleu-pale)' : '#fdf3f2',
+                            borderLeft: `3px solid ${retourNoms.ok ? 'var(--vert)' : 'var(--alerte)'}` }}>
+                <p className="statut" style={{ margin: 0 }}>{retourNoms.texte}</p>
+              </div>
+            )}
+          </div>
+
           <div style={{ borderTop: '1px solid var(--filet)', paddingTop: 12 }}>
             <p className="statut" style={{ marginBottom: 8 }}>
               Si cette adresse a circulé par courriel ou dans une capture d’écran,
@@ -451,6 +525,15 @@ npx supabase functions deploy allo-webhook --no-verify-jwt`}</pre>
       )}
     </div>
   );
+}
+
+/** Ce que la clé Allô enregistrée permet, d'après Allô lui-même. */
+function libelleDroits(d: DroitsAllo): string {
+  if (d.cle === 'aucune') return 'Aucune clé enregistrée.';
+  if (!d.scopes.length) return 'Clé reconnue par Allô.';
+  return `Clé reconnue par Allô. Droits : ${d.scopes.join(', ')}.`
+    + (d.scopes.includes('CRM_READ') ? ''
+      : ' Il manque CRM_READ : les noms ne peuvent pas être cherchés dans vos contacts Allô.');
 }
 
 // --- Assistant IA -----------------------------------------------------------

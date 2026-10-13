@@ -5,14 +5,23 @@ import {
   enregistrerTiers, fusionnerDemandes, listerDemandes, listerDevis, marquerRepondu,
   supprimerDemande, type DemandeAvecTiers, type DevisAvecTiers,
 } from '../lib/db';
-import { voitLesPrix } from '../lib/session';
+import { estDirection, voitLesPrix } from '../lib/session';
 import type { Demande } from '../lib/types';
 import Modale from '../components/Modale';
 import Bulle from '../components/Bulle';
 import Dictee from '../components/Dictee';
 import { IANonConfiguree } from '../lib/ia';
 import { creerBrouillonDicte, lireDictee, type PropositionDevis } from '../lib/devisDicte';
-import { audioDemande } from '../lib/connecteurs';
+import { audioDemande, compteRenduNoms, retrouverNomsAllo } from '../lib/connecteurs';
+
+/**
+ * Le nom à afficher : celui de la demande, sinon celui de la fiche client.
+ *
+ * Un appel d'un client connu arrive sans nom — Allô n'envoie que le numéro —
+ * mais rattaché à sa fiche. Le nom y est déjà : on le lit, on ne le recopie
+ * pas, et il suit la fiche si elle est corrigée.
+ */
+const nomDe = (d: DemandeAvecTiers): string | null => d.nom?.trim() || d.tiers?.nom || null;
 
 const STATUTS: Record<Demande['statut'], string> = {
   nouvelle: 'Nouvelle', a_rappeler: 'À rappeler', qualifiee: 'Qualifiée',
@@ -32,6 +41,8 @@ export default function PageDemandes() {
   const [edition, setEdition] = useState<DemandeAvecTiers | null>(null);
   const [aDeviser, setADeviser] = useState<DemandeAvecTiers | null>(null);
   const [modeles, setModeles] = useState<DevisAvecTiers[]>([]);
+  const [chercheNoms, setChercheNoms] = useState(false);
+  const [retourNoms, setRetourNoms] = useState<string | null>(null);
 
   const recharger = useCallback(async () => {
     try { setDemandes(await listerDemandes()); }
@@ -67,6 +78,15 @@ export default function PageDemandes() {
       document.removeEventListener('visibilitychange', rafraichir);
     };
   }, [recharger]);
+
+  async function chercherNoms() {
+    setChercheNoms(true); setRetourNoms(null);
+    try {
+      setRetourNoms(compteRenduNoms(await retrouverNomsAllo()));
+      await recharger();
+    } catch (e) { setErreur((e as Error).message); }
+    setChercheNoms(false);
+  }
 
   async function basculerRepondu(d: DemandeAvecTiers) {
     setDemandes((p) => p.map((x) => (x.id === d.id ? { ...x, repondu: !x.repondu } : x)));
@@ -162,8 +182,13 @@ export default function PageDemandes() {
       return d.statut !== 'devisee';
     })
     .filter((d) => !q ||
-      `${d.nom ?? ''} ${d.telephone ?? ''} ${d.email ?? ''} ${d.besoin ?? ''} ${d.adresse ?? ''} ${d.resume ?? ''}`
+      `${nomDe(d) ?? ''} ${d.telephone ?? ''} ${d.email ?? ''} ${d.besoin ?? ''} ${d.adresse ?? ''} ${d.resume ?? ''}`
         .toLowerCase().includes(q));
+  // Les appels qu'une recherche chez Allô pourrait nommer : sans nom, et sans
+  // client dont on lirait le sien. Mêmes critères que le serveur, pour que le
+  // compte affiché sur le bouton soit celui qu'il traitera.
+  const sansNom = demandes.filter((d) =>
+    d.source === 'allo' && d.nom == null && !d.tiers_id && d.telephone).length;
 
   return (
     <>
@@ -182,11 +207,25 @@ export default function PageDemandes() {
               Fusionner les deux
             </button>
           )}
+          {estDirection() && sansNom > 0 && (
+            <button className="action discret" disabled={chercheNoms}
+                    onClick={() => void chercherNoms()}
+                    title="Cherche le nom de ces appelants dans vos contacts Allô">
+              {chercheNoms ? 'Recherche des noms…' : `Retrouver les noms (${sansNom})`}
+            </button>
+          )}
           <button className="action" onClick={() => setSaisie(true)}>Noter un appel</button>
         </div>
       </div>
 
       {erreur && <div className="erreur">{erreur}</div>}
+      {retourNoms && (
+        <div className="panneau" style={{ display: 'flex', gap: 12, alignItems: 'center',
+                                          borderLeft: '3px solid var(--bleu)' }}>
+          <span style={{ flex: 1 }}>{retourNoms}</span>
+          <button className="action discret" onClick={() => setRetourNoms(null)}>Fermer</button>
+        </div>
+      )}
 
       {saisie && (
         <Saisie onAnnuler={() => setSaisie(false)} onErreur={setErreur}
@@ -194,7 +233,7 @@ export default function PageDemandes() {
       )}
 
       {edition && (
-        <Modale titre={`Modifier la demande${edition.nom ? ` de ${edition.nom}` : ''}`}
+        <Modale titre={`Modifier la demande${nomDe(edition) ? ` de ${nomDe(edition)}` : ''}`}
                 taille="large" onFermer={() => setEdition(null)}>
           {/* On retire les objets joints avant de passer au formulaire : `tiers`
               vient d'une jointure, ce n'est pas une colonne de `demande`, et
@@ -207,7 +246,7 @@ export default function PageDemandes() {
       )}
 
       {aDeviser && (
-        <Modale titre={`Devis pour ${aDeviser.nom ?? aDeviser.telephone ?? 'ce client'}`}
+        <Modale titre={`Devis pour ${nomDe(aDeviser) ?? aDeviser.telephone ?? 'ce client'}`}
                 taille="large" onFermer={() => setADeviser(null)}>
           <p className="statut" style={{ marginBottom: 12 }}>
             Repartir d’un devis déjà fait est presque toujours plus rapide que de tout
@@ -303,13 +342,13 @@ export default function PageDemandes() {
                     <input type="checkbox" style={{ width: 'auto' }}
                            checked={selection.includes(d.id)}
                            onChange={() => basculerSelection(d.id)}
-                           aria-label={`Sélectionner ${d.nom ?? 'cette demande'} pour la fusionner`}
+                           aria-label={`Sélectionner ${nomDe(d) ?? 'cette demande'} pour la fusionner`}
                            title="Sélectionner pour fusionner" />
                   </td>
                   <td style={{ textAlign: 'center' }}>
                     <input type="checkbox" checked={d.repondu} style={{ width: 'auto' }}
                            onChange={() => void basculerRepondu(d)}
-                           aria-label={`Marquer la demande de ${d.nom ?? 'ce client'} comme traitée`}
+                           aria-label={`Marquer la demande de ${nomDe(d) ?? 'ce client'} comme traitée`}
                            title="Marquer comme traité" />
                   </td>
                   <td className="num ref">
@@ -321,8 +360,8 @@ export default function PageDemandes() {
                       mégarde partait en base sans que personne le voie. On
                       modifie maintenant par un geste voulu, dans une fenêtre. */}
                   <td>
-                    {d.nom
-                      ? <strong>{d.nom}</strong>
+                    {nomDe(d)
+                      ? <strong>{nomDe(d)}</strong>
                       : <span className="statut">sans nom</span>}
                   </td>
                   <td className="ref">
@@ -376,7 +415,7 @@ export default function PageDemandes() {
         </table>
       )}
       {dicter && (
-        <Modale titre={`Devis pour ${dicter.nom ?? 'cette demande'}`} taille="large"
+        <Modale titre={`Devis pour ${nomDe(dicter) ?? 'cette demande'}`} taille="large"
                 onFermer={() => setDicter(null)}>
           <DevisDepuisDemande demande={dicter} onErreur={setErreur}
                               onCree={(id) => {
