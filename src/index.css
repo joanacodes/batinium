@@ -13,6 +13,20 @@
   --alerte:     #b4443a;
   --vert:       #2f6f4f;
 
+  /* Le rail est le seul aplat foncé de l'application : il porte la marque et
+     sépare la navigation du travail. Tout ce qui s'y lit est donc clair sur
+     foncé. Le bleu du rail est celui de la palette assombri, parce que le bleu
+     de la palette sous du texte blanc tombait sous le contraste AA ; et
+     l'accent de l'entrée active est un bleu ciel, parce que --bleu posé sur
+     ce fond ne se verrait pas. */
+  --rail-fond:    #164e7e;
+  --rail-texte:   rgba(255, 255, 255, .85);
+  --rail-pale:    rgba(255, 255, 255, .66);
+  --rail-survol:  rgba(255, 255, 255, .08);
+  --rail-actif:   rgba(255, 255, 255, .15);
+  --rail-filet:   rgba(255, 255, 255, .16);
+  --rail-accent:  #8fc3ee;
+
   --pas: 8px;
   --texte: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
@@ -578,8 +592,9 @@ details.fiche summary { color: var(--bleu); }
   flex: 0 0 214px;
   display: flex;
   flex-direction: column;
-  background: var(--surface);
-  border-right: 1px solid var(--filet);
+  background: var(--rail-fond);
+  border-right: 1px solid var(--rail-fond);
+  color: var(--rail-texte);
   position: sticky;
   top: 0;
   height: 100vh;
@@ -594,37 +609,40 @@ details.fiche summary { color: var(--bleu); }
   justify-content: space-between;
   gap: 8px;
   padding: 11px 12px;
-  border-bottom: 1px solid var(--filet);
+  border-bottom: 1px solid var(--rail-filet);
   min-height: 52px;
 }
+.rail .marque { color: #fff; }
+.rail .marque em { color: var(--rail-accent); }
 
 .rail-bascule {
   border: 0; background: none; cursor: pointer; padding: 4px;
-  color: var(--encre-pale); line-height: 0; border-radius: 3px;
+  color: var(--rail-texte); line-height: 0; border-radius: 3px;
 }
-.rail-bascule:hover { background: var(--papier); color: var(--encre); }
+.rail-bascule:hover { background: var(--rail-survol); color: #fff; }
 
 .rail-corps { flex: 1; overflow-y: auto; padding: 6px 0 14px; }
 
 .rail-groupe {
   font-size: 11px;
-  color: var(--encre-pale);
+  color: var(--rail-pale);
   padding: 12px 14px 4px;
 }
 
-.rail-trait { height: 1px; background: var(--filet); margin: 7px 10px; }
+.rail-trait { height: 1px; background: var(--rail-filet); margin: 7px 10px; }
 
 .rail-ligne {
   display: flex;
   align-items: stretch;
   border-left: 3px solid transparent;
 }
-.rail-ligne:hover { background: var(--papier); }
+.rail-ligne:hover { background: var(--rail-survol); }
+.rail-ligne:hover .rail-lien { color: #fff; }
 .rail-ligne[data-actif='oui'] {
-  border-left-color: var(--bleu);
-  background: var(--bleu-pale);
+  border-left-color: var(--rail-accent);
+  background: var(--rail-actif);
 }
-.rail-ligne[data-actif='oui'] .rail-lien { color: var(--encre); }
+.rail-ligne[data-actif='oui'] .rail-lien { color: #fff; }
 
 .rail-lien {
   display: flex;
@@ -636,7 +654,7 @@ details.fiche summary { color: var(--bleu); }
   background: none;
   font: inherit;
   text-align: left;
-  color: var(--encre-pale);
+  color: var(--rail-texte);
   padding: 8px 12px;
   cursor: pointer;
 }
@@ -645,9 +663,9 @@ details.fiche summary { color: var(--bleu); }
 
 .rail-chevron {
   border: 0; background: none; cursor: pointer;
-  color: var(--encre-pale); padding: 0 10px; line-height: 0;
+  color: var(--rail-texte); padding: 0 10px; line-height: 0;
 }
-.rail-chevron:hover { color: var(--encre); }
+.rail-chevron:hover { color: #fff; }
 
 .rail-enfants { padding: 2px 0 6px; }
 .rail-enfants button {
@@ -659,21 +677,25 @@ details.fiche summary { color: var(--bleu); }
   font: inherit;
   cursor: pointer;
   padding: 5px 12px 5px 40px;
-  color: var(--encre-pale);
+  color: var(--rail-texte);
   border-left: 3px solid transparent;
 }
-.rail-enfants button:hover { background: var(--papier); color: var(--encre); }
+.rail-enfants button:hover { background: var(--rail-survol); color: #fff; }
 .rail-enfants button[data-actif='oui'] {
-  color: var(--encre); border-left-color: var(--bleu); background: var(--bleu-pale);
+  color: #fff; border-left-color: var(--rail-accent); background: var(--rail-actif);
 }
 .rail-num { display: block; font-size: 12px; font-variant-numeric: tabular-nums; }
 .rail-detail {
   display: block; font-size: 11px; opacity: .75;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.rail-vide { padding: 5px 12px 5px 40px; font-size: 12px; color: var(--encre-pale); }
+.rail-vide { padding: 5px 12px 5px 40px; font-size: 12px; color: var(--rail-pale); }
 
-.rail-pied { border-top: 1px solid var(--filet); padding: 10px 14px; }
+.rail-pied { border-top: 1px solid var(--rail-filet); padding: 10px 14px; }
+.rail-pied .statut { color: var(--rail-pale); }
+/* Le contour de focus général est --bleu : sur le fond du rail, il
+   disparaîtrait et la navigation au clavier perdrait sa position. */
+.rail button:focus-visible { outline-color: var(--rail-accent); }
 
 .app[data-replie='oui'] .rail-lien { justify-content: center; padding: 10px 0; }
 .app[data-replie='oui'] .rail-pied { display: none; }
@@ -720,12 +742,12 @@ details.fiche summary { color: var(--bleu); }
   .rail {
     width: 100% !important; flex-basis: auto !important;
     height: auto; position: static;
-    border-right: 0; border-bottom: 1px solid var(--filet);
+    border-right: 0; border-bottom: 1px solid var(--rail-filet);
   }
   .rail-corps { display: flex; flex-wrap: wrap; padding: 4px; }
   .rail-groupe, .rail-trait, .rail-pied, .rail-enfants { display: none; }
   .rail-ligne { border-left: 0; border-bottom: 2px solid transparent; }
-  .rail-ligne[data-actif='oui'] { border-left: 0; border-bottom-color: var(--bleu); }
+  .rail-ligne[data-actif='oui'] { border-left: 0; border-bottom-color: var(--rail-accent); }
   .rail-chevron { display: none; }
 }
 
@@ -1121,7 +1143,7 @@ tr.brouillon:hover td { background: #fdf7ee; }
     transform: translateX(-100%);
     transition: transform .22s ease;
     box-shadow: 0 0 40px rgba(22, 32, 43, .2);
-    border-right: 1px solid var(--filet);
+    border-right: 1px solid var(--rail-fond);
   }
   .app[data-menu='ouvert'] .rail { transform: translateX(0); }
 
@@ -1130,7 +1152,10 @@ tr.brouillon:hover td { background: #fdf7ee; }
   .rail-corps { display: block; padding: 6px 0 24px; }
   .rail-groupe, .rail-trait, .rail-pied, .rail-enfants { display: revert; }
   .rail-ligne { border-left: 3px solid transparent; border-bottom: 0; }
-  .rail-ligne[data-actif='oui'] { border-left-color: var(--bleu); border-bottom: 0; }
+  /* La largeur aussi, pas seulement la couleur : le bandeau du bloc 900 px
+     plus haut a mis ce bord à 0, et sa règle est plus précise que celle qui
+     le rétablit juste au-dessus. */
+  .rail-ligne[data-actif='oui'] { border-left: 3px solid var(--rail-accent); border-bottom: 0; }
   .rail-lien { padding: 12px 14px; }
   .rail-chevron { display: revert; padding: 0 14px; }
   .app[data-replie='oui'] .rail-lien { justify-content: flex-start; padding: 12px 14px; }
