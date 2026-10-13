@@ -62,7 +62,16 @@ fluides sans jamais reculer (compteur par entreprise, type et année).
 ### Les scripts SQL
 
 Dossier `sql/`, numérotés, rejouables, autovérifiés. **Exécutés sur Supabase :
-01 à 31.** Livrés mais **pas encore exécutés : 32 et 33** (phase 1).
+01 à 31.** Livrés, corrigés le 13 octobre, mais **pas encore exécutés : 32 et
+33** (phase 1).
+
+Depuis le 13 octobre, `sql/` contient 01 à 03 et 12 à 33, plus
+`essai_achats.sql` : les scripts 12 à 31 ont été reconstitués depuis la
+conversation où ils avaient été livrés, et tous (01 à 33) ont tourné sans
+erreur, vérifications comprises, sur une base Postgres 16 locale où les
+tables des scripts 04 à 11 ont été reconstituées d'après `src/lib/types.ts`.
+Ce n'est pas une exécution sur Supabase : c'est la preuve que les scripts se
+tiennent entre eux.
 
 | Script | Ce qu'il fait |
 |---|---|
@@ -88,8 +97,8 @@ Dossier `sql/`, numérotés, rejouables, autovérifiés. **Exécutés sur Supaba
 | 29 | Le matériel de chantier passe par les achats (contrainte + reprise) |
 | 30 | Connecteurs : jetons et secrets en base |
 | 31 | IA partagée : plafond mensuel par entreprise, `consommation_ia()` |
-| **32** | **Machines : référentiel des fluides, tonnage CO2, fréquence de contrôle, photo de plaque** — à exécuter |
-| **33** | **Fiche fluides Cerfa : table, numérotation `FF-AAAA-NNNN`, autocontrôles, immuabilité, rectification** — à exécuter |
+| **32** | **Machines : référentiel des fluides (PRP du règlement 2024/573, famille), tonnage CO2, fréquence de contrôle par famille, photo de plaque** — à exécuter |
+| **33** | **Fiche fluides Cerfa : table, numérotation `FF-AAAA-NNNN` par `prochain_numero_fiche()`, autocontrôles, signature du client selon le seuil, immuabilité, rectification** — à exécuter |
 
 Fichiers d'essai : `essai_achats.sql` (jeu de factures fournisseurs, se
 retire par `delete from achat where numero like 'ESSAI-%'`).
@@ -254,18 +263,48 @@ leur prix, leur unité et leur TVA ; les autres restent à zéro.
 | `INSTALLATION.md` | Installation des services extérieurs (stockage, IA, Allô, Google, hébergement) |
 | `GOOGLE.md` | Configuration OAuth Google, pas à pas |
 | `PLAN-FLUIDES-COMMANDES-PLANNING.md` | Cahier des charges des douze modules à venir, sept phases, points légaux, questions à Fabrice |
-| `PROMPT-PHASE-1.md` … `PROMPT-PHASE-5.md` | Un prompt détaillé par phase |
-| `INTEGRATION-PHASE-1.md` | Les dix modifications de fichiers existants pour brancher la phase 1 |
+| `PROMPT-PHASE-1.md` … `PROMPT-PHASE-5.md` | Un prompt détaillé par phase — **pas encore dans le dépôt**, à y ajouter |
+| `INTEGRATION-PHASE-1.md` | Les dix modifications de fichiers existants pour brancher la phase 1 — **appliquées** le 13 octobre |
+
+Le dépôt Git est `joanacodes/batinium`. Il a été constitué le 13 octobre depuis
+l'archive Batinium (5) du 9 septembre, dont le code est identique octet pour
+octet à celui de la fin du lot 37 ; `.env.local` n'y est pas et ne doit pas y
+être.
 
 ---
 
 ## 5. Où le travail s'est arrêté
 
-### Phase 1 — livrée, à intégrer
+### Phase 1 — intégrée et corrigée le 13 octobre, SQL à exécuter
 
-Le registre des machines et la fiche Cerfa 15497*04 sont codés, compilés et
-testés sur une base locale reconstituée depuis les scripts 01 à 21. Pas
-encore sur Supabase.
+Le registre des machines et la fiche Cerfa 15497*04 sont dans le dépôt : la
+version livrée (commit « Phase 1 … version livrée »), puis ses corrections
+(commit « Fiche fluides : corrections… »). `tsc -b`, `vite build` et `oxlint`
+passent. Les SQL 32 et 33 corrigés tournent, vérifications comprises, sur la
+base locale reconstituée — à neuf, en rejeu, et par-dessus la version livrée.
+
+**À faire sur Supabase, dans cet ordre** : exécuter `sql/32_machines.sql`,
+puis `sql/33_fiche_fluide.sql` (les versions du dépôt, pas celles de la
+livraison du 4 octobre), redéployer `ia`, remplir la catégorie de
+l'attestation dans Entreprise.
+
+Ce que les corrections ont changé, et pourquoi :
+
+- **La numérotation des devis, chantiers et factures était menacée.** Le SQL
+  33 livré redéfinissait `prochain_numero` depuis sa version du SQL 01, sans
+  les préfixes ni le format réglés dans Entreprise. Les fiches ont désormais
+  leur propre `prochain_numero_fiche()`. Si le SQL 33 livré a été exécuté
+  quelque part, `prochain_numero` y a été écrasé et doit être restauré.
+- **Les autocontrôles en base plantaient** (« malformed array literal ») au
+  lieu de dire ce qui manque ; la vérification livrée ne passait que par
+  accident.
+- **Les chiffres du Cerfa** : PRP du règlement (UE) 2024/573 (R454B 465,
+  R290 0,02) ; fréquence de contrôle par famille de fluide (HFC en t éq. CO2,
+  HCFC et HFO en kg) ; lettres A + B + C chargé et D + E récupéré ;
+  signature du client exigée seulement au-delà de 3 kg de HCFC ou 5 t éq. CO2
+  de HFC, facultative en dessous ; qualité des signataires, fluide chargé si
+  changement, dénomination ADR du déchet, phrase d'attestation et pied de
+  page officiels.
 
 **Fichiers nouveaux**, à déposer tels quels :
 
@@ -286,14 +325,15 @@ Ce que fait la phase 1 : à la signature d'un devis, une machine par unité
 vendue ; sur place, photo de la plaque et numéro de série (la plaque fait
 foi, lecture IA en simple proposition) ; fiche Cerfa préremplie par la base,
 sept autocontrôles visibles, signature au doigt du technicien (numéro
-`FF-2026-0001`, fiche figée) puis du client, impression, fiche rectificative,
+`FF-2026-0001`, fiche figée) puis du client quand la charge l'exige
+(facultative en dessous du seuil), impression, fiche rectificative,
 alertes (relevé en retard, signature client manquante, brouillon sur
 intervention terminée, contrôle d'étanchéité à échéance).
 
 **Pour tester** : signer un devis avec des machines → section Machines « à
 relever » → fiche machine, photo, numéro → « vérifiée » → Fiche fluides →
-autocontrôles au vert → signer → numéro → faire signer le client → imprimer
-→ rectifier.
+autocontrôles au vert → signer → numéro → faire signer le client (exigé
+au-delà du seuil, facultatif en dessous) → imprimer → rectifier.
 
 ### Phases 2 à 5 — prompts écrits, rien de codé
 
@@ -321,11 +361,32 @@ prérequis et dit de s'arrêter s'ils manquent.
 8. Une explication des achats, promise et pas encore donnée : comment la
    contrainte du SQL 29 (matériel de chantier → achats) joue avec sa
    comptabilité.
+9. Ajoutées le 13 octobre, après lecture de ses documents :
+   - **multi-splits** : une fiche par circuit frigorifique (groupe extérieur
+     et ses unités intérieures) ? La charge et le seuil de contrôle sont ceux
+     du circuit ; « une machine par unité vendue » les multiplierait ;
+   - **préfixe des fiches** : `FF` (actuel) ou `FI` ? Les bordereaux
+     Trackdéchets portent `FF-AAAAMMJJ-…` sur la même fiche ;
+   - **son attestation de capacité** : « valable jusqu'au 06/09/2031 » est
+     douteux — une attestation délivrée après le 12 mars 2024 sous les
+     anciennes catégories serait limitée au 12 mars 2029, et les catégories
+     changent au 1er janvier 2027 ;
+   - **numérotation des devis** : ses numéros repartent à 0001 chaque mois
+     (DEV-2026/09-0001), Batinium compte à l'année ;
+   - **bons de commande** : BC-20260930-0063 reprend le numéro du devis
+     DEV-2026/09-0063. Est-ce la règle ?
+   - **Allô** : son forfait (l'historique des appels n'est visible que
+     30 jours sur le forfait Solo) et une clé d'API avec le droit
+     `CONVERSATIONS_READ` pour importer l'historique ;
+   - **ses priorités** : le cahier des charges de 485 pages est un gabarit
+     répété ; il n'en donne aucune.
 
 ---
 
 ## 6. Points de vigilance et dette
 
+- **Réglé le 13 octobre** : le projet est maintenant dans le dépôt Git
+  `joanacodes/batinium`. Ce qui suit est l'historique du problème.
 - **Le dépôt semblait vide le 4 octobre** (seul `.env.local` restait). Non
   élucidé. Vérifier d'abord : dossier emboîté après le renommage
   `Batinium/batinium` → `Batinium` ; `git stash list` ; `git log` ; corbeille.
@@ -355,8 +416,30 @@ prérequis et dit de s'arrêter s'ils manquent.
   des PDF dans la bibliothèque attend une génération côté serveur.
 - Les textes légaux de signature hors établissement (phase 3) sont
   provisoires et **doivent être validés par un juriste** avant usage.
-- Les PRP des fluides (SQL 32) sont ceux cités par le client, **à confirmer**
-  contre le règlement (UE) 2024/573.
+- Les PRP des fluides (SQL 32) sont désormais ceux du règlement (UE)
+  2024/573, vérifiés sur son texte (annexes I, II et VI) le 13 octobre.
+
+Relevés le 13 octobre dans le code du lot 37, à traiter :
+
+- **Les droits ne sont tenus qu'en partie par la base.** Dans le SQL 01, tout
+  membre lit et écrit `produit` (prix d'achat et de vente compris), `tiers`,
+  `demande` (transcriptions d'appel), `chantier`, `intervention` : un
+  technicien voit tout, pas « ses chantiers », et peut supprimer un chantier
+  avec ses interventions. Un script 04 à 11 a pu le resserrer : à vérifier
+  avec un compte technicien.
+- **Une entreprise nouvelle hérite des coordonnées de Pilotech** : SIRET, TVA,
+  e-mail et IBAN sont les valeurs par défaut de `parametres` (SQL 01), et
+  `creer_entreprise()` ne pose que le nom. À corriger avant toute revente.
+- **`localStorage` et `sessionStorage` sont utilisés**, contre la règle 9 :
+  menu replié (`App.tsx`), jeton Google (`session.ts`).
+- « Ouvrir le chantier » sur un devis signé crée un nouveau chantier à chaque
+  clic (`chantierDepuisDevis`), et la liste des devis passe un devis en
+  « Signé » sans la chaîne de signature.
+- La signature d'un devis propose un acompte de 30 % quand ses devis
+  impriment 50 / 30 / 20.
+- Webhook Allô : la référence gardée est le `webhook-id` de la livraison et
+  non l'identifiant de l'appel ; une livraison rejouée remet la demande à
+  « nouvelle » ; le texte des SMS reçus est perdu.
 
 ---
 
