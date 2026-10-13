@@ -62,9 +62,9 @@ fluides sans jamais reculer (compteur par entreprise, type et année).
 ### Les scripts SQL
 
 Dossier `sql/`, numérotés, rejouables, autovérifiés. **Exécutés sur Supabase :
-01 à 31.** Livrés, corrigés le 13 octobre, mais **pas encore exécutés : 32 et
-33** (phase 1) **et 34** (appels rattachés à leur client, indépendant des deux
-autres).
+01 à 31.** **À exécuter : 34** (appels rattachés à leur client, indépendant de
+32 et 33). **À ne pas exécuter encore : 32 et 33** (phase 1) — la revue du
+13 octobre y a trouvé des défauts bloquants, voir `REVUE-PHASE-1.md`.
 
 Depuis le 13 octobre, `sql/` contient 01 à 03 et 12 à 34, plus
 `essai_achats.sql` : les scripts 12 à 31 ont été reconstitués depuis la
@@ -98,8 +98,8 @@ tiennent entre eux.
 | 29 | Le matériel de chantier passe par les achats (contrainte + reprise) |
 | 30 | Connecteurs : jetons et secrets en base |
 | 31 | IA partagée : plafond mensuel par entreprise, `consommation_ia()` |
-| **32** | **Machines : référentiel des fluides (PRP du règlement 2024/573, famille), tonnage CO2, fréquence de contrôle par famille, photo de plaque** — à exécuter |
-| **33** | **Fiche fluides Cerfa : table, numérotation `FF-AAAA-NNNN` par `prochain_numero_fiche()`, autocontrôles, signature du client selon le seuil, immuabilité, rectification** — à exécuter |
+| **32** | **Machines : référentiel des fluides (PRP du règlement 2024/573, famille), tonnage CO2, fréquence de contrôle par famille, photo de plaque** — en attente des corrections de la revue |
+| **33** | **Fiche fluides Cerfa : table, numérotation `FF-AAAA-NNNN` par `prochain_numero_fiche()`, autocontrôles, signature du client selon le seuil, immuabilité, rectification** — en attente des corrections de la revue |
 | **34** | **Appels et clients : `normaliser_telephone()`, `tiers_par_telephone()`, rattachement des demandes à l'arrivée et quand une fiche client prend leur numéro, reprise des appels déjà reçus** — à exécuter, indépendant de 32 et 33 |
 
 Fichiers d'essai : `essai_achats.sql` (jeu de factures fournisseurs, se
@@ -271,6 +271,7 @@ leur prix, leur unité et leur TVA ; les autres restent à zéro.
 | `PLAN-FLUIDES-COMMANDES-PLANNING.md` | Cahier des charges des douze modules à venir, sept phases, points légaux, questions à Fabrice |
 | `PROMPT-PHASE-1.md` … `PROMPT-PHASE-5.md` | Un prompt détaillé par phase — **pas encore dans le dépôt**, à y ajouter |
 | `INTEGRATION-PHASE-1.md` | Les dix modifications de fichiers existants pour brancher la phase 1 — **appliquées** le 13 octobre |
+| `REVUE-PHASE-1.md` | Revue de la phase 1 du 13 octobre : défauts confirmés, correctifs, décisions à prendre avec Fabrice |
 
 Le dépôt Git est `joanacodes/batinium`. Il a été constitué le 13 octobre depuis
 l'archive Batinium (5) du 9 septembre, dont le code est identique octet pour
@@ -299,7 +300,7 @@ Ce qui reste sans nom après cela : les numéros que ni les fiches clients ni
 les contacts Allô ne connaissent. Les clients créés autrefois depuis un appel
 sans nom portent son numéro comme nom : à renommer dans leur fiche.
 
-### Phase 1 — intégrée et corrigée le 13 octobre, SQL à exécuter
+### Phase 1 — intégrée, revue le 13 octobre, à corriger avant toute exécution
 
 Le registre des machines et la fiche Cerfa 15497*04 sont dans le dépôt : la
 version livrée (commit « Phase 1 … version livrée »), puis ses corrections
@@ -307,10 +308,19 @@ version livrée (commit « Phase 1 … version livrée »), puis ses corrections
 passent. Les SQL 32 et 33 corrigés tournent, vérifications comprises, sur la
 base locale reconstituée — à neuf, en rejeu, et par-dessus la version livrée.
 
-**À faire sur Supabase, dans cet ordre** : exécuter `sql/32_machines.sql`,
-puis `sql/33_fiche_fluide.sql` (les versions du dépôt, pas celles de la
-livraison du 4 octobre), redéployer `ia`, remplir la catégorie de
-l'attestation dans Entreprise.
+**Ne pas exécuter les SQL 32 et 33 sur Supabase pour l'instant.** Une revue
+contradictoire des deux commits (quatre relecteurs, chaque constat rejoué sur
+la base locale) a confirmé des défauts qui bloquent le parcours ou percent la
+sécurité : un technicien ne peut pas signer depuis l'écran, une fiche se fige
+sans fluide ni charge, le R134a n'est jamais reconnu, les images de
+signature restent modifiables après la signature, et deux fonctions
+`security definer` lisent les données d'une autre entreprise. Liste
+complète, correctifs et décisions à prendre : `REVUE-PHASE-1.md`.
+
+Une fois les sections 1 et 2 de la revue corrigées : exécuter
+`sql/32_machines.sql`, puis `sql/33_fiche_fluide.sql` (les versions du dépôt,
+pas celles de la livraison du 4 octobre), redéployer `ia`, remplir la
+catégorie de l'attestation dans Entreprise.
 
 Ce que les corrections ont changé, et pourquoi :
 
