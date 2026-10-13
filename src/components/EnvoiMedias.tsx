@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { noterAuJournal } from '../lib/db';
+import { libelleEnvoi, noterAuJournal } from '../lib/db';
 import Modale from './Modale';
 import Dictee from './Dictee';
 import ChoixMedias from './ChoixMedias';
@@ -17,6 +17,7 @@ export default function EnvoiMedias({ chantierId, tiersId, titre, onFermer, onEn
   const [texte, setTexte] = useState('');
   const [fichiers, setFichiers] = useState<File[]>([]);
   const [envoi, setEnvoi] = useState(false);
+  const [part, setPart] = useState<number | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
 
   async function envoyer() {
@@ -26,11 +27,12 @@ export default function EnvoiMedias({ chantierId, tiersId, titre, onFermer, onEn
     }
     setEnvoi(true); setErreur(null);
     try {
-      await noterAuJournal({ chantierId, tiersId, texte, fichiers });
+      await noterAuJournal({ chantierId, tiersId, texte, fichiers, onProgression: setPart });
       onEnvoye();
     } catch (e) {
       setErreur((e as Error).message);
       setEnvoi(false);
+      setPart(null);
     }
   }
 
@@ -50,7 +52,7 @@ export default function EnvoiMedias({ chantierId, tiersId, titre, onFermer, onEn
       </div>
       <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
         <button className="action" disabled={envoi} onClick={() => void envoyer()}>
-          {envoi ? 'Envoi…' : 'Envoyer au journal du chantier'}
+          {envoi ? libelleEnvoi(fichiers.length ? part : null) : 'Envoyer au journal du chantier'}
         </button>
         <button className="action discret" disabled={envoi} onClick={onFermer}>Annuler</button>
       </div>

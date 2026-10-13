@@ -41,10 +41,15 @@ $$;
 -- chemin exact.
 -- -----------------------------------------------------------------------------
 
+-- 50 Mo à la création. Rejoué plus tard, ce script ne baisse jamais la limite :
+-- le SQL 39 la porte à 500 Mo pour les vidéos, et la ramener à 50 casserait
+-- l'envoi des vidéos sans que rien ne le signale avant le premier refus.
 insert into storage.buckets (id, name, public, file_size_limit)
 values ('documents', 'documents', false, 52428800)
 on conflict (id) do update
-  set public = false, file_size_limit = excluded.file_size_limit;
+  set public = false,
+      file_size_limit = greatest(coalesce(storage.buckets.file_size_limit, 0),
+                                 excluded.file_size_limit);
 
 do $$
 declare p text;

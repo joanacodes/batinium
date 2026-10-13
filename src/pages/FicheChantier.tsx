@@ -3,7 +3,7 @@ import { aller } from '../lib/router';
 import {
   chargerChantier, clePrealable, enregistrerIntervention,
   enregistrerApprovisionnement, listerApprovisionnement, listerDemandes, listerDocuments,
-  listerPrealables, noterAuJournal, prealablesDu, supprimerApprovisionnement,
+  libelleEnvoi, listerPrealables, noterAuJournal, prealablesDu, supprimerApprovisionnement,
   listerFil, listerInterventions, listerMembres, listerSites, majChantier,
   prononcerReception, LIBELLE_SUITE, type DemandeAvecTiers,
 } from '../lib/db';
@@ -35,6 +35,7 @@ export default function PageFicheChantier({ chantierId }: { chantierId: string }
   const [pieces, setPieces] = useState<Document[]>([]);
   const [jointes, setJointes] = useState<File[]>([]);
   const [envoi, setEnvoi] = useState(false);
+  const [part, setPart] = useState<number | null>(null);
   const [ajoutPrealable, setAjoutPrealable] = useState('');
   const [appro, setAppro] = useState<Approvisionnement[]>([]);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -102,11 +103,13 @@ export default function PageFicheChantier({ chantierId }: { chantierId: string }
     if (!note.trim() && jointes.length === 0) return;
     setEnvoi(true);
     try {
-      await noterAuJournal({ chantierId, tiersId: c.tiers_id, texte: note, fichiers: jointes });
+      await noterAuJournal({ chantierId, tiersId: c.tiers_id, texte: note, fichiers: jointes,
+                             onProgression: setPart });
       setNote(''); setJointes([]);
       recharger();
     } catch (e) { setErreur((e as Error).message); }
     setEnvoi(false);
+    setPart(null);
   }
 
   async function basculer(cle: string) {
@@ -325,7 +328,7 @@ export default function PageFicheChantier({ chantierId }: { chantierId: string }
                 {jointes.length ? `${jointes.length} fichier(s)` : 'Photos, vidéos'}
               </label>
               <button className="action" disabled={envoi} onClick={() => void noter()}>
-                {envoi ? 'Envoi…' : 'Noter'}
+                {envoi ? libelleEnvoi(jointes.length ? part : null) : 'Noter'}
               </button>
             </div>
             <p className="statut" style={{ marginTop: 6 }}>

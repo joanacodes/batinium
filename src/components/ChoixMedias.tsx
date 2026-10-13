@@ -62,7 +62,7 @@ export default function ChoixMedias({ fichiers, onChange }: {
         </ul>
       )}
       <p className="statut" style={{ marginTop: 6 }}>
-        {limite} Mo au plus par fichier : une vidéo de 20 à 30 secondes, en général.
+        {limite} Mo au plus par fichier : quelques minutes de vidéo, moins en 4K.
       </p>
     </div>
   );

@@ -64,11 +64,12 @@ fluides sans jamais reculer (compteur par entreprise, type et année).
 Dossier `sql/`, numérotés, rejouables, autovérifiés. **Exécutés sur Supabase :
 01 à 31.** **À exécuter : 34 à 38** (appels rattachés à leur client,
 arrivées sur chantier, demandes faites sur place, contrats d'entretien, mode
-démonstration — tous indépendants de 32 et 33). **À ne pas exécuter encore :
+démonstration — tous indépendants de 32 et 33), **puis 39** (vidéos de
+500 Mo) une fois Supabase passé à l'offre Pro. **À ne pas exécuter encore :
 32 et 33** (phase 1) — la revue du 13 octobre y a trouvé des défauts
 bloquants, voir `REVUE-PHASE-1.md`.
 
-Depuis le 13 octobre, `sql/` contient 01 à 03 et 12 à 38, plus
+Depuis le 13 octobre, `sql/` contient 01 à 03 et 12 à 39, plus
 `essai_achats.sql` : les scripts 12 à 31 ont été reconstitués depuis la
 conversation où ils avaient été livrés, et tous (01 à 33) ont tourné sans
 erreur, vérifications comprises, sur une base Postgres 16 locale où les
@@ -107,6 +108,7 @@ tiennent entre eux.
 | **36** | **Demandes faites sur place : `demande.suite` (à facturer, SAV, nouveau devis), `chantier_id`, `intervention_id`, `cree_par`, et `document.demande_id` pour leurs photos** — à exécuter |
 | **37** | **Contrats d'entretien : `contrat_entretien` (réservé à ceux qui voient les prix), échéance qui avance seule à la visite terminée, `membre.preavis_entretien_jours` réglé par chacun** — à exécuter |
 | **38** | **Mode démonstration, temporaire : `membre.apercu_role`, `mon_role()` qui le lit, `entrer_apercu()` / `quitter_apercu()`** — à exécuter, à retirer avant la revente (procédure dans son en-tête) |
+| **39** | **Vidéos : le seau `documents` passe de 50 à 500 Mo par fichier** — à exécuter avec l'offre Pro, après avoir relevé la limite du projet (voir §5) |
 
 Fichiers d'essai : `essai_achats.sql` (jeu de factures fournisseurs, se
 retire par `delete from achat where numero like 'ESSAI-%'`).
@@ -336,11 +338,23 @@ est relevée à l'arrivée et au départ, pourquoi (prouver l'intervention), et
 qu'elle est effacée au bout d'un an. C'est une obligation d'information de
 l'employeur, l'écran ne la remplace pas.
 
-**Vidéos** : 50 Mo au plus par fichier, la limite du seau `documents` (SQL
-13) — vingt à trente secondes de vidéo au téléphone. L'écran le dit avant
-l'envoi. Pour aller au-delà, il faut relever la limite du projet dans
-Supabase (Storage → Settings, possible sur l'offre Pro), celle du seau, et
-la constante `TAILLE_MAXIMALE` de `src/lib/db.ts`.
+**Vidéos** : 500 Mo au plus par fichier depuis le 13 octobre — trois
+minutes en 4K, huit en HD. Fabrice passe Supabase à l'offre Pro pour cela.
+**À faire, dans cet ordre** : passer le projet Supabase à l'offre Pro ;
+Storage → Settings → « Upload file size limit » à 500 MB ; exécuter
+`sql/39_videos_lourdes.sql`. Tant que la limite du projet n'est pas relevée,
+une vidéo de plus de 50 Mo est refusée avec un message qui dit où la
+relever, et rien n'est écrit : ni note, ni demande sans sa vidéo.
+
+Au-delà de 6 Mo, un fichier part **par morceaux de 6 Mo** (envoi
+« reprenable » de Supabase, `src/lib/envoiParMorceaux.ts`) : une coupure de
+réseau ne coûte que le morceau en cours, l'envoi reprend seul pendant trois
+minutes, et le bouton affiche le pourcentage parti. Les photos ordinaires
+partent comme avant, d'un seul tenant. Éprouvé contre le serveur tus de
+référence (celui que Supabase embarque), avec deux coupures provoquées en
+cours d'envoi : fichier reçu identique à l'octet près. Pas encore contre
+Supabase lui-même : le premier envoi d'une vidéo de plus de 6 Mo en est le
+test.
 
 ### Appels sans nom — corrigé le 13 octobre, à déployer
 
@@ -389,6 +403,10 @@ téléphone dézoomait jusqu'à l'illisible (Demandes, brouillon de facture).
 - **L'assistant** ne met plus le curseur dans son champ à l'ouverture sur un
   écran tactile : le clavier s'ouvrait et cachait la moitié de l'écran. Il
   s'ouvre quand on touche le champ. Avec une souris, rien ne change.
+- **Se déconnecter** est dans le menu, sous le nom de la personne connectée.
+  Sur téléphone et tablette (tout écran tactile, et toute fenêtre de moins
+  de 900 px), « Quitter » a quitté la barre du haut. Sur ordinateur, il y
+  est encore, en plus du menu.
 
 Vérifié dans un navigateur simulé : 28 écrans à 320, 360, 390, 768, 834,
 1024 et 1180 px, aucun débordement.
@@ -530,6 +548,12 @@ prérequis et dit de s'arrêter s'ils manquent.
   attestations migrées (`drop table document_vigilance_ancien`).
 - Dette CSS : des `!important` dans le repli mobile, parce que les grilles
   sont en style en ligne dans les pages. À résorber page par page.
+- **Le SQL 13 ne se rejoue plus seul** : il complète `document_vigilance`,
+  que le SQL 15 a renommée, et s'arrête là. Constaté le 13 octobre en
+  éprouvant le 39 ; c'était déjà le cas avant. Ne pas le rejouer.
+- Un envoi de photos interrompu puis relancé depuis le journal ou une
+  demande sur place écrit une seconde note : `noterAuJournal` crée la note
+  avant d'envoyer, et ne sait pas reprendre celle d'un essai précédent.
 - Les cartes reposent sur `:has()` (Safari 15.4, mars 2022). Sur un iPad plus
   ancien, elles restent lisibles mais moins soignées : titre toujours
   au-dessus de la valeur, liste enfermée dans son cadre défilant.

@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   attacherFichier, enregistrerDocument, etatDocument, LIBELLES_DOCUMENT, lienDocument,
-  listerDocuments, listerMembres, majDocument, poids, supprimerDocument, televerserDocument,
-  type CibleDocument,
+  listerDocuments, listerMembres, majDocument, poids, supprimerDocument, TAILLE_MAXIMALE,
+  televerserDocument, type CibleDocument,
 } from '../lib/db';
 import type { Document, Membre, TypeDocument } from '../lib/types';
 
@@ -24,8 +24,6 @@ import type { Document, Membre, TypeDocument } from '../lib/types';
  * attestation URSSAF ou une photo prise chez un particulier ne se retrouve
  * pas indexée quelque part.
  */
-
-const LOURD = 50 * 1024 * 1024;   // la limite posée sur le seau, en SQL 13
 
 const COULEUR = {
   perime: 'var(--alerte)', bientot: '#b8860b',
@@ -52,6 +50,7 @@ export default function PiecesJointes({
   const [docs, setDocs] = useState<Document[]>([]);
   const [charge, setCharge] = useState(false);
   const [envoi, setEnvoi] = useState<string | null>(null);
+  const [part, setPart] = useState<number | null>(null);
   const [apercus, setApercus] = useState<Record<string, string>>({});
   const [membres, setMembres] = useState<Membre[]>([]);
   const [neuf, setNeuf] = useState<Partial<Document>>({ type: types?.[0] ?? 'autre' });
@@ -106,19 +105,23 @@ export default function PiecesJointes({
   async function deposer(fichiers: FileList | null) {
     if (!fichiers?.length) return;
     for (const f of Array.from(fichiers)) {
-      if (f.size > LOURD) {
-        onErreur(`« ${f.name} » dépasse 50 Mo. Pour une vidéo longue, filmez plus court : c’est le geste qui compte, pas la durée.`);
+      if (f.size > TAILLE_MAXIMALE) {
+        onErreur(`« ${f.name} » dépasse ${TAILLE_MAXIMALE / 1048576} Mo. Pour une vidéo longue, `
+          + 'filmez plus court : c’est le geste qui compte, pas la durée.');
         continue;
       }
       setEnvoi(f.name);
+      setPart(null);
       try {
         await televerserDocument(JSON.parse(cleCible) as CibleDocument, f, {
           type: presentation === 'galerie' ? 'photo' : 'autre',
           prise_le: f.lastModified ? new Date(f.lastModified).toISOString() : null,
+          onProgression: (envoye, total) => setPart(envoye / total),
         });
       } catch (e) { onErreur((e as Error).message); }
     }
     setEnvoi(null);
+    setPart(null);
     if (champ.current) champ.current.value = '';
     void recharger();
   }
@@ -174,7 +177,7 @@ export default function PiecesJointes({
     <label className="depot">
       <input ref={champ} type="file" multiple accept={accepte} style={{ display: 'none' }}
              onChange={(e) => void deposer(e.target.files)} />
-      {envoi ? `Envoi de ${envoi}…` : 'Ajouter des fichiers'}
+      {envoi ? `Envoi de ${envoi}…${part === null ? '' : ` ${Math.floor(part * 100)} %`}` : 'Ajouter des fichiers'}
     </label>
   );
 

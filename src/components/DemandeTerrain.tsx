@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { enregistrerDemande, LIBELLE_SUITE, noterAuJournal, TAILLE_MAXIMALE } from '../lib/db';
+import {
+  enregistrerDemande, LIBELLE_SUITE, libelleEnvoi, noterAuJournal, reserverEnvois, TAILLE_MAXIMALE,
+} from '../lib/db';
 import type { Site, SuiteDemande } from '../lib/types';
 import Modale from './Modale';
 import Dictee from './Dictee';
@@ -38,6 +40,7 @@ export default function DemandeTerrain({ chantier, site, interventionId, onFerme
   const [texte, setTexte] = useState('');
   const [fichiers, setFichiers] = useState<File[]>([]);
   const [envoi, setEnvoi] = useState(false);
+  const [part, setPart] = useState<number | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
   // Une fois la demande créée, un nouvel essai ne la recrée pas : seules les
   // photos repartent. Sans ça, un envoi coupé en sous-sol donnait deux demandes.
@@ -60,6 +63,9 @@ export default function DemandeTerrain({ chantier, site, interventionId, onFerme
 
     setEnvoi(true); setErreur(null);
     try {
+      // Les vidéos sont annoncées à Supabase avant que la demande ne s'écrive :
+      // refusées, elles ne laissent pas une demande sans ses photos.
+      const reserves = await reserverEnvois({ chantier_id: chantier.id }, fichiers);
       const besoin = texte.trim() || '(voir les photos)';
       const id = demandeId ?? (await enregistrerDemande({
         source: 'terrain', statut: 'nouvelle', urgence: 'projet', repondu: false,
@@ -78,14 +84,18 @@ export default function DemandeTerrain({ chantier, site, interventionId, onFerme
         chantierId: chantier.id, tiersId: chantier.tiers_id,
         texte: `Demande sur place — ${LIBELLE_SUITE[suite]}`
           + `${qui === 'autre' ? ` (pour ${contact.nom.trim()})` : ''} : ${besoin}`,
-        fichiers, demandeId: id,
+        fichiers, demandeId: id, onProgression: setPart, reserves,
       });
       onCree();
     } catch (e) {
       const m = (e as Error).message;
-      setErreur(/suite|chantier_id|intervention_id|demande_id|schema cache/i.test(m)
+      // Seules les erreurs de schéma disent « SQL 36 absent » : les messages
+      // d'envoi citent le nom du fichier, et une « suite-parentale.mov »
+      // refusée ne doit pas envoyer chercher un script.
+      setErreur(/schema cache|"(suite|chantier_id|intervention_id|demande_id)" of relation/i.test(m)
         ? 'Les demandes du terrain demandent le SQL 36 : exécutez-le dans Supabase.' : m);
       setEnvoi(false);
+      setPart(null);
     }
   }
 
@@ -153,7 +163,7 @@ export default function DemandeTerrain({ chantier, site, interventionId, onFerme
 
       <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
         <button className="action" disabled={envoi} onClick={() => void transmettre()}>
-          {envoi ? 'Envoi…' : 'Transmettre au bureau'}
+          {envoi ? libelleEnvoi(fichiers.length ? part : null) : 'Transmettre au bureau'}
         </button>
         <button className="action discret" disabled={envoi} onClick={onFermer}>Annuler</button>
       </div>

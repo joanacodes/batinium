@@ -704,12 +704,18 @@ details.fiche summary { color: var(--bleu); }
 
 .rail-pied { border-top: 1px solid var(--rail-filet); padding: 10px 14px; }
 .rail-pied .statut { color: var(--rail-pale); }
+/* Alignée sur le nom au-dessus, pas sur les liens du menu : la marge du pied
+   tient déjà lieu de retrait. Les sélecteurs sont doublés pour passer devant
+   les marges que le tiroir et le rail replié donnent à tous les liens. */
+.rail-pied .rail-sortie { width: 100%; padding: 8px 0; margin-top: 6px; border-radius: 3px; }
+.rail-pied .rail-sortie:hover { color: #fff; }
+.app[data-replie='oui'] .rail-pied .rail-sortie { margin-top: 0; padding-left: 0; padding-right: 0; }
 /* Le contour de focus général est --bleu : sur le fond du rail, il
    disparaîtrait et la navigation au clavier perdrait sa position. */
 .rail button:focus-visible { outline-color: var(--rail-accent); }
 
 .app[data-replie='oui'] .rail-lien { justify-content: center; padding: 10px 0; }
-.app[data-replie='oui'] .rail-pied { display: none; }
+.app[data-replie='oui'] .rail-pied { padding: 6px 0; }
 .app[data-replie='oui'] .rail-tete { justify-content: center; }
 
 .barre { position: sticky; top: 0; z-index: 20; }
@@ -1397,14 +1403,6 @@ tr.brouillon:hover td { background: #fdf7ee; }
 
 .choix-vue { width: auto; font-size: 13px; padding: 4px 6px; }
 
-/* À 360 px — la largeur la plus courante sous Android — ce sélecteur faisait
-   passer la barre sur deux lignes ; or elle reste collée en haut de l'écran,
-   c'étaient 118 px perdus sur chaque page. Il cède un peu de largeur. */
-@media (max-width: 420px) {
-  .barre { column-gap: 8px; }
-  .choix-vue { max-width: 34vw; }
-}
-
 .bandeau-demo {
   display: flex;
   gap: 12px;
@@ -1560,4 +1558,15 @@ main [style*="display: grid"] > *, .panneau > * { min-width: 0; }
   }
   /* Sans apparence native, iOS centre la date : à gauche, comme le reste. */
   input::-webkit-date-and-time-value { text-align: left; }
+}
+
+
+/* --- Se déconnecter --------------------------------------------------------
+   Sur téléphone et tablette, la sortie est dans le menu, sous le nom de la
+   personne connectée, et nulle part ailleurs. Une tablette se reconnaît à son
+   écran tactile plus qu'à sa largeur : tournée en paysage, elle dépasse les
+   900 px du tiroir, mais reste une tablette. Le menu y est alors ouvert en
+   permanence, sortie comprise. */
+@media (max-width: 900px), (hover: none) and (pointer: coarse) {
+  .barre-quitter { display: none; }
 }

@@ -273,6 +273,15 @@ function Atelier({ membre }: { membre: Membre }) {
               {membre.nom}<br />{LIBELLE_ROLE[membre.role]}{enDemonstration() ? ' (démonstration)' : ''}
             </div>
           )}
+          {/* Se déconnecter vit ici, sous le nom de la personne connectée. Sur
+              téléphone et tablette, c'est le seul endroit : la barre du haut,
+              toujours à l'écran, garde sa place pour ce qui sert à chaque page. */}
+          <button className="rail-lien rail-sortie" onClick={() => void supabase.auth.signOut()}
+                  title={replie ? 'Se déconnecter' : undefined}
+                  aria-label={replie ? 'Se déconnecter' : undefined}>
+            <Icone nom="deconnexion" />
+            {!replie && <span className="rail-texte">Se déconnecter</span>}
+          </button>
         </div>
       </nav>
 
@@ -302,7 +311,7 @@ function Atelier({ membre }: { membre: Membre }) {
             </select>
           )}
           <Cloche />
-          <button className="action discret" onClick={() => void supabase.auth.signOut()}>
+          <button className="action discret barre-quitter" onClick={() => void supabase.auth.signOut()}>
             Quitter
           </button>
         </header>

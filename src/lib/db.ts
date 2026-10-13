@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { envoyerParMorceaux, ouvrirEnvoi, TAILLE_MORCEAU } from './envoiParMorceaux';
 import { calculerDevis } from './calcul';
 import { entrepriseId, membre } from './session';
 import { machinesDepuisDevis } from './machines';
@@ -230,28 +231,37 @@ export async function ajouterFil(f: Partial<Fil>): Promise<Fil> {
  * ne prouve rien. Les pièces sont celles du chantier — c'est ce qui permet au
  * terrain de les déposer — et peuvent en plus accompagner une demande.
  *
- * Les tailles sont vérifiées avant d'écrire quoi que ce soit : une vidéo trop
- * lourde ne doit pas laisser derrière elle une note sans ses photos.
+ * Les tailles sont vérifiées, et les gros fichiers annoncés à Supabase, avant
+ * d'écrire quoi que ce soit : une vidéo trop lourde ne doit pas laisser
+ * derrière elle une note sans ses photos.
  */
 export async function noterAuJournal(n: {
   chantierId: string; tiersId?: string | null; texte: string; fichiers: File[];
   demandeId?: string | null;
+  /** La part envoyée, de 0 à 1, sur l'ensemble des fichiers. */
+  onProgression?: (part: number) => void;
+  /** Les envois déjà annoncés, quand l'appelant a dû le faire plus tôt encore. */
+  reserves?: EnvoiReserve[];
 }): Promise<Fil> {
-  const tropLourd = n.fichiers.find((f) => f.size > TAILLE_MAXIMALE);
-  if (tropLourd) {
-    throw new Error(`« ${tropLourd.name} » pèse ${Math.round(tropLourd.size / 1048576)} Mo : `
-      + `la limite est de ${TAILLE_MAXIMALE / 1048576} Mo par fichier. Pour une vidéo, filmez `
-      + 'plus court, en plusieurs fois si besoin.');
-  }
+  const reserves = n.reserves ?? await reserverEnvois({ chantier_id: n.chantierId }, n.fichiers);
   const f = await ajouterFil({
     chantier_id: n.chantierId, tiers_id: n.tiersId ?? null, type: 'note',
     contenu: n.texte.trim() || '(photos)', a_traiter: true, auteur: membre().nom,
   });
-  for (const fichier of n.fichiers) {
+  // La progression se compte en octets sur l'ensemble : trois photos et une
+  // vidéo, ce n'est pas quatre quarts.
+  const total = reserves.reduce((s, r) => s + r.fichier.size, 0) || 1;
+  let dejaParti = 0;
+  n.onProgression?.(0);
+  for (const reserve of reserves) {
+    const fichier = reserve.fichier;
     await televerserDocument({ chantier_id: n.chantierId }, fichier, {
       type: 'photo', fil_id: f.id, demande_id: n.demandeId ?? null,
       prise_le: fichier.lastModified ? new Date(fichier.lastModified).toISOString() : null,
+      onProgression: (envoye) => n.onProgression?.((dejaParti + envoye) / total),
+      reserve,
     });
+    dejaParti += fichier.size;
   }
   return f;
 }
@@ -2385,12 +2395,25 @@ export type CibleDocument =
   | { portee_entreprise: true };
 
 /**
- * La limite du seau `documents` (SQL 13 : 50 Mo). Vérifiée avant l'envoi :
- * un refus du serveur arrive après une minute de téléversement sur un réseau
- * de chantier, et son message ne dit pas quoi faire. Si la limite du seau est
- * relevée dans Supabase, la relever ici aussi.
+ * La limite du seau `documents` (SQL 39 : 500 Mo ; le SQL 13 en posait 50).
+ * Vérifiée dès la sélection du fichier, pour le dire avant d'envoyer quoi que
+ * ce soit. Si la limite du seau change, la changer ici aussi.
+ *
+ * Celle du projet Supabase, réglée dans Storage → Settings, ne se lit pas
+ * d'ici. Si elle est plus basse, Supabase refuse le fichier à l'annonce de sa
+ * taille, avant le premier octet, et l'écran dit où la relever.
  */
-export const TAILLE_MAXIMALE = 50 * 1048576;
+export const TAILLE_MAXIMALE = 500 * 1048576;
+
+/** « Envoi… 42 % » : sur une vidéo de cinq minutes, un bouton qui ne dit
+    rien passe pour un bouton bloqué, et on ferme l'écran au milieu. */
+export function libelleEnvoi(part: number | null): string {
+  return part === null ? 'Envoi…' : `Envoi… ${Math.floor(part * 100)} %`;
+}
+
+/** Ce qu'il faut dire d'une vidéo trop lourde, partout où on la refuse. */
+const CONSEIL_VIDEO = 'Filmez plus court, en plusieurs fois, ou en HD plutôt qu’en 4K '
+  + '(réglage de l’appareil photo).';
 
 const DOSSIERS: Record<string, string> = {
   chantier_id: 'chantier', intervention_id: 'intervention',
@@ -2406,13 +2429,61 @@ export async function listerDocuments(cible: CibleDocument): Promise<Document[]>
 }
 
 /**
- * Dépose un fichier et enregistre sa ligne.
+ * Où le fichier ira dans le seau.
  *
  * Le chemin commence par l'identifiant de l'entreprise : c'est sur ce premier
  * segment que les politiques du seau s'appuient pour cloisonner. Le nom
  * d'origine n'entre pas dans le chemin — un « Bulletin Karim mars.pdf » dans
  * une URL raconte déjà trop, et les accents cassent les liens signés.
  */
+function cheminPour(cible: CibleDocument, fichier: File): string {
+  const [cle] = Object.keys(cible);
+  const extension = fichier.name.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'bin';
+  return `${entrepriseId()}/${DOSSIERS[cle] ?? 'divers'}/${crypto.randomUUID()}.${extension}`;
+}
+
+function verifierTaille(fichier: File): void {
+  if (fichier.size > TAILLE_MAXIMALE) {
+    const mo = Math.round(fichier.size / 1048576);
+    throw new Error(
+      `« ${fichier.name} » pèse ${mo} Mo : la limite est de ${TAILLE_MAXIMALE / 1048576} Mo `
+      + 'par fichier. '
+      + (fichier.type.startsWith('video/') ? CONSEIL_VIDEO : 'Réduisez-le avant de l’envoyer.'));
+  }
+}
+
+/** Un envoi annoncé à Supabase et accepté, prêt à partir. */
+export interface EnvoiReserve {
+  fichier: File;
+  chemin: string;
+  /** L'adresse de l'envoi par morceaux ; null pour un petit fichier. */
+  adresse: string | null;
+}
+
+/**
+ * Annonce les fichiers à Supabase avant d'écrire quoi que ce soit d'autre.
+ *
+ * Une note ou une demande s'écrit avant ses photos, qui s'y rattachent. Si
+ * Supabase refusait une vidéo ensuite — limite du projet plus basse que celle
+ * de l'application, droits —, la note resterait sans elle, et chaque nouvel
+ * essai en ajouterait une autre. Annoncer d'abord la taille de chaque gros
+ * fichier fait tomber le refus maintenant, sans rien laisser derrière. Un
+ * petit fichier n'a rien à annoncer : toute limite le laisse passer.
+ */
+export async function reserverEnvois(cible: CibleDocument, fichiers: File[]): Promise<EnvoiReserve[]> {
+  fichiers.forEach(verifierTaille);
+  const reserves: EnvoiReserve[] = [];
+  for (const fichier of fichiers) {
+    const chemin = cheminPour(cible, fichier);
+    reserves.push({
+      fichier, chemin,
+      adresse: fichier.size > TAILLE_MORCEAU ? await ouvrirEnvoi('documents', chemin, fichier) : null,
+    });
+  }
+  return reserves;
+}
+
+/** Dépose un fichier et enregistre sa ligne. */
 export async function televerserDocument(
   cible: CibleDocument, fichier: File,
   options: {
@@ -2422,25 +2493,28 @@ export async function televerserDocument(
     fil_id?: string | null;
     /** Et, quand elle est prise pour une demande du client, à cette demande. */
     demande_id?: string | null;
+    /** Octets partis, sur le total : appelé au fil de l'envoi. */
+    onProgression?: (envoye: number, total: number) => void;
+    /** L'envoi déjà annoncé par reserverEnvois, s'il l'a été. */
+    reserve?: EnvoiReserve;
   } = {},
 ): Promise<Document> {
-  if (fichier.size > TAILLE_MAXIMALE) {
-    const mo = Math.round(fichier.size / 1048576);
-    throw new Error(
-      `« ${fichier.name} » pèse ${mo} Mo : la limite est de ${TAILLE_MAXIMALE / 1048576} Mo `
-      + 'par fichier. '
-      + (fichier.type.startsWith('video/')
-        ? 'Une minute de vidéo au téléphone dépasse souvent 100 Mo : filmez plus court, '
-          + 'en plusieurs fois si besoin.'
-        : 'Réduisez-le avant de l’envoyer.'));
-  }
+  verifierTaille(fichier);
   const [cle, valeur] = Object.entries(cible)[0];
-  const extension = fichier.name.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'bin';
-  const chemin = `${entrepriseId()}/${DOSSIERS[cle] ?? 'divers'}/${crypto.randomUUID()}.${extension}`;
+  const chemin = options.reserve?.chemin ?? cheminPour(cible, fichier);
 
-  const { error } = await supabase.storage.from('documents')
-    .upload(chemin, fichier, { contentType: fichier.type || undefined, upsert: false });
-  if (error) throw new Error(error.message);
+  // Au-delà d'un morceau, par morceaux : c'est ce que Supabase conseille, et
+  // une coupure ne coûte plus que le morceau en cours. En deçà — presque toutes
+  // les photos — l'envoi d'un seul tenant reste le plus simple.
+  if (fichier.size > TAILLE_MORCEAU) {
+    await envoyerParMorceaux('documents', chemin, fichier, options.onProgression,
+      options.reserve?.adresse ?? undefined);
+  } else {
+    const { error } = await supabase.storage.from('documents')
+      .upload(chemin, fichier, { contentType: fichier.type || undefined, upsert: false });
+    if (error) throw new Error(error.message);
+    options.onProgression?.(fichier.size, fichier.size);
+  }
 
   try {
     return ok(await supabase.from('document').insert({
