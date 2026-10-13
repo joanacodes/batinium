@@ -1,20 +1,22 @@
 import { useCallback, useEffect, useState } from 'react';
 import { aller } from '../lib/router';
 import {
-  ajouterFil, chargerChantier, clePrealable, enregistrerEquipement, enregistrerIntervention,
+  ajouterFil, chargerChantier, clePrealable, enregistrerIntervention,
   enregistrerApprovisionnement, lienDocument, listerApprovisionnement, listerDocuments,
   listerPrealables, poids, prealablesDu, supprimerApprovisionnement, televerserDocument,
-  listerEquipements, listerFil, listerInterventions, listerMembres, majChantier,
+  listerFil, listerInterventions, listerMembres, majChantier,
   prononcerReception,
 } from '../lib/db';
 import Modale from '../components/Modale';
 import { LIBELLE_STATUT } from './Chantiers';
 import type {
-  Approvisionnement, Chantier, Document, Equipement, Fil, Intervention, Membre, Prealable,
+  Approvisionnement, Chantier, Document, Fil, Intervention, Membre, Prealable,
 } from '../lib/types';
 import FilAriane from '../components/FilAriane';
 import Bulle from '../components/Bulle';
 import Dictee from '../components/Dictee';
+import { MachinesChantier } from '../components/Machines';
+import { FichesFluideChantier } from '../components/FichesFluide';
 
 const TYPES_INTERVENTION: Record<Intervention['type'], string> = {
   visite_technique: 'Visite technique', pose: 'Pose', mise_en_service: 'Mise en service',
@@ -24,7 +26,6 @@ const TYPES_INTERVENTION: Record<Intervention['type'], string> = {
 export default function PageFicheChantier({ chantierId }: { chantierId: string }) {
   const [c, setC] = useState<(Chantier & { tiers: { id: string; nom: string } | null }) | null>(null);
   const [interventions, setInterventions] = useState<Intervention[]>([]);
-  const [equipements, setEquipements] = useState<Equipement[]>([]);
   const [membres, setMembres] = useState<Membre[]>([]);
   const [fil, setFil] = useState<Fil[]>([]);
   const [prealables, setPrealables] = useState<Prealable[]>([]);
@@ -39,14 +40,14 @@ export default function PageFicheChantier({ chantierId }: { chantierId: string }
 
   const recharger = useCallback(async () => {
     try {
-      const [ch, i, e, m, f, pr, doc, ap] = await Promise.all([
+      const [ch, i, m, f, pr, doc, ap] = await Promise.all([
         chargerChantier(chantierId), listerInterventions(chantierId),
-        listerEquipements({ chantierId }), listerMembres(), listerFil({ chantierId }),
+        listerMembres(), listerFil({ chantierId }),
         listerPrealables().catch(() => []),
         listerDocuments({ chantier_id: chantierId }).catch(() => []),
         listerApprovisionnement(chantierId).catch(() => []),
       ]);
-      setC(ch); setInterventions(i); setEquipements(e); setMembres(m); setFil(f);
+      setC(ch); setInterventions(i); setMembres(m); setFil(f);
       setPrealables(pr); setPieces(doc); setAppro(ap);
     } catch (e) { setErreur((e as Error).message); }
   }, [chantierId]);
@@ -251,12 +252,15 @@ export default function PageFicheChantier({ chantierId }: { chantierId: string }
             </p>
           )}
 
-          <h2 style={{ margin: '20px 0 8px' }}>Matériel posé</h2>
-          <p className="statut" style={{ marginBottom: 8 }}>
-            Le numéro de série saisi ici devient la mémoire de l’installation : garantie, entretien, SAV.
-          </p>
-          <Materiel chantierId={chantierId} siteId={c.site_id} equipements={equipements}
-                    onErreur={setErreur} onChange={recharger} />
+          {/* Les machines remplacent l'ancienne liste « Matériel posé » : mêmes
+              lignes d'equipement, mais avec ce que la réglementation demande
+              d'en savoir et la plaque comme source de vérité. */}
+          <h2 style={{ margin: '20px 0 8px' }}>Machines</h2>
+          <MachinesChantier chantierId={chantierId} siteId={c.site_id} onErreur={setErreur} />
+
+          <h2 style={{ margin: '20px 0 8px' }}>Fiches fluides</h2>
+          <FichesFluideChantier chantierId={chantierId} interventions={interventions}
+                                onErreur={setErreur} />
 
           <div style={{ display: 'flex', justifyContent: 'space-between',
                         alignItems: 'baseline', margin: '20px 0 8px', gap: 12 }}>
@@ -465,57 +469,6 @@ function Interventions({ chantierId, interventions, membres, onErreur, onChange 
     </>
   );
 }
-
-function Materiel({ chantierId, siteId, equipements, onErreur, onChange }: {
-  chantierId: string; siteId: string | null; equipements: Equipement[];
-  onErreur: (m: string) => void; onChange: () => void;
-}) {
-  const [e, setE] = useState<Partial<Equipement>>({});
-
-  async function ajouter() {
-    if (!e.numero_serie) return onErreur('Le numéro de série est le point de départ de la fiche matériel.');
-    try {
-      await enregistrerEquipement({ ...e, chantier_id: chantierId, site_id: siteId });
-      setE({}); onChange();
-    } catch (err) { onErreur((err as Error).message); }
-  }
-
-  return (
-    <>
-      {equipements.length === 0 ? (
-        <div className="vide">Aucun matériel enregistré.</div>
-      ) : (
-        <table>
-          <thead><tr><th>Marque et modèle</th><th>N° de série</th><th>Emplacement</th><th>Fluide</th><th>Garantie</th><th>Entretien</th></tr></thead>
-          <tbody>
-            {equipements.map((x) => (
-              <tr key={x.id}>
-                <td>{[x.marque, x.modele].filter(Boolean).join(' ') || '—'}</td>
-                <td className="ref">{x.numero_serie ?? '—'}</td>
-                <td>{x.emplacement ?? '—'}</td>
-                <td className="ref">{x.charge_kg ? `${x.charge_kg} kg ${x.fluide ?? ''}` : (x.fluide ?? '—')}</td>
-                <td className="ref">{x.garantie_fin ? new Date(x.garantie_fin).toLocaleDateString('fr-FR') : '—'}</td>
-                <td className="ref">{x.prochain_entretien_le ? new Date(x.prochain_entretien_le).toLocaleDateString('fr-FR') : '—'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-
-      <div className="panneau" style={{ gridTemplateColumns: 'repeat(5, 1fr) auto', marginTop: 10 }}>
-        <div><label>Marque</label><input value={e.marque ?? ''} onChange={(v) => setE((p) => ({ ...p, marque: v.target.value }))} /></div>
-        <div><label>Modèle</label><input value={e.modele ?? ''} onChange={(v) => setE((p) => ({ ...p, modele: v.target.value }))} /></div>
-        <div><label>N° de série</label><input value={e.numero_serie ?? ''} onChange={(v) => setE((p) => ({ ...p, numero_serie: v.target.value }))} /></div>
-        <div><label>Emplacement</label><input value={e.emplacement ?? ''} onChange={(v) => setE((p) => ({ ...p, emplacement: v.target.value }))} /></div>
-        <div><label>Charge fluide (kg)</label>
-          <input type="number" step="0.001" className="num" value={e.charge_kg ?? ''}
-                 onChange={(v) => setE((p) => ({ ...p, charge_kg: v.target.value ? Number(v.target.value) : null }))} /></div>
-        <button className="action" onClick={() => void ajouter()}>Ajouter</button>
-      </div>
-    </>
-  );
-}
-
 
 // --- Prononcer la réception -------------------------------------------------
 

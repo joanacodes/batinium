@@ -13,7 +13,7 @@ import { supabase } from './supabase';
  */
 
 export type TacheIA =
-  | 'assistant' | 'catalogue' | 'devis' | 'formulaire' | 'resume_appel'
+  | 'assistant' | 'catalogue' | 'devis' | 'formulaire' | 'plaque' | 'resume_appel'
   | 'caviardage' | 'traduction';
 
 export class IANonConfiguree extends Error {}

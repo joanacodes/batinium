@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import { calculerDevis } from './calcul';
 import { entrepriseId, membre } from './session';
+import { machinesDepuisDevis } from './machines';
 import type {
   Chantier, Demande, Devis, DevisLigne, DevisLot, Document, Entreprise,
   Equipement,
@@ -1151,6 +1152,7 @@ export interface SuiteSignature {
   approvisionnements: number;
   interventions: number;
   encaissements: number;
+  machines: number;
   avertissements: string[];
 }
 
@@ -1182,6 +1184,15 @@ export async function signerDevis(
   const existants = await listerChantiers().catch(() => []);
   let chantier = existants.find((c) => c.devis_id === devisId) as Chantier | undefined;
   if (!chantier) chantier = await chantierDepuisDevis(devisId);
+
+  // 1 bis. Les machines : une par unité vendue, numéro de série à relever
+  // sur place. La plaque fera foi, pas le devis.
+  let machines = 0;
+  try {
+    machines = await machinesDepuisDevis(devisId, chantier.id);
+  } catch (e) {
+    avertissements.push(`Machines non créées : ${(e as Error).message}`);
+  }
 
   const { lignes } = await chargerDevis(devisId);
   const produits = await listerProduits(true).catch(() => []);
@@ -1289,7 +1300,10 @@ export async function signerDevis(
     ].filter(Boolean).join(' '),
   }).catch(() => undefined);
 
-  return { devis, chantier, facture, approvisionnements, interventions, encaissements, avertissements };
+  return {
+    devis, chantier, facture, approvisionnements, interventions, encaissements, machines,
+    avertissements,
+  };
 }
 
 // --- Interventions et matériel ---------------------------------------------
@@ -1351,6 +1365,9 @@ export const LIBELLES_DOCUMENT: Record<
   attestation_aptitude_fluides: { libelle: 'Attestation d’aptitude fluides (personnelle)', echeance: true },
   facture:                      { libelle: 'Facture' },
   photo:                        { libelle: 'Photo' },
+  plaque_signaletique:          { libelle: 'Plaque signalétique' },
+  signature:                    { libelle: 'Signature' },
+  fiche_fluide:                 { libelle: 'Fiche d’intervention fluides (Cerfa)' },
   autre:                        { libelle: 'Autre document' },
 };
 
@@ -2300,6 +2317,10 @@ export type CibleDocument =
   | { tiers_id: string }
   | { devis_id: string }
   | { fil_id: string }
+  /** La plaque signalétique d'une machine. */
+  | { equipement_id: string }
+  /** Une signature, ou le PDF, d'une fiche fluides. */
+  | { fiche_fluide_id: string }
   | { achat_id: string }
   /** Une pièce de l'entreprise elle-même : attestation de capacité, Kbis. */
   | { portee_entreprise: true };
@@ -2308,6 +2329,7 @@ const DOSSIERS: Record<string, string> = {
   chantier_id: 'chantier', intervention_id: 'intervention',
   membre_id: 'membre', tiers_id: 'tiers', devis_id: 'devis', fil_id: 'note',
   portee_entreprise: 'entreprise', achat_id: 'achat',
+  equipement_id: 'machine', fiche_fluide_id: 'fluide',
 };
 
 export async function listerDocuments(cible: CibleDocument): Promise<Document[]> {

@@ -649,7 +649,9 @@ export type TypeDocument =
   | 'attestation_urssaf' | 'kbis' | 'decennale' | 'rc_pro'
   | 'attestation_capacite_fluides' | 'liste_salaries_etrangers' | 'rib'
   | 'contrat' | 'avenant' | 'bulletin' | 'permis' | 'visite_medicale'
-  | 'diplome' | 'attestation_aptitude_fluides' | 'facture' | 'photo' | 'autre';
+  | 'diplome' | 'attestation_aptitude_fluides' | 'facture' | 'photo'
+  | 'plaque_signaletique' | 'signature' | 'fiche_fluide'
+  | 'autre';
 
 /**
  * Une pièce de la bibliothèque : photo de chantier, contrat, attestation,
@@ -669,6 +671,10 @@ export interface Document {
   devis_id: string | null;
   membre_id: string | null;
   fil_id: string | null;
+  /** La machine dont c'est la plaque signalétique (SQL 32). */
+  equipement_id: string | null;
+  /** La fiche fluides dont c'est une signature ou le PDF (SQL 33). */
+  fiche_fluide_id: string | null;
   /** Pièce de l'entreprise elle-même, rattachée à rien d'autre. */
   portee_entreprise: boolean;
   type: TypeDocument;
@@ -717,6 +723,8 @@ export interface Parametres {
   attestation_capacite: string | null;
   attestation_capacite_expire_le: string | null;
   attestation_capacite_organisme: string | null;
+  /** Catégorie I à V, reprise dans la rubrique 1 de chaque fiche fluides. */
+  attestation_capacite_categorie: string | null;
   rge_qualification: string | null;
   conditions_generales: string | null;
   logo_data_url: string | null;

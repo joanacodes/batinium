@@ -9,6 +9,7 @@ import {
 import type { Chantier, Devis, Fil, Site, Tiers, TypeFil } from '../lib/types';
 import FilAriane from '../components/FilAriane';
 import ChampAdresse from '../components/ChampAdresse';
+import { MachinesClient } from '../components/Machines';
 
 const LIBELLE_FIL: Record<TypeFil, string> = {
   appel_entrant: 'Appel reçu', appel_manque: 'Appel manqué', appel_sortant: 'Appel passé',
@@ -155,6 +156,9 @@ export default function PageFicheClient({ tiersId }: { tiersId: string }) {
               ))}
             </div>
           )}
+
+          <h2 style={{ margin: '18px 0 8px' }}>Machines</h2>
+          <MachinesClient tiersId={tiersId} onErreur={setErreur} />
         </aside>
       </div>
     </>

@@ -247,6 +247,7 @@ export default function PageEditeur({ devisId }: { devisId: string }) {
           </p>
           <ul style={{ marginBottom: 12 }}>
             <li>{suite.approvisionnements} référence(s) à commander, reprises du devis.</li>
+            <li>{suite.machines} machine(s) créée(s) — numéro de série à relever sur la plaque.</li>
             <li>{suite.interventions} intervention(s) créée(s), sans date ni personne.</li>
             <li>{suite.encaissements} échéance(s) d’encaissement.</li>
             <li>

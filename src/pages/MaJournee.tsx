@@ -8,6 +8,7 @@ import {
 } from '../lib/db';
 import type { Document, Intervention, Site, Tache } from '../lib/types';
 import FilAriane from '../components/FilAriane';
+import { BoutonsIntervention } from '../components/FichesFluide';
 
 /**
  * Ma journée.
@@ -201,6 +202,7 @@ export default function PageMaJournee({ apercu = false }: { apercu?: boolean }) 
                     <button className="action discret" onClick={() => aller(`/chantiers/${c.id}`)}>
                       Journal et photos
                     </button>
+                    <BoutonsIntervention intervention={i} onErreur={setErreur} />
                   </>
                 )}
               </div>

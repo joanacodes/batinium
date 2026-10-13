@@ -43,6 +43,7 @@ import PageAnalytique from './pages/Analytique';
 import PageConnexions from './pages/Connexions';
 import PageParametres from './pages/Parametres';
 import PageDonnees from './pages/Donnees';
+import PageFicheFluide from './pages/FicheFluide';
 
 interface Entree {
   cle: string;
@@ -334,6 +335,9 @@ function Contenu({ section, id }: { section: string; id: string | null }) {
     case 'factures':   return id ? <PageFacture factureId={id} /> : <PageFactures />;
     case 'clients':    return id ? <PageFicheClient tiersId={id} /> : <PageClients />;
     case 'chantiers':  return id ? <PageFicheChantier chantierId={id} /> : <PageChantiers />;
+    // La fiche fluides d'une machine (Cerfa 15497*04). Ouverte depuis la
+    // fiche chantier ou depuis Ma journée ; sans identifiant, rien à montrer.
+    case 'fluide':     return id ? <PageFicheFluide ficheId={id} /> : <PageChantiers />;
     // Le devis sans les prix, pour le terrain. Accessible à tous les rôles,
     // c'est le premier écran de Batinium écrit pour le poseur et non le bureau.
     case 'pose':       return id ? <PageFichePose chantierId={id} /> : <PageChantiers />;

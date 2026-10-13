@@ -321,6 +321,14 @@ export default function PageParametres() {
                    onChange={(e) => set('attestation_capacite_organisme', e.target.value)} />
           </div>
           <div>
+            <label>Catégorie</label>
+            <select value={p.attestation_capacite_categorie ?? ''}
+                    onChange={(e) => set('attestation_capacite_categorie', e.target.value || null)}>
+              <option value="">—</option>
+              {['I', 'II', 'III', 'IV', 'V'].map((c) => <option key={c} value={c}>Catégorie {c}</option>)}
+            </select>
+          </div>
+          <div>
             <label>Expire le</label>
             <input type="date" value={p.attestation_capacite_expire_le ?? ''}
                    onChange={(e) => set('attestation_capacite_expire_le', e.target.value || null)} />

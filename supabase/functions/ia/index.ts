@@ -145,6 +145,28 @@ Règles :
 - N'invente rien. Un champ absent vaut null.`,
   },
 
+  plaque: {
+    maxEntree: 10_000,
+    maxSortie: 600,
+    consigne: `Tu lis la photo d'une plaque signalétique de climatiseur ou de pompe à chaleur.
+
+Réponds UNIQUEMENT par un objet JSON, sans texte autour :
+{"marque": string|null, "modele": string|null, "numero_serie": string|null,
+ "fluide": string|null, "charge_kg": number|null, "puissance_kw": number|null}
+
+Règles :
+- Recopie le numéro de série caractère par caractère, tel qu'il est imprimé. En cas de doute
+  sur un seul caractère (0/O, 1/I, 5/S, 8/B), mets null : un numéro faux est pire qu'un
+  numéro absent, il fausse la traçabilité de l'appareil pour toute sa vie.
+- "fluide" : le code du fluide frigorigène tel qu'écrit (R32, R410A, R454B…).
+- "charge_kg" : la charge en fluide en kilogrammes. Si elle est en grammes, convertis.
+- "puissance_kw" : la puissance frigorifique nominale en kW si elle figure.
+- N'invente rien. Ce qui n'est pas lisible vaut null.
+
+Ta lecture sera relue par un technicien qui a la plaque sous les yeux ; elle ne vaut que
+comme proposition.`,
+  },
+
   resume_appel: {
     maxEntree: 20_000,
     maxSortie: 1_000,

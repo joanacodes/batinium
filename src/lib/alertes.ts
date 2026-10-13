@@ -4,6 +4,7 @@ import {
   listerJournal, listerTaches, masquerAlerte,
 } from './db';
 import { voitLesPrix } from './session';
+import { alertesFluides } from './alertesFluides';
 
 /**
  * Les alertes ne sont pas stockées : elles se recalculent à chaque affichage.
@@ -248,6 +249,10 @@ export async function calculerAlertes(): Promise<Alerte[]> {
       date: j.occurred_at,
     });
   }
+
+  // Machines et fiches fluides (phase 1). Une panne de cette lecture ne doit
+  // pas priver l'utilisateur de toutes ses autres alertes.
+  a.push(...await alertesFluides().catch(() => []));
 
   const cachees = new Set(masquees);
   const ordre: Record<Gravite, number> = { urgent: 0, attention: 1, information: 2 };
