@@ -1,0 +1,1348 @@
+/* Batinium — bordereau technique.
+   Principe : les chiffres s'alignent, tout le reste s'efface.
+   Palette tirée du logo Pilotech : bleu technique sur papier froid. */
+
+:root {
+  --encre:      #16202b;
+  --encre-pale: #5c6b7a;
+  --papier:     #f6f8fa;
+  --surface:    #ffffff;
+  --filet:      #dde3ea;
+  --bleu:       #1b6aa8;
+  --bleu-pale:  #eaf2f8;
+  --alerte:     #b4443a;
+  --vert:       #2f6f4f;
+
+  --pas: 8px;
+  --texte: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root { height: 100%; }
+
+body {
+  margin: 0;
+  font-family: var(--texte);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--encre);
+  background: var(--papier);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Tous les chiffres s'alignent en colonne. C'est la règle du projet. */
+.num, td.num, th.num, input[type='number'] {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+h1, h2, h3 { font-weight: 600; letter-spacing: -0.01em; margin: 0; }
+h1 { font-size: 20px; }
+h2 { font-size: 16px; }
+h3 { font-size: 14px; }
+
+a { color: var(--bleu); }
+
+/* --- Ossature ------------------------------------------------------------- */
+
+/* La mise en page de .app est définie plus bas, avec la barre latérale. */
+
+.barre {
+  display: flex;
+  align-items: baseline;
+  gap: calc(var(--pas) * 3);
+  padding: calc(var(--pas) * 1.5) calc(var(--pas) * 3);
+  background: var(--surface);
+  border-bottom: 1px solid var(--filet);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.marque { font-weight: 600; font-size: 16px; letter-spacing: -0.02em; }
+.marque em { font-style: normal; color: var(--bleu); }
+
+.barre nav { display: flex; gap: calc(var(--pas) * 2); }
+.barre nav button {
+  background: none; border: 0; padding: 0; cursor: pointer;
+  font: inherit; color: var(--encre-pale);
+  border-bottom: 2px solid transparent; padding-bottom: 2px;
+}
+.barre nav button[aria-current='true'] { color: var(--encre); border-bottom-color: var(--bleu); }
+.barre .pousse { margin-left: auto; }
+
+main { padding: calc(var(--pas) * 3); max-width: 1180px; width: 100%; margin: 0 auto; }
+
+.entete {
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin-bottom: calc(var(--pas) * 2);
+}
+
+/* --- Tables --------------------------------------------------------------- */
+
+table { width: 100%; border-collapse: collapse; background: var(--surface); }
+
+thead th {
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--encre-pale);
+  padding: var(--pas) calc(var(--pas) * 1.5);
+  border-bottom: 1px solid var(--filet);
+  white-space: nowrap;
+}
+
+tbody td {
+  padding: var(--pas) calc(var(--pas) * 1.5);
+  border-bottom: 1px solid var(--filet);
+  vertical-align: top;
+}
+
+tbody tr:hover { background: var(--bleu-pale); }
+tbody tr.cliquable { cursor: pointer; }
+
+.ref { font-size: 12px; color: var(--encre-pale); }
+.fiche { font-size: 12px; color: var(--encre-pale); white-space: pre-line; margin-top: 2px; }
+
+/* --- Étiquettes de taux --------------------------------------------------- */
+
+.taux {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 2px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  border: 1px solid var(--filet);
+  color: var(--encre-pale);
+}
+.taux[data-t='5.5'] { color: var(--vert); border-color: var(--vert); }
+.taux[data-t='10']  { color: var(--bleu); border-color: var(--bleu); }
+
+/* --- Contrôles ------------------------------------------------------------ */
+
+button.action {
+  font: inherit;
+  padding: 6px 14px;
+  border: 1px solid var(--bleu);
+  background: var(--bleu);
+  color: #fff;
+  border-radius: 3px;
+  cursor: pointer;
+}
+button.action.discret { background: var(--surface); color: var(--bleu); }
+button.action:hover { filter: brightness(1.08); }
+button.action:disabled { opacity: 0.5; cursor: default; }
+
+input, select, textarea {
+  font: inherit;
+  padding: 6px 8px;
+  border: 1px solid var(--filet);
+  border-radius: 3px;
+  background: var(--surface);
+  color: var(--encre);
+  width: 100%;
+}
+input:focus, select:focus, textarea:focus, button:focus-visible {
+  outline: 2px solid var(--bleu);
+  outline-offset: 1px;
+}
+
+label { display: block; font-size: 12px; color: var(--encre-pale); margin-bottom: 3px; }
+
+/* --- États ---------------------------------------------------------------- */
+
+.vide {
+  padding: calc(var(--pas) * 6) calc(var(--pas) * 3);
+  text-align: center;
+  color: var(--encre-pale);
+  background: var(--surface);
+  border: 1px dashed var(--filet);
+}
+
+.erreur {
+  padding: var(--pas) calc(var(--pas) * 1.5);
+  border-left: 3px solid var(--alerte);
+  background: #fdf3f2;
+  color: var(--alerte);
+  margin-bottom: calc(var(--pas) * 2);
+}
+
+.statut { font-size: 12px; color: var(--encre-pale); }
+
+/* --- Connexion ------------------------------------------------------------ */
+
+.connexion {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: calc(var(--pas) * 3);
+}
+.connexion form {
+  width: 100%; max-width: 320px;
+  background: var(--surface);
+  border: 1px solid var(--filet);
+  padding: calc(var(--pas) * 4);
+  display: grid;
+  gap: calc(var(--pas) * 2);
+}
+
+/* --- Impression : c'est le PDF ------------------------------------------- */
+
+@media print {
+  .barre, .sans-impression { display: none !important; }
+  body { background: #fff; font-size: 10pt; }
+  main { padding: 0; max-width: none; }
+  table { page-break-inside: auto; }
+  tr { page-break-inside: avoid; }
+  thead { display: table-header-group; }
+}
+
+@media (max-width: 720px) {
+  main { padding: calc(var(--pas) * 2); }
+  .barre { flex-wrap: wrap; gap: var(--pas) calc(var(--pas) * 2); }
+  .fiche { display: none; }
+}
+
+/* --- Panneau générique ---------------------------------------------------- */
+
+.panneau {
+  background: var(--surface);
+  border: 1px solid var(--filet);
+  padding: 14px;
+  margin-bottom: 14px;
+  display: grid;
+  gap: 10px;
+  align-items: end;
+}
+
+.pastille {
+  display: inline-block;
+  margin-left: 6px;
+  min-width: 17px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--alerte);
+  color: #fff;
+  font-size: 11px;
+  line-height: 17px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.taux[data-u='panne']  { color: var(--alerte); border-color: var(--alerte); }
+.taux[data-u='saison'] { color: var(--bleu); border-color: var(--bleu); }
+
+details.fiche summary { color: var(--bleu); }
+
+/* --- Devis imprimable ----------------------------------------------------- */
+
+.document {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 0 40px;
+  color: var(--encre);
+}
+
+.doc-entete { display: flex; justify-content: space-between; gap: 30px; margin-bottom: 26px; }
+.doc-petit  { font-size: 12px; color: var(--encre-pale); line-height: 1.45; }
+.doc-client { background: var(--papier); border: 1px solid var(--filet); padding: 14px; min-width: 250px; }
+.doc-titre  { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
+.doc-encadre{ background: var(--papier); border: 1px solid var(--filet); padding: 10px 14px; font-size: 13px; }
+
+.doc-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+.doc-table th {
+  font-size: 11px; text-align: left; padding: 6px 8px;
+  border-bottom: 1.5px solid var(--encre); color: var(--encre);
+}
+.doc-table td { padding: 6px 8px; border-bottom: 1px solid var(--filet); vertical-align: top; font-size: 12.5px; }
+.doc-table tr.doc-lot td     { background: var(--papier); font-weight: 600; font-size: 14px; }
+.doc-table tr.doc-souslot td { background: #fbfcfd; font-weight: 600; }
+.doc-fiche { font-size: 11px; color: var(--encre-pale); white-space: pre-line; margin-top: 3px; }
+
+.doc-totaux { margin: 16px 0 0 auto; width: 330px; border-collapse: collapse; }
+.doc-totaux td { padding: 4px 8px; }
+.doc-totaux tr.fort td { font-weight: 600; border-top: 1px solid var(--filet); }
+.doc-totaux tr.grand td { font-size: 16px; border-top: 2px solid var(--encre); }
+
+.doc-mentions, .doc-cgv, .doc-retractation {
+  margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--filet); font-size: 12px;
+}
+.doc-mentions h3, .doc-cgv h3, .doc-retractation h3 { font-size: 13px; margin-bottom: 8px; }
+.doc-mentions p, .doc-retractation p { margin: 0 0 7px; }
+.doc-retractation { page-break-before: always; }
+
+.doc-signature { display: flex; gap: 30px; margin-top: 26px; }
+.doc-signature > div { flex: 1; }
+.doc-cadre { height: 90px; border: 1px solid var(--filet); margin-top: 8px; }
+
+.doc-pied {
+  margin-top: 26px; padding-top: 10px; border-top: 1px solid var(--filet);
+  font-size: 10px; color: var(--encre-pale); text-align: center; line-height: 1.5;
+}
+
+@media print {
+  .document { max-width: none; padding: 0; }
+  .doc-table tr, .doc-signature { page-break-inside: avoid; }
+  a { color: inherit; text-decoration: none; }
+}
+
+.doc-photo {
+  width: 62px; height: 62px;
+  object-fit: cover;
+  border: 1px solid var(--filet);
+  flex: 0 0 auto;
+}
+@media print { .doc-photo { width: 54px; height: 54px; } }
+
+/* --- Cloche et volet d'alertes -------------------------------------------- */
+
+.cloche {
+  position: relative;
+  background: none;
+  border: 0;
+  padding: 5px;
+  cursor: pointer;
+  color: var(--encre-pale);
+  line-height: 0;
+}
+.cloche:hover { color: var(--encre); }
+
+.cloche .pastille {
+  position: absolute;
+  top: -1px; right: -3px;
+  margin: 0;
+  background: var(--encre-pale);
+}
+.cloche .pastille[data-urgent='oui'] { background: var(--alerte); }
+
+.volet {
+  position: absolute;
+  right: 0; top: calc(100% + 8px);
+  width: min(420px, 88vw);
+  background: var(--surface);
+  border: 1px solid var(--filet);
+  box-shadow: 0 10px 34px rgba(22, 32, 43, .16);
+  z-index: 40;
+}
+.volet-entete {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: 10px 14px; border-bottom: 1px solid var(--filet);
+}
+
+.alerte {
+  display: flex; gap: 10px; align-items: start;
+  padding: 9px 12px 9px 14px;
+  border-bottom: 1px solid var(--filet);
+  border-left: 3px solid var(--filet);
+}
+.alerte[data-gravite='urgent']     { border-left-color: var(--alerte); }
+.alerte[data-gravite='attention']  { border-left-color: #b8860b; }
+.alerte[data-gravite='information']{ border-left-color: var(--bleu); }
+.alerte:last-child { border-bottom: 0; }
+
+/* --- Calendrier ----------------------------------------------------------- */
+
+.calendrier {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+  background: var(--filet);
+  border: 1px solid var(--filet);
+}
+
+.cal-jour-nom {
+  background: var(--papier);
+  padding: 6px 8px;
+  font-size: 12px;
+  color: var(--encre-pale);
+}
+
+.cal-case {
+  background: var(--surface);
+  min-height: 104px;
+  padding: 5px 6px;
+  cursor: pointer;
+  overflow: hidden;
+}
+.cal-case:hover { background: var(--bleu-pale); }
+.cal-case[data-hors='oui'] { background: var(--papier); color: var(--encre-pale); }
+.cal-case[data-aujourdhui='oui'] { box-shadow: inset 0 0 0 2px var(--bleu); }
+
+.cal-numero { font-variant-numeric: tabular-nums; font-size: 12px; margin-bottom: 3px; }
+
+.cal-evt {
+  font-size: 11px;
+  line-height: 1.35;
+  padding: 1px 4px;
+  margin-bottom: 2px;
+  border-left: 3px solid var(--filet);
+  background: var(--papier);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --- Divers --------------------------------------------------------------- */
+
+.bloc-code {
+  background: var(--papier);
+  border: 1px solid var(--filet);
+  padding: 10px 12px;
+  font-size: 12px;
+  white-space: pre-wrap;
+  overflow-x: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.vignette {
+  width: 46px; height: 46px;
+  object-fit: cover;
+  border: 1px solid var(--filet);
+  background: var(--papier);
+}
+
+@media (max-width: 720px) {
+  .cal-case { min-height: 62px; }
+  .cal-evt  { display: none; }
+}
+
+/* --- Menu à trois points -------------------------------------------------- */
+
+.points, .poignee {
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font-size: 17px;
+  line-height: 1;
+  padding: 2px 6px;
+  color: var(--encre-pale);
+  border-radius: 3px;
+}
+.points:hover, .poignee:hover { background: var(--filet); color: var(--encre); }
+.poignee { cursor: grab; }
+
+.menu-liste {
+  position: absolute;
+  right: 0; top: calc(100% + 3px);
+  z-index: 30;
+  min-width: 178px;
+  background: var(--surface);
+  border: 1px solid var(--filet);
+  box-shadow: 0 8px 24px rgba(22, 32, 43, .15);
+  display: block;
+}
+.menu-liste button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 13px;
+  border: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+  color: var(--encre);
+}
+.menu-liste button:hover { background: var(--bleu-pale); }
+
+/* --- Modale --------------------------------------------------------------- */
+
+.voile {
+  position: fixed;
+  inset: 0;
+  background: rgba(22, 32, 43, .38);
+  display: grid;
+  place-items: start center;
+  padding: 6vh 16px 24px;
+  z-index: 60;
+  overflow-y: auto;
+}
+
+.modale {
+  background: var(--surface);
+  border: 1px solid var(--filet);
+  box-shadow: 0 18px 52px rgba(22, 32, 43, .24);
+}
+
+.modale-entete {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--filet);
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+}
+
+.modale-corps { padding: 18px; }
+
+/* --- Bulle d'aide --------------------------------------------------------- */
+
+.bulle-hote { position: relative; display: inline-block; }
+
+.bulle {
+  position: absolute;
+  bottom: calc(100% + 7px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 70;
+  background: var(--encre);
+  color: #fff;
+  font-size: 12px;
+  line-height: 1.4;
+  padding: 6px 10px;
+  border-radius: 3px;
+  width: max-content;
+  max-width: 230px;
+  pointer-events: none;
+}
+
+/* --- Fil d'Ariane --------------------------------------------------------- */
+
+.ariane {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--encre-pale);
+  margin-bottom: 6px;
+}
+.ariane button {
+  border: 0; background: none; padding: 0; font: inherit;
+  color: var(--bleu); cursor: pointer;
+}
+.ariane-sep { margin: 0 4px; }
+
+/* --- Onglets -------------------------------------------------------------- */
+
+.onglets {
+  display: flex;
+  gap: calc(var(--pas) * 2);
+  border-bottom: 1px solid var(--filet);
+  margin-bottom: calc(var(--pas) * 2);
+}
+.onglets button {
+  border: 0; background: none; font: inherit; cursor: pointer;
+  padding: 7px 0; margin-bottom: -1px;
+  color: var(--encre-pale);
+  border-bottom: 2px solid transparent;
+}
+.onglets button[aria-current='true'] { color: var(--encre); border-bottom-color: var(--bleu); }
+
+/* --- Pastilles de rôle ---------------------------------------------------- */
+
+.jeton {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 2px;
+  font-size: 11px;
+  border: 1px solid var(--filet);
+  color: var(--encre-pale);
+  white-space: nowrap;
+}
+.jeton[data-r='salarie']       { color: var(--bleu);   border-color: var(--bleu); }
+.jeton[data-r='sous_traitant'] { color: #7a5ea8;       border-color: #7a5ea8; }
+.jeton[data-r='client']        { color: var(--vert);   border-color: var(--vert); }
+.jeton[data-r='retard']        { color: var(--alerte); border-color: var(--alerte); }
+.jeton[data-r='recu']          { color: var(--vert);   border-color: var(--vert); }
+
+/* --- Barre de proportion -------------------------------------------------- */
+
+.jauge { height: 7px; background: var(--filet); overflow: hidden; }
+.jauge > i { display: block; height: 100%; background: var(--bleu); }
+.jauge[data-alerte='oui'] > i { background: var(--alerte); }
+
+
+
+/* --- Barre latérale gauche, repliable ------------------------------------- */
+
+.app {
+  display: flex;
+  /* En ligne, pas en colonne : le menu à gauche, le contenu à droite.
+     Cette déclaration doit rester explicite, une règle héritée imposait
+     autrefois l'empilement vertical. */
+  flex-direction: row;
+  align-items: stretch;
+  min-height: 100vh;
+}
+
+.colonne { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.colonne > main { flex: 1; max-width: none; margin: 0; width: 100%; }
+
+.rail {
+  order: 0;
+  width: 214px;
+  flex: 0 0 214px;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-right: 1px solid var(--filet);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  transition: width .16s ease, flex-basis .16s ease;
+}
+
+.app[data-replie='oui'] .rail { width: 54px; flex-basis: 54px; }
+
+.rail-tete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 11px 12px;
+  border-bottom: 1px solid var(--filet);
+  min-height: 52px;
+}
+
+.rail-bascule {
+  border: 0; background: none; cursor: pointer; padding: 4px;
+  color: var(--encre-pale); line-height: 0; border-radius: 3px;
+}
+.rail-bascule:hover { background: var(--papier); color: var(--encre); }
+
+.rail-corps { flex: 1; overflow-y: auto; padding: 6px 0 14px; }
+
+.rail-groupe {
+  font-size: 11px;
+  color: var(--encre-pale);
+  padding: 12px 14px 4px;
+}
+
+.rail-trait { height: 1px; background: var(--filet); margin: 7px 10px; }
+
+.rail-ligne {
+  display: flex;
+  align-items: stretch;
+  border-left: 3px solid transparent;
+}
+.rail-ligne:hover { background: var(--papier); }
+.rail-ligne[data-actif='oui'] {
+  border-left-color: var(--bleu);
+  background: var(--bleu-pale);
+}
+.rail-ligne[data-actif='oui'] .rail-lien { color: var(--encre); }
+
+.rail-lien {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  color: var(--encre-pale);
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.rail-texte { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.rail-chevron {
+  border: 0; background: none; cursor: pointer;
+  color: var(--encre-pale); padding: 0 10px; line-height: 0;
+}
+.rail-chevron:hover { color: var(--encre); }
+
+.rail-enfants { padding: 2px 0 6px; }
+.rail-enfants button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+  padding: 5px 12px 5px 40px;
+  color: var(--encre-pale);
+  border-left: 3px solid transparent;
+}
+.rail-enfants button:hover { background: var(--papier); color: var(--encre); }
+.rail-enfants button[data-actif='oui'] {
+  color: var(--encre); border-left-color: var(--bleu); background: var(--bleu-pale);
+}
+.rail-num { display: block; font-size: 12px; font-variant-numeric: tabular-nums; }
+.rail-detail {
+  display: block; font-size: 11px; opacity: .75;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.rail-vide { padding: 5px 12px 5px 40px; font-size: 12px; color: var(--encre-pale); }
+
+.rail-pied { border-top: 1px solid var(--filet); padding: 10px 14px; }
+
+.app[data-replie='oui'] .rail-lien { justify-content: center; padding: 10px 0; }
+.app[data-replie='oui'] .rail-pied { display: none; }
+.app[data-replie='oui'] .rail-tete { justify-content: center; }
+
+.barre { position: sticky; top: 0; z-index: 20; }
+
+/* --- Suggestions d'auto-complétion ---------------------------------------- */
+
+.suggestions {
+  position: absolute;
+  left: 0; right: 0; top: calc(100% + 2px);
+  z-index: 45;
+  background: var(--surface);
+  border: 1px solid var(--filet);
+  box-shadow: 0 10px 28px rgba(22, 32, 43, .16);
+  max-height: 300px;
+  overflow-y: auto;
+}
+.suggestions button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  border-bottom: 1px solid var(--filet);
+  background: none;
+  font: inherit;
+  cursor: pointer;
+  padding: 7px 12px;
+  color: var(--encre);
+}
+.suggestions button:hover, .suggestions button.actif { background: var(--bleu-pale); }
+.suggestions button > span { display: block; }
+.suggestions-pied {
+  padding: 6px 12px;
+  font-size: 11px;
+  color: var(--encre-pale);
+  background: var(--papier);
+}
+
+@media (max-width: 900px) {
+  .app { flex-direction: column; }
+  .rail-tete { justify-content: space-between; }
+  .rail {
+    width: 100% !important; flex-basis: auto !important;
+    height: auto; position: static;
+    border-right: 0; border-bottom: 1px solid var(--filet);
+  }
+  .rail-corps { display: flex; flex-wrap: wrap; padding: 4px; }
+  .rail-groupe, .rail-trait, .rail-pied, .rail-enfants { display: none; }
+  .rail-ligne { border-left: 0; border-bottom: 2px solid transparent; }
+  .rail-ligne[data-actif='oui'] { border-left: 0; border-bottom-color: var(--bleu); }
+  .rail-chevron { display: none; }
+}
+
+
+/* --- Voyants de suivi ------------------------------------------------------ */
+
+.voyants { display: inline-flex; gap: 12px; align-items: center; }
+
+.voyant-groupe {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--encre-pale);
+}
+
+.voyant {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  border: 1px solid var(--filet);
+  background: transparent;
+}
+.voyant[data-actif='oui'][data-quoi='devis']    { background: var(--bleu);  border-color: var(--bleu); }
+.voyant[data-actif='oui'][data-quoi='chantier'] { background: #7a5ea8;      border-color: #7a5ea8; }
+
+
+/* --- Gravité des alertes -------------------------------------------------- */
+
+.volet-legende {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--filet);
+  background: var(--papier);
+  font-size: 11px;
+  color: var(--encre-pale);
+}
+.volet-legende span { display: inline-flex; align-items: center; gap: 5px; }
+
+.pastille-gravite {
+  width: 9px; height: 9px; border-radius: 2px; display: inline-block;
+  background: var(--filet);
+}
+.pastille-gravite[data-gravite='urgent']      { background: var(--alerte); }
+.pastille-gravite[data-gravite='attention']   { background: #d98c00; }
+.pastille-gravite[data-gravite='information'] { background: var(--bleu); }
+
+.alerte-gravite {
+  font-size: 10px;
+  letter-spacing: .02em;
+  margin-bottom: 2px;
+}
+.alerte-gravite[data-gravite='urgent']      { color: var(--alerte); }
+.alerte-gravite[data-gravite='attention']   { color: #a86800; }
+.alerte-gravite[data-gravite='information'] { color: var(--bleu); }
+
+.alerte[data-gravite='attention'] { border-left-color: #d98c00; }
+
+
+/* --- Squelettes de chargement --------------------------------------------- */
+
+.squelette {
+  display: block;
+  border-radius: 2px;
+  background: linear-gradient(
+    100deg,
+    var(--filet) 20%,
+    #eef2f6 38%,
+    var(--filet) 56%
+  );
+  background-size: 260% 100%;
+  animation: glisse 1.25s ease-in-out infinite;
+}
+
+@keyframes glisse {
+  from { background-position: 160% 0; }
+  to   { background-position: -60% 0; }
+}
+
+/* Une animation perpétuelle gêne certaines personnes : on la coupe si le
+   système l'a demandé, le dégradé reste visible mais figé. */
+@media (prefers-reduced-motion: reduce) {
+  .squelette { animation: none; background-position: 50% 0; }
+}
+
+/* --- Panneau au survol ---------------------------------------------------- */
+
+.survol { position: relative; display: inline-block; }
+
+.survol-panneau {
+  position: absolute;
+  top: calc(100% + 6px);
+  z-index: 45;
+  background: var(--surface);
+  border: 1px solid var(--filet);
+  box-shadow: 0 10px 30px rgba(22, 32, 43, .16);
+  padding: 14px;
+}
+.survol-panneau[data-aligne='droite'] { right: 0; }
+.survol-panneau[data-aligne='gauche'] { left: 0; }
+
+/* Une bande invisible sous le déclencheur : sans elle, le trajet de la souris
+   vers le panneau passe par le vide et le referme. */
+.survol-panneau::before {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; top: -8px;
+  height: 8px;
+}
+
+/* --- Légende cliquable des alertes ---------------------------------------- */
+
+.legende-bouton {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: none;
+  font: inherit;
+  font-size: 11px;
+  color: var(--encre-pale);
+  padding: 2px 7px;
+  cursor: pointer;
+}
+.legende-bouton:hover { background: var(--surface); border-color: var(--filet); }
+.legende-bouton[data-actif='oui'] {
+  background: var(--surface);
+  border-color: var(--encre-pale);
+  color: var(--encre);
+}
+
+
+/* --- Tableau à défilement contenu ------------------------------------------
+   Une longue liste au milieu d'une page repousse tout ce qui la suit hors de
+   l'écran : sur Rentabilité, la marge par affaire enterrait les encaissements
+   et les charges, qu'on ne trouvait plus qu'à force de molette. Le tableau
+   défile donc dans sa propre fenêtre, en-tête figée pour que les colonnes
+   restent lisibles.
+
+   `border-collapse: separate` est indispensable : avec `collapse`, les bordures
+   appartiennent au tableau et non aux cellules, et l'en-tête collante laisse
+   filer les lignes par-dessus. D'où la bordure rendue par une ombre interne. */
+
+.tableau-defilant {
+  max-height: 46vh;
+  min-height: 180px;
+  overflow: auto;
+  border: 1px solid var(--filet);
+  background: var(--surface);
+  overscroll-behavior: contain;
+}
+
+.tableau-defilant table { border-collapse: separate; border-spacing: 0; }
+
+.tableau-defilant thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--surface);
+  border-bottom: 0;
+  box-shadow: inset 0 -1px 0 var(--filet);
+}
+
+/* La dernière ligne n'a pas besoin de filet : le cadre du conteneur le fait. */
+.tableau-defilant tbody tr:last-child td { border-bottom: 0; }
+
+@media (max-width: 720px) { .tableau-defilant { max-height: 60vh; } }
+
+/* À l'impression, rien ne défile : le document doit sortir en entier. */
+@media print {
+  .tableau-defilant { max-height: none; overflow: visible; border: 0; }
+  .tableau-defilant thead th { position: static; }
+}
+
+
+/* --- Brouillons de catalogue ----------------------------------------------
+   Une référence non relue doit se distinguer au premier coup d'œil d'une
+   référence publiée : elles se ressemblent, et seule la seconde a le droit
+   d'aller sur un devis. */
+
+.brouillon-bandeau {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  background: #fdf7ee;
+  border: 1px solid var(--filet);
+  border-left: 3px solid #d98c00;
+}
+
+tr.brouillon td { background: #fffdf8; }
+tr.brouillon:hover td { background: #fdf7ee; }
+
+
+/* --- Pièces jointes --------------------------------------------------------
+   Un dépôt de fichiers doit se voir sans se lire : la zone est large, bordée
+   en pointillés, et dit ce qu'elle attend. Un `<input type=file>` nu, personne
+   ne le remarque au milieu d'un tableau. */
+
+.depot {
+  display: inline-block;
+  margin: 0;
+  padding: 8px 16px;
+  border: 1px dashed var(--bleu);
+  border-radius: 3px;
+  color: var(--bleu);
+  font-size: 13px;
+  cursor: pointer;
+  background: var(--surface);
+}
+.depot:hover { background: var(--bleu-pale); }
+
+.lien-discret {
+  border: 0; background: none; padding: 0;
+  font: inherit; font-size: 12px;
+  color: var(--bleu); cursor: pointer; text-decoration: underline;
+}
+
+/* --- Galerie de chantier ---------------------------------------------------
+   Des vignettes carrées : une photo de chantier est prise au téléphone, en
+   portrait ou en paysage selon la main, et une grille qui suivrait les
+   proportions d'origine serait illisible. Le recadrage se fait à l'affichage,
+   le fichier reste entier. */
+
+.galerie {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+
+.galerie-case { margin: 0; }
+
+.galerie-vue {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  padding: 0;
+  border: 1px solid var(--filet);
+  background: var(--papier);
+  cursor: pointer;
+  overflow: hidden;
+}
+.galerie-vue:hover { border-color: var(--bleu); }
+.galerie-vue img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.galerie-icone {
+  display: grid;
+  place-items: center;
+  width: 100%; height: 100%;
+  font-size: 26px;
+  color: var(--encre-pale);
+}
+
+.galerie-case figcaption { margin-top: 5px; }
+.galerie-case figcaption input {
+  padding: 3px 5px;
+  font-size: 12px;
+  border-color: transparent;
+  background: transparent;
+}
+.galerie-case figcaption input:hover { border-color: var(--filet); background: var(--surface); }
+
+@media print { .depot, .galerie-case figcaption button { display: none; } }
+
+
+/* --- Assistant en bulle ----------------------------------------------------
+   Au-dessus de l'application, jamais à côté : on pose une question sur la page
+   où l'on se trouve, sans l'abandonner. */
+
+.assistant-bulle {
+  position: fixed;
+  right: 22px; bottom: 22px;
+  z-index: 80;
+  width: 52px; height: 52px;
+  display: grid; place-items: center;
+  border: 0; border-radius: 50%;
+  background: var(--bleu);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(22, 32, 43, .28);
+}
+.assistant-bulle:hover { filter: brightness(1.08); }
+.assistant-bulle[data-ouvert='oui'] { background: var(--encre); }
+
+.assistant-volet {
+  position: fixed;
+  right: 22px; bottom: 86px;
+  z-index: 80;
+  width: min(400px, calc(100vw - 32px));
+  max-height: min(620px, calc(100vh - 130px));
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--filet);
+  border-radius: 4px;
+  box-shadow: 0 18px 52px rgba(22, 32, 43, .26);
+}
+
+.assistant-tete {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--filet);
+}
+
+.assistant-corps {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 14px;
+}
+
+.assistant-question {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.assistant-reponse {
+  background: var(--papier);
+  border-left: 3px solid var(--bleu);
+  padding: 10px 12px;
+}
+
+.assistant-pied {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 12px;
+  border-top: 1px solid var(--filet);
+  background: var(--surface);
+}
+.assistant-pied input { flex: 1; }
+
+/* Sur un téléphone, la bulle occupe l'écran : un volet de 400 px flottant
+   au-dessus d'une page de 380 px ne flotte plus, il la recouvre à moitié. */
+@media (max-width: 720px) {
+  .assistant-volet {
+    right: 8px; left: 8px; bottom: 78px;
+    width: auto;
+    max-height: calc(100vh - 110px);
+  }
+  .assistant-bulle { right: 14px; bottom: 14px; }
+}
+
+
+/* ===========================================================================
+   TÉLÉPHONE ET TABLETTE
+
+   Batinium a été dessiné pour un écran large. Le repli tenait jusqu'ici en
+   quelques règles et un `!important` : ça marchait au sens où rien ne
+   débordait, pas au sens où on pouvait s'en servir dans un fourgon.
+
+   Quatre décisions structurent ce qui suit.
+
+   1. Le menu devient un tiroir. Un rail replié en bandeau horizontal mangeait
+      le haut de l'écran en permanence pour afficher des icônes sans libellé.
+      Un tiroir ne coûte rien tant qu'il est fermé.
+
+   2. Les tableaux défilent horizontalement, avec une ombre qui dit qu'il y a
+      autre chose à droite. Les transformer en cartes aurait demandé d'annoter
+      chaque cellule dans vingt fichiers — et un tableau de chiffres reste plus
+      lisible en tableau, même s'il faut le faire glisser.
+
+   3. Les formulaires passent en une colonne. Les grilles sont écrites en style
+      en ligne dans les pages, d'où le sélecteur d'attribut. C'est toujours une
+      dette, elle est signalée plus bas.
+
+   4. Rien ne se touche à moins de 44 pixels. C'est la taille d'un pouce, et
+      celle que recommandent Apple comme Google. En dessous, on rate.
+   =========================================================================== */
+
+/* --- Tablette : 900 px et moins -------------------------------------------- */
+
+@media (max-width: 900px) {
+  .app { flex-direction: row; }
+
+  /* Le rail sort du flux et devient un tiroir. Fermé, il ne prend rien. */
+  .rail {
+    position: fixed;
+    top: 0; bottom: 0; left: 0;
+    z-index: 90;
+    width: 264px !important;
+    flex-basis: 264px !important;
+    height: 100dvh;
+    transform: translateX(-100%);
+    transition: transform .22s ease;
+    box-shadow: 0 0 40px rgba(22, 32, 43, .2);
+    border-right: 1px solid var(--filet);
+  }
+  .app[data-menu='ouvert'] .rail { transform: translateX(0); }
+
+  /* Dans le tiroir, le menu reste vertical et lisible : on ne réduit pas des
+     libellés qu'on vient d'ouvrir pour lire. */
+  .rail-corps { display: block; padding: 6px 0 24px; }
+  .rail-groupe, .rail-trait, .rail-pied, .rail-enfants { display: revert; }
+  .rail-ligne { border-left: 3px solid transparent; border-bottom: 0; }
+  .rail-ligne[data-actif='oui'] { border-left-color: var(--bleu); border-bottom: 0; }
+  .rail-lien { padding: 12px 14px; }
+  .rail-chevron { display: revert; padding: 0 14px; }
+  .app[data-replie='oui'] .rail-lien { justify-content: flex-start; padding: 12px 14px; }
+  .app[data-replie='oui'] .rail-pied { display: revert; }
+
+  .voile-menu {
+    position: fixed;
+    inset: 0;
+    z-index: 89;
+    background: rgba(22, 32, 43, .38);
+    border: 0;
+  }
+
+  /* Le bouton d'ouverture remonte dans la barre du haut, seul endroit visible
+     une fois le rail sorti du flux. */
+  .rail-tete { display: none; }
+  .barre { gap: 12px; padding: 10px 14px; }
+  .barre .marque { display: block !important; }
+
+  .menu-poignee {
+    display: inline-grid;
+    place-items: center;
+    width: 40px; height: 40px;
+    border: 1px solid var(--filet);
+    border-radius: 3px;
+    background: var(--surface);
+    color: var(--encre);
+    cursor: pointer;
+  }
+
+  main { padding: 14px; }
+}
+
+@media (min-width: 901px) {
+  .menu-poignee, .voile-menu { display: none; }
+}
+
+/* --- Téléphone : 720 px et moins ------------------------------------------- */
+
+@media (max-width: 720px) {
+  /* DETTE À RÉSORBER — voir plus bas. Les grilles sont en style en ligne, une
+     règle ordinaire ne peut pas passer devant un attribut `style`. */
+  main [style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
+  main [style*="position: sticky"], main aside { position: static !important; }
+  main [style*="width: 300px"], main [style*="width: 260px"],
+  main [style*="width: 240px"], main [style*="width: 190px"] { width: 100% !important; }
+
+  /* 16 px sur les champs : en dessous, iOS zoome à chaque focus et on passe
+     son temps à repincer l'écran pour revoir le formulaire. */
+  input, select, textarea { font-size: 16px; padding: 10px 10px; }
+  label { font-size: 13px; }
+
+  /* 44 px, la taille d'un pouce. En dessous, on rate. */
+  button.action { padding: 11px 16px; min-height: 44px; }
+  button.action.discret { min-height: 44px; }
+  input[type='checkbox'], input[type='radio'] { min-width: 22px; min-height: 22px; }
+  .points, .poignee { min-width: 40px; min-height: 40px; }
+
+  /* Un tableau à neuf colonnes ne se replie pas : il glisse. L'ombre à droite
+     dit qu'il continue — sans elle, personne n'essaie de le faire défiler. */
+  .cadre-table, main > table, .tableau-defilant {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    background:
+      linear-gradient(to right, var(--surface) 30%, rgba(255,255,255,0)),
+      linear-gradient(to right, rgba(255,255,255,0), var(--surface) 70%) 100% 0,
+      radial-gradient(farthest-side at 0 50%, rgba(22,32,43,.14), transparent),
+      radial-gradient(farthest-side at 100% 50%, rgba(22,32,43,.14), transparent) 100% 0;
+    background-repeat: no-repeat;
+    background-size: 40px 100%, 40px 100%, 14px 100%, 14px 100%;
+    background-attachment: local, local, scroll, scroll;
+  }
+  main table { min-width: 620px; }
+  tbody td, thead th { padding: 10px 12px; }
+
+  /* En-tête de page : le titre d'abord, les actions dessous, en pleine
+     largeur. Trois boutons serrés à droite d'un titre sont inatteignables. */
+  .entete {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .entete h1 { font-size: 19px; }
+  .entete > div:last-child:not(:only-child) { display: flex; flex-wrap: wrap; gap: 8px; }
+  .entete > div:last-child:not(:only-child) > * { flex: 1 1 auto; }
+
+  /* Une modale sur un téléphone, c'est l'écran entier : une boîte flottante
+     de 720 px sur un écran de 380 ne flotte pas, elle déborde. */
+  .voile { padding: 0; place-items: stretch; }
+  .modale {
+    width: 100% !important;
+    min-height: 100dvh;
+    border: 0;
+  }
+  .modale-entete { padding: 12px 14px; }
+  .modale-corps { padding: 14px; }
+
+  .onglets { gap: 14px; overflow-x: auto; padding-bottom: 2px; }
+  .onglets button { white-space: nowrap; padding: 10px 0; }
+
+  .panneau { padding: 12px; }
+  .galerie { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
+  .ariane { font-size: 11px; }
+
+  /* Le volet d'alertes déborde de l'écran s'il reste ancré à droite. */
+  .volet { position: fixed; left: 8px; right: 8px; top: 62px; width: auto; }
+
+  /* La bulle de l'assistant ne doit pas recouvrir un bouton d'action en bas
+     de page : on rend la place qu'elle prend. */
+  main { padding-bottom: 84px; }
+}
+
+/* --- Très petit : 380 px et moins ------------------------------------------ */
+
+@media (max-width: 380px) {
+  main { padding: 10px 10px 84px; }
+  .entete h1 { font-size: 18px; }
+  .barre .marque { font-size: 15px; }
+}
+
+/* --- Ce qu'on ne fait pas au doigt ------------------------------------------
+   Les colonnes d'actions et les menus à trois points restent, mais les
+   survols n'ont aucun sens sans souris : une bulle qui ne s'ouvre jamais est
+   une information perdue. On les rend visibles au toucher. */
+
+@media (hover: none) {
+  .bulle { display: none; }
+  .survol-panneau { position: static; box-shadow: none; border: 0; padding: 0; }
+}
+
+
+/* --- Cartes de connecteurs --------------------------------------------------
+   Un logo, un nom, un état, un bouton. Ce qu'on attend d'une page de
+   branchements quand on n'écrit pas de code. */
+
+.grille-services {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+}
+
+.service {
+  display: flex;
+  gap: 14px;
+  align-items: start;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--filet);
+}
+.service:hover { border-color: var(--bleu); }
+
+.service-logo {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 44px; height: 44px;
+  border-radius: 9px;
+  color: #fff;
+}
+
+@media (max-width: 720px) {
+  .grille-services { grid-template-columns: 1fr; }
+  .service { flex-wrap: wrap; }
+  .service > button { width: 100%; }
+}
+
+
+/* --- Choix du mode de devis ------------------------------------------------
+   Deux boutons côte à côte obligeaient à choisir avant de savoir ce qu'on
+   allait faire, et volaient la place de la colonne qu'on lit vraiment. Un seul
+   bouton, et le choix au survol. */
+
+.choix-devis {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  min-width: 240px;
+  margin-top: 2px;
+  background: var(--surface);
+  border: 1px solid var(--filet);
+  box-shadow: 0 8px 24px rgba(22, 32, 43, .16);
+}
+
+.choix-devis button {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  color: var(--encre);
+  cursor: pointer;
+}
+.choix-devis button + button { border-top: 1px solid var(--filet); }
+.choix-devis button:hover { background: var(--bleu-pale); }
+
+.choix-devis em {
+  display: block;
+  margin-top: 2px;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--encre-pale);
+}
+
+/* Au doigt, il n'y a pas de survol : le menu s'ouvre au premier appui. */
+@media (hover: none) {
+  .choix-devis { position: static; box-shadow: none; min-width: 0; }
+}
