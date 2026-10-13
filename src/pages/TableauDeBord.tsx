@@ -1,11 +1,12 @@
 import { aller } from '../lib/router';
 import { eur } from '../lib/calcul';
-import { useChargement, voitLesPrix } from '../lib/session';
+import { basculerVue, roleReel, useChargement, voitLesPrix } from '../lib/session';
 import {
   basculerTache, chargerTousLesDevis, listerChantiers, listerDemandes, listerTaches,
   listerDocumentsAEcheance,
 } from '../lib/db';
 import Squelette from '../components/Squelette';
+import { SurLeTerrain } from '../components/Presences';
 import { trier, type Tri } from './Taches';
 import type { Tache } from '../lib/types';
 import { useState } from 'react';
@@ -65,11 +66,15 @@ export default function PageTableauDeBord() {
           <div className="statut">
             {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
           </div>
-          {/* Cet écran-ci est celui du gérant. Le lien montre celui du poseur,
-              qui n'a rien à voir : ni devis, ni impayés, ni relances. */}
-          <button className="action discret" onClick={() => aller('/bord/journee')}>
-            Vue technicien
-          </button>
+          {/* Cet écran-ci est celui du gérant. Le bouton montre celui du poseur,
+              qui n'a rien à voir : ni devis, ni impayés, ni relances — et avec
+              ses droits à lui, en base, grâce au mode démonstration (SQL 38). */}
+          {roleReel() === 'direction' && (
+            <button className="action discret"
+                    onClick={() => basculerVue('technicien').catch((e) => window.alert((e as Error).message))}>
+              Voir comme un technicien
+            </button>
+          )}
         </div>
       </div>
 
@@ -95,6 +100,15 @@ export default function PageTableauDeBord() {
         </div>
       )}
 
+      {/* Qui est arrivé où, et qui n'a pas encore noté son arrivée. Seulement
+          pour ceux qui voient l'équipe : un poseur ne lit que les siennes. */}
+      {voitLesPrix() && (
+        <>
+          <h2 style={{ margin: '4px 0 8px' }}>Sur le terrain aujourd’hui</h2>
+          <SurLeTerrain />
+        </>
+      )}
+
       <BlocTaches taches={taches} onChange={recharger} />
 
       <h2 style={{ margin: '18px 0 8px' }}>Ces gens attendent une réponse</h2>
@@ -109,7 +123,7 @@ export default function PageTableauDeBord() {
             {sansReponse.slice(0, 12).map((d) => (
               <tr key={d.id} className="cliquable" onClick={() => aller('/demandes')}>
                 <td className="num ref">{depuis(d.recu_le)}</td>
-                <td>{d.nom ?? d.telephone ?? '—'}</td>
+                <td>{d.nom || d.tiers?.nom || d.telephone || d.tiers?.telephone || '—'}</td>
                 <td>{d.besoin ?? d.resume ?? '—'}</td>
                 <td><span className="taux" data-u={d.urgence}>{d.urgence}</span></td>
                 <td className="statut">{d.statut}</td>

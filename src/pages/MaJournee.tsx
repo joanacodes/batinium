@@ -6,9 +6,16 @@ import {
   LIBELLES_DOCUMENT, listerChantiers, listerDocuments, listerInterventions, listerPointages,
   listerSites, listerTaches, type ChantierAvecTiers,
 } from '../lib/db';
+import {
+  debutDuJour, ecartLisible, heure, listerPresences, localiserSite, noterArrivee, noterDepart,
+  relevePosition, sql35Absent, type PresenceLue,
+} from '../lib/presence';
 import type { Document, Intervention, Site, Tache } from '../lib/types';
 import FilAriane from '../components/FilAriane';
 import { BoutonsIntervention } from '../components/FichesFluide';
+import Itineraire from '../components/Itineraire';
+import EnvoiMedias from '../components/EnvoiMedias';
+import DemandeTerrain from '../components/DemandeTerrain';
 
 /**
  * Ma journée.
@@ -36,8 +43,16 @@ export default function PageMaJournee({ apercu = false }: { apercu?: boolean }) 
   const [taches, setTaches] = useState<Tache[]>([]);
   const [pieces, setPieces] = useState<Document[]>([]);
   const [heuresJour, setHeuresJour] = useState(0);
+  const [presences, setPresences] = useState<PresenceLue[]>([]);
   const [erreur, setErreur] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
   const [charge, setCharge] = useState(false);
+  // Le geste en cours, pour griser son bouton : relever la position prend
+  // quelques secondes, et un deuxième appui pendant ce temps ne doit rien faire.
+  const [enCours, setEnCours] = useState<string | null>(null);
+  const [medias, setMedias] = useState<ChantierAvecTiers | null>(null);
+  const [demande, setDemande] = useState<{ c: ChantierAvecTiers; i: Intervention } | null>(null);
+  const [chantierLibre, setChantierLibre] = useState('');
 
   const monId = moi().id;
   const aujourdhui = jour(new Date());
@@ -45,7 +60,7 @@ export default function PageMaJournee({ apercu = false }: { apercu?: boolean }) 
 
   const recharger = useCallback(async () => {
     try {
-      const [i, c, s, t, d, p] = await Promise.all([
+      const [i, c, s, t, d, p, pr] = await Promise.all([
         listerInterventions(),
         listerChantiers().catch(() => []),
         listerSites().catch(() => []),
@@ -53,12 +68,15 @@ export default function PageMaJournee({ apercu = false }: { apercu?: boolean }) 
         listerDocuments({ membre_id: monId }).catch(() => []),
         listerPointages({ membreId: monId, depuis: aujourdhui, jusqu: aujourdhui })
           .catch(() => []),
+        // Sans le SQL 35, pas d'arrivées : l'écran retombe sur « Je commence ».
+        listerPresences({ membreId: monId, depuis: debutDuJour() }).catch(() => [] as PresenceLue[]),
       ]);
       setInterventions(i.filter((x) => x.membre_id === monId));
       setChantiers(c); setSites(s);
       setTaches(t.filter((x) => x.assignee_id === monId));
       setPieces(d);
       setHeuresJour(p.reduce((sum, x) => sum + Number(x.heures), 0));
+      setPresences(pr);
     } catch (e) { setErreur((e as Error).message); }
     setCharge(true);
   }, [monId, aujourdhui]);
@@ -75,6 +93,13 @@ export default function PageMaJournee({ apercu = false }: { apercu?: boolean }) 
     i.date_prevue && i.date_prevue < aujourdhui && ['planifiee', 'en_cours'].includes(i.statut));
 
   const tachesDuJour = taches.filter((t) => !t.echeance || t.echeance <= aujourdhui);
+  // Le temps passé d'après les arrivées et départs, au quart d'heure : la
+  // même information ne se tape pas deux fois (règle 3).
+  const tempsNote = Math.round(presences
+    .filter((p) => p.parti_le)
+    .reduce((s, p) => s + (new Date(p.parti_le!).getTime() - new Date(p.arrive_le).getTime()), 0)
+    / 900000) / 4;
+  const ouverteSansIntervention = presences.find((p) => !p.parti_le && !p.intervention_id);
   const aRenouveler = pieces.filter((d) => ['perime', 'bientot'].includes(etatDocument(d, 60)));
 
   async function marquer(i: Intervention, statut: Intervention['statut']) {
@@ -86,6 +111,44 @@ export default function PageMaJournee({ apercu = false }: { apercu?: boolean }) 
       });
       void recharger();
     } catch (e) { setErreur((e as Error).message); }
+  }
+
+  /**
+   * « Je suis arrivé ». L'heure vient du serveur ; la position est relevée une
+   * fois, maintenant. Avant, on cherche les coordonnées du site s'il n'en a
+   * pas encore, pour que la base puisse dire si l'arrivée a été notée sur place.
+   */
+  async function arriver(cle: string, cible: { interventionId?: string; chantierId?: string }, site?: Site) {
+    setEnCours(cle); setErreur(null); setInfo(null);
+    try {
+      const [releve] = await Promise.all([relevePosition(), localiserSite(site).catch(() => undefined)]);
+      const p = await noterArrivee(cible, releve);
+      setInfo(`Arrivée notée à ${heure(p.arrive_le)} — `
+        + ecartLisible(p.arrivee_distance_m, p.arrivee_sans_position, p.arrivee_precision_m,
+                       p.arrivee_latitude != null) + '.');
+      await recharger();
+    } catch (e) {
+      const m = (e as Error).message;
+      // Sans le SQL 35, l'intervention démarre quand même, comme avant.
+      const i = interventions.find((x) => x.id === cible.interventionId);
+      if (sql35Absent(m) && i) {
+        await marquer(i, 'en_cours');
+        setInfo('Intervention démarrée. L’heure d’arrivée et la position demandent le SQL 35.');
+      } else {
+        setErreur(m);
+      }
+    }
+    setEnCours(null);
+  }
+
+  async function partir(cle: string, p: PresenceLue, terminer: boolean) {
+    setEnCours(cle); setErreur(null); setInfo(null);
+    try {
+      const fini = await noterDepart(p.id, await relevePosition(), terminer);
+      setInfo(`Départ noté à ${heure(fini.parti_le!)}.`);
+      await recharger();
+    } catch (e) { setErreur((e as Error).message); }
+    setEnCours(null);
   }
 
   /** Le geste le plus fréquent de la journée : une journée normale, notée d'un clic. */
@@ -138,11 +201,22 @@ export default function PageMaJournee({ apercu = false }: { apercu?: boolean }) 
         </div>
       )}
 
-      <h2 style={{ marginBottom: 8 }}>Aujourd’hui</h2>
+      {info && (
+        <div className="panneau" style={{ display: 'block', borderLeft: '3px solid var(--vert)' }}>
+          {info}
+        </div>
+      )}
+
+      <h2 style={{ marginBottom: 4 }}>Aujourd’hui</h2>
+      <p className="statut" style={{ marginBottom: 10 }}>
+        « Je suis arrivé » et « Je pars » relèvent votre position une seule fois, au moment
+        où vous appuyez — jamais en continu. Elle sert à dire que l’arrivée a été notée sur
+        place.
+      </p>
       {duJour.length === 0 ? (
         <div className="vide">
           Rien de planifié à votre nom aujourd’hui. Si vous êtes tout de même sur un
-          chantier, notez vos heures : elles comptent quand même.
+          chantier, notez votre arrivée et vos heures : elles comptent quand même.
         </div>
       ) : (
         duJour.map((i) => {
@@ -150,6 +224,8 @@ export default function PageMaJournee({ apercu = false }: { apercu?: boolean }) 
           const site = sites.find((x) => x.id === c?.site_id);
           const adresse = [site?.adresse, site?.code_postal, site?.ville]
             .filter(Boolean).join(' ');
+          const ouverte = presences.find((x) => x.intervention_id === i.id && !x.parti_le);
+          const passees = presences.filter((x) => x.intervention_id === i.id && x.parti_le);
           return (
             <div key={i.id} className="panneau" style={{ display: 'block' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between',
@@ -171,8 +247,7 @@ export default function PageMaJournee({ apercu = false }: { apercu?: boolean }) 
               {adresse && (
                 <div style={{ marginTop: 10 }}>
                   <div>{adresse}</div>
-                  <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(adresse)}`}
-                     target="_blank" rel="noopener">Itinéraire</a>
+                  <Itineraire adresse={adresse} latitude={site?.latitude} longitude={site?.longitude} />
                 </div>
               )}
 
@@ -183,32 +258,111 @@ export default function PageMaJournee({ apercu = false }: { apercu?: boolean }) 
                 </div>
               )}
 
+              {(ouverte || passees.length > 0) && (
+                <div style={{ marginTop: 10 }}>
+                  {passees.map((x) => (
+                    <div key={x.id} className="statut">
+                      Arrivé à {heure(x.arrive_le)}, parti à {heure(x.parti_le!)}
+                      {x.depart_auto ? ' (départ non noté)' : ''}
+                    </div>
+                  ))}
+                  {ouverte && (
+                    <div>
+                      <strong>Arrivé à {heure(ouverte.arrive_le)}</strong>
+                      <span className="statut">
+                        {' — '}{ecartLisible(ouverte.arrivee_distance_m, ouverte.arrivee_sans_position,
+                                             ouverte.arrivee_precision_m, ouverte.arrivee_latitude != null)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
-                {i.statut === 'planifiee' && (
-                  <button className="action" onClick={() => void marquer(i, 'en_cours')}>
-                    Je commence
+                {!ouverte && ['planifiee', 'en_cours', 'reportee'].includes(i.statut) && (
+                  <button className="action" disabled={enCours !== null}
+                          onClick={() => void arriver(`a:${i.id}`, { interventionId: i.id }, site)}>
+                    {enCours === `a:${i.id}` ? 'Position…' : 'Je suis arrivé'}
                   </button>
                 )}
-                {i.statut === 'en_cours' && (
-                  <button className="action" onClick={() => void marquer(i, 'terminee')}>
+                {ouverte && (
+                  <>
+                    <button className="action" disabled={enCours !== null}
+                            onClick={() => void partir(`t:${i.id}`, ouverte, true)}>
+                      {enCours === `t:${i.id}` ? 'Position…' : 'J’ai terminé, je pars'}
+                    </button>
+                    <button className="action discret" disabled={enCours !== null}
+                            onClick={() => void partir(`d:${i.id}`, ouverte, false)}>
+                      {enCours === `d:${i.id}` ? 'Position…' : 'Je pars, je reviens'}
+                    </button>
+                  </>
+                )}
+                {!ouverte && i.statut === 'en_cours' && (
+                  <button className="action discret" onClick={() => void marquer(i, 'terminee')}>
                     J’ai terminé
                   </button>
                 )}
-                {c && (
-                  <>
-                    <button className="action discret" onClick={() => aller(`/pose/${c.id}`)}>
-                      Fiche de pose
-                    </button>
-                    <button className="action discret" onClick={() => aller(`/chantiers/${c.id}`)}>
-                      Journal et photos
-                    </button>
-                    <BoutonsIntervention intervention={i} onErreur={setErreur} />
-                  </>
-                )}
               </div>
+
+              {c && (
+                <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+                  <button className="action discret" onClick={() => setMedias(c)}>
+                    Photos, vidéos
+                  </button>
+                  <button className="action discret" onClick={() => setDemande({ c, i })}>
+                    Le client demande autre chose
+                  </button>
+                  <button className="action discret" onClick={() => aller(`/pose/${c.id}`)}>
+                    Fiche de pose
+                  </button>
+                  <button className="action discret" onClick={() => aller(`/chantiers/${c.id}`)}>
+                    Journal du chantier
+                  </button>
+                  <BoutonsIntervention intervention={i} onErreur={setErreur} />
+                </div>
+              )}
             </div>
           );
         })
+      )}
+
+      {/* Une arrivée hors intervention : un sous-traitant appelé en renfort, un
+          chantier sans planning. L'heure compte quand même. */}
+      {ouverteSansIntervention ? (
+        <div className="panneau" style={{ display: 'block' }}>
+          <strong>Arrivé à {heure(ouverteSansIntervention.arrive_le)}</strong>
+          <span className="statut">
+            {ouverteSansIntervention.chantier ? ` sur ${ouverteSansIntervention.chantier.numero}` : ''}
+            {' — '}{ecartLisible(ouverteSansIntervention.arrivee_distance_m,
+                                 ouverteSansIntervention.arrivee_sans_position,
+                                 ouverteSansIntervention.arrivee_precision_m,
+                                 ouverteSansIntervention.arrivee_latitude != null)}
+          </span>
+          <div style={{ marginTop: 10 }}>
+            <button className="action" disabled={enCours !== null}
+                    onClick={() => void partir('libre', ouverteSansIntervention, false)}>
+              {enCours === 'libre' ? 'Position…' : 'Je pars'}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <details className="panneau" style={{ display: 'block' }}>
+          <summary style={{ cursor: 'pointer' }}>Arrivé sur un chantier qui n’est pas dans la liste</summary>
+          <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+            <select value={chantierLibre} style={{ flex: 1, minWidth: 200 }}
+                    onChange={(e) => setChantierLibre(e.target.value)}>
+              <option value="">Choisir le chantier…</option>
+              {chantiers.filter((c) => c.statut !== 'receptionne').map((c) => (
+                <option key={c.id} value={c.id}>{c.numero} — {c.libelle}</option>
+              ))}
+            </select>
+            <button className="action" disabled={!chantierLibre || enCours !== null}
+                    onClick={() => void arriver('libre', { chantierId: chantierLibre },
+                      sites.find((x) => x.id === chantiers.find((c) => c.id === chantierLibre)?.site_id))}>
+              {enCours === 'libre' ? 'Position…' : 'Je suis arrivé'}
+            </button>
+          </div>
+        </details>
       )}
 
       <h2 style={{ margin: '22px 0 8px' }}>Mes heures du jour</h2>
@@ -222,6 +376,13 @@ export default function PageMaJournee({ apercu = false }: { apercu?: boolean }) 
               ? 'Déjà noté pour aujourd’hui.'
               : 'Rien de noté. Un clic suffit, on corrige plus tard si besoin.'}
           </span>
+          {heuresJour === 0 && tempsNote > 0 && (
+            <button className="action"
+                    onClick={() => void pointerRapide(tempsNote,
+                      presences.find((x) => x.chantier_id)?.chantier_id ?? null)}>
+              + {heuresLisibles(tempsNote)} d’après vos arrivées
+            </button>
+          )}
           {[7, 7.5, 8].map((h) => (
             <button key={h} className="action discret"
                     onClick={() => void pointerRapide(h, duJour[0]?.chantier_id ?? null)}>
@@ -297,6 +458,19 @@ export default function PageMaJournee({ apercu = false }: { apercu?: boolean }) 
             </p>
           </div>
         </>
+      )}
+
+      {medias && (
+        <EnvoiMedias chantierId={medias.id} tiersId={medias.tiers_id}
+                     titre={`Photos et vidéos — ${medias.numero}`}
+                     onFermer={() => setMedias(null)}
+                     onEnvoye={() => { setMedias(null); setInfo('Envoyé au journal du chantier.'); }} />
+      )}
+      {demande && (
+        <DemandeTerrain chantier={demande.c} interventionId={demande.i.id}
+                        site={sites.find((x) => x.id === demande.c.site_id)}
+                        onFermer={() => setDemande(null)}
+                        onCree={() => { setDemande(null); setInfo('Demande transmise au bureau.'); }} />
       )}
     </>
   );

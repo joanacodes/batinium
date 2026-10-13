@@ -62,11 +62,13 @@ fluides sans jamais reculer (compteur par entreprise, type et année).
 ### Les scripts SQL
 
 Dossier `sql/`, numérotés, rejouables, autovérifiés. **Exécutés sur Supabase :
-01 à 31.** **À exécuter : 34** (appels rattachés à leur client, indépendant de
-32 et 33). **À ne pas exécuter encore : 32 et 33** (phase 1) — la revue du
-13 octobre y a trouvé des défauts bloquants, voir `REVUE-PHASE-1.md`.
+01 à 31.** **À exécuter : 34 à 38** (appels rattachés à leur client,
+arrivées sur chantier, demandes faites sur place, contrats d'entretien, mode
+démonstration — tous indépendants de 32 et 33). **À ne pas exécuter encore :
+32 et 33** (phase 1) — la revue du 13 octobre y a trouvé des défauts
+bloquants, voir `REVUE-PHASE-1.md`.
 
-Depuis le 13 octobre, `sql/` contient 01 à 03 et 12 à 34, plus
+Depuis le 13 octobre, `sql/` contient 01 à 03 et 12 à 38, plus
 `essai_achats.sql` : les scripts 12 à 31 ont été reconstitués depuis la
 conversation où ils avaient été livrés, et tous (01 à 33) ont tourné sans
 erreur, vérifications comprises, sur une base Postgres 16 locale où les
@@ -101,6 +103,10 @@ tiennent entre eux.
 | **32** | **Machines : référentiel des fluides (PRP du règlement 2024/573, famille), tonnage CO2, fréquence de contrôle par famille, photo de plaque** — en attente des corrections de la revue |
 | **33** | **Fiche fluides Cerfa : table, numérotation `FF-AAAA-NNNN` par `prochain_numero_fiche()`, autocontrôles, signature du client selon le seuil, immuabilité, rectification** — en attente des corrections de la revue |
 | **34** | **Appels et clients : `normaliser_telephone()`, `tiers_par_telephone()`, rattachement des demandes à l'arrivée et quand une fiche client prend leur numéro, reprise des appels déjà reçus** — à exécuter, indépendant de 32 et 33 |
+| **35** | **Arrivées et départs : table `presence`, `noter_arrivee()` / `noter_depart()` (heure du serveur, position relevée au geste), distance au site, positions effacées après un an** — à exécuter |
+| **36** | **Demandes faites sur place : `demande.suite` (à facturer, SAV, nouveau devis), `chantier_id`, `intervention_id`, `cree_par`, et `document.demande_id` pour leurs photos** — à exécuter |
+| **37** | **Contrats d'entretien : `contrat_entretien` (réservé à ceux qui voient les prix), échéance qui avance seule à la visite terminée, `membre.preavis_entretien_jours` réglé par chacun** — à exécuter |
+| **38** | **Mode démonstration, temporaire : `membre.apercu_role`, `mon_role()` qui le lit, `entrer_apercu()` / `quitter_apercu()`** — à exécuter, à retirer avant la revente (procédure dans son en-tête) |
 
 Fichiers d'essai : `essai_achats.sql` (jeu de factures fournisseurs, se
 retire par `delete from achat where numero like 'ESSAI-%'`).
@@ -187,9 +193,27 @@ phase 1 les sections **Machines** et **Fiches fluides**.
 rémunération du jour travaillé ; validation par la direction.
 
 **Ma journée** — l'écran du technicien sur téléphone : ses interventions du
-jour, itinéraire, « je commence / j'ai terminé », fiche de pose, journal, et
-(phase 1) le bouton « Fiches fluides ». La direction peut y voir la « vue
-technicien ».
+jour, itinéraire Google Maps ou Waze, « Je suis arrivé » et « J'ai terminé,
+je pars » (heure du serveur, position relevée une fois au geste — SQL 35),
+heures proposées d'après les arrivées et départs, « Photos, vidéos » envoyées
+au journal du chantier, « Le client demande autre chose » (à facturer, SAV ou
+nouveau devis, avec coordonnées et photos — SQL 36), fiche de pose, journal,
+et (phase 1) le bouton « Fiches fluides ».
+
+**Sur le terrain aujourd'hui** — sur l'accueil de la direction : qui est
+arrivé où, à quelle heure, à quelle distance du chantier, et qui n'a pas
+encore noté son arrivée sur une intervention du jour. La fiche chantier
+garde l'historique des arrivées et départs.
+
+**Contrats d'entretien** — sur la fiche client (direction et chefs de
+chantier) : périodicité, prochaine échéance, prix, « Planifier la visite ».
+La cloche prévient avant l'échéance, avec le préavis que chacun règle au
+pied de la cloche (SQL 37).
+
+**Mode démonstration** — sélecteur « Vue direction / chef de chantier /
+technicien / sous-traitant » dans la barre du haut, pour la direction
+seulement : toute l'application, données et refus compris, avec les droits
+du rôle choisi (SQL 38). Temporaire.
 
 **Journal** — toutes les notes de chantier.
 
@@ -281,6 +305,42 @@ octet à celui de la fin du lot 37 ; `.env.local` n'y est pas et ne doit pas y
 ---
 
 ## 5. Où le travail s'est arrêté
+
+### Demandes de Fabrice du 13 octobre — codées, SQL à exécuter
+
+Quatre demandes du client, plus un mode démonstration :
+
+- **Heure d'arrivée** des salariés et sous-traitants : SQL 35.
+- **GPS pour tous** : itinéraire Google Maps ou Waze partout où une adresse
+  s'affiche (Ma journée, fiche chantier, fiche client), et position relevée
+  à l'arrivée et au départ. Ce n'est pas un suivi en continu, volontairement :
+  la CNIL tient la géolocalisation permanente d'un salarié pour
+  disproportionnée, et une application web ne peut de toute façon pas suivre
+  quelqu'un qui l'a fermée.
+- **À facturer, SAV ou nouveau devis** pour un client — ou le client du
+  client — qui veut quelque chose en plus : SQL 36. La demande arrive dans
+  Demandes, avec ses photos et vidéos et un lien vers le chantier.
+- **Contrats de maintenance et notifications** avant l'échéance, avec un
+  préavis réglé par chaque utilisateur : SQL 37. Les notifications sont celles
+  de la cloche ; un rappel par e-mail ou SMS demanderait une tâche planifiée
+  côté serveur, que le projet n'a pas encore.
+- **Mode démonstration** : SQL 38.
+
+**À faire sur Supabase** : exécuter 35, 36, 37 et 38, dans cet ordre, dans
+l'éditeur SQL. Aucune fonction à redéployer. Tant qu'un script n'a pas
+tourné, l'écran concerné le dit (« … demande le SQL 35 ») au lieu de planter ;
+« Je suis arrivé » retombe alors sur l'ancien « Je commence ».
+
+**À faire par Fabrice** : informer ses salariés par écrit que la position
+est relevée à l'arrivée et au départ, pourquoi (prouver l'intervention), et
+qu'elle est effacée au bout d'un an. C'est une obligation d'information de
+l'employeur, l'écran ne la remplace pas.
+
+**Vidéos** : 50 Mo au plus par fichier, la limite du seau `documents` (SQL
+13) — vingt à trente secondes de vidéo au téléphone. L'écran le dit avant
+l'envoi. Pour aller au-delà, il faut relever la limite du projet dans
+Supabase (Storage → Settings, possible sur l'offre Pro), celle du seau, et
+la constante `TAILLE_MAXIMALE` de `src/lib/db.ts`.
 
 ### Appels sans nom — corrigé le 13 octobre, à déployer
 
@@ -475,6 +535,17 @@ Relevés le 13 octobre dans le code du lot 37, à traiter :
   non l'identifiant de l'appel ; une livraison rejouée remet la demande à
   « nouvelle » (son nom et son client, eux, ne sont plus effacés) ; le texte
   des SMS reçus est perdu.
+- **Un sous-traitant voit ce que voit un technicien** : tous les clients,
+  toutes les demandes, tous les chantiers. La RLS ne distingue pas encore les
+  deux rôles, alors que le cahier des charges veut qu'un sous-traitant ne
+  voie que ce qui lui est autorisé. Le mode démonstration le montre.
+- Les écrans ne sont pas gardés par rôle : une adresse tapée à la main ouvre
+  la page, et seule la RLS protège les données. C'est suffisant pour la
+  sécurité (règle 4), pas pour l'ergonomie.
+- `npx vite build` sans `.env.local` réussit… en produisant une application
+  vide : `src/lib/supabase.ts` lève une erreur au chargement, et le bundler
+  supprime tout le reste comme inatteignable. Une compilation qui valide
+  quelque chose se fait avec les variables (Vercel les a).
 - La recherche des noms chez Allô suppose la forme de réponse de leur API
   `crm/people/search` d'après leur documentation, sans essai réel depuis ce
   dépôt : le premier clic sur « Retrouver les noms » en est le test.

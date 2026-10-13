@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from './supabase';
-import type { Membre } from './types';
+import type { Membre, Role } from './types';
 
 /**
  * Le membre courant : son entreprise et son rôle.
@@ -9,6 +9,9 @@ import type { Membre } from './types';
  */
 
 let membreCourant: Membre | null = null;
+// Le rôle de la ligne `membre`, avant tout aperçu. `membreCourant.role` porte,
+// lui, le rôle effectif : c'est celui que lisent tous les écrans.
+let roleReelCourant: Role | null = null;
 
 export function membre(): Membre {
   if (!membreCourant) throw new Error('Session non initialisée.');
@@ -44,12 +47,81 @@ export async function chargerMembre(userId: string): Promise<Membre | null> {
     .eq('actif', true)
     .maybeSingle();
   if (error) throw new Error(error.message);
-  membreCourant = (data as Membre) ?? null;
+  const m = (data as Membre) ?? null;
+  roleReelCourant = m?.role ?? null;
+  // Même règle que mon_role() en base (SQL 38) : l'aperçu ne vaut que pour la
+  // direction. L'écran et la RLS lisent ainsi le même rôle — sinon on verrait
+  // les menus d'un technicien avec les données de la direction.
+  membreCourant = m && m.role === 'direction' && m.apercu_role
+    ? { ...m, role: m.apercu_role }
+    : m;
   return membreCourant;
 }
 
 export function oublierMembre(): void {
   membreCourant = null;
+  roleReelCourant = null;
+}
+
+/**
+ * Combien de jours avant une échéance d'entretien prévenir ce membre (SQL 37).
+ * Trente par défaut : le temps de caler une tournée sans y penser trop tôt.
+ */
+export function preavisEntretien(): number {
+  return membreCourant?.preavis_entretien_jours ?? 30;
+}
+
+/** Règle son propre préavis. Par la base : `membre` n'est modifiable que par la direction. */
+export async function reglerPreavisEntretien(jours: number): Promise<void> {
+  const { error } = await supabase.rpc('regler_preavis_entretien', { p_jours: jours });
+  if (error) {
+    throw new Error(/function .* does not exist|Could not find the function/i.test(error.message)
+      ? 'Le préavis d’entretien demande le SQL 37 : exécutez-le dans Supabase.'
+      : error.message);
+  }
+  if (membreCourant) membreCourant = { ...membreCourant, preavis_entretien_jours: jours };
+}
+
+/** Le rôle réel, hors démonstration : seul lui ouvre le sélecteur de vue. */
+export function roleReel(): Role | null {
+  return roleReelCourant;
+}
+
+/** Vrai quand la direction regarde Batinium avec les droits d'un autre rôle. */
+export function enDemonstration(): boolean {
+  return roleReelCourant === 'direction' && !!membreCourant && membreCourant.role !== 'direction';
+}
+
+/**
+ * Change la vue de démonstration, puis recharge la page.
+ *
+ * Recharger plutôt que rerendre : chaque écran a chargé ses données avec les
+ * droits d'avant, la cloche aussi. Un rechargement complet est la seule façon
+ * sûre de ne rien garder de la vue précédente — et c'est un outil de mise au
+ * point, pas un geste quotidien.
+ */
+export async function basculerVue(role: Role): Promise<void> {
+  await changerDemonstration(role === 'direction' ? null : role);
+  window.location.hash = '#/bord';
+  window.location.reload();
+}
+
+/**
+ * Entre en démonstration, ou en sort avec `null`.
+ *
+ * Par la base et non par l'écran : c'est mon_role() qui change, donc la RLS
+ * avec lui. Il faut ensuite recharger le membre — c'est à l'appelant de le
+ * faire, parce que c'est lui qui tient l'état de l'application.
+ */
+export async function changerDemonstration(role: Exclude<Role, 'direction'> | null): Promise<void> {
+  const { error } = role
+    ? await supabase.rpc('entrer_apercu', { p_role: role })
+    : await supabase.rpc('quitter_apercu');
+  if (error) {
+    throw new Error(/function .* does not exist|Could not find the function/i.test(error.message)
+      ? 'Le mode démonstration demande le SQL 38 : exécutez-le dans Supabase.'
+      : error.message);
+  }
 }
 
 /**

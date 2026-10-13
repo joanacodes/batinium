@@ -10,6 +10,8 @@ import type { Chantier, Devis, Fil, Site, Tiers, TypeFil } from '../lib/types';
 import FilAriane from '../components/FilAriane';
 import ChampAdresse from '../components/ChampAdresse';
 import { MachinesClient } from '../components/Machines';
+import ContratsEntretien from '../components/ContratsEntretien';
+import Itineraire from '../components/Itineraire';
 
 const LIBELLE_FIL: Record<TypeFil, string> = {
   appel_entrant: 'Appel reçu', appel_manque: 'Appel manqué', appel_sortant: 'Appel passé',
@@ -157,6 +159,13 @@ export default function PageFicheClient({ tiersId }: { tiersId: string }) {
             </div>
           )}
 
+          {voitLesPrix() && (
+            <>
+              <h2 style={{ margin: '18px 0 8px' }}>Contrats d’entretien</h2>
+              <ContratsEntretien tiersId={tiersId} chantiers={chantiers} />
+            </>
+          )}
+
           <h2 style={{ margin: '18px 0 8px' }}>Machines</h2>
           <MachinesClient tiersId={tiersId} onErreur={setErreur} />
         </aside>
@@ -183,6 +192,10 @@ function Sites({ tiersId, sites, onErreur, onEnregistre }:
       {sites.map((site) => (
         <div key={site.id} style={{ marginBottom: 8 }}>
           <strong>{site.adresse}</strong>{site.ville ? `, ${site.ville}` : ''}
+          <div>
+            <Itineraire adresse={[site.adresse, site.code_postal, site.ville].filter(Boolean).join(' ')}
+                        latitude={site.latitude} longitude={site.longitude} />
+          </div>
           <div className="statut">
             {site.usage_local}
             {site.annee_achevement

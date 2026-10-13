@@ -36,6 +36,10 @@ export interface Membre {
   aptitude_fluides_num: string | null;
   aptitude_fluides_expire_le: string | null;
   actif: boolean;
+  /** Mode démonstration (SQL 38) : le rôle dont la direction emprunte les droits. */
+  apercu_role?: Exclude<Role, 'direction'> | null;
+  /** Combien de jours avant une échéance d'entretien prévenir ce membre (SQL 37). */
+  preavis_entretien_jours?: number;
 }
 
 export type Priorite = 'basse' | 'normale' | 'haute' | 'urgente';
@@ -187,7 +191,13 @@ export interface Site {
   declaration_prealable: 'sans_objet' | 'a_deposer' | 'deposee' | 'accordee';
   contraintes_acces: string | null;
   notes: string | null;
+  /** Position de l'adresse, d'après l'IGN (SQL 35). */
+  latitude?: number | null;
+  longitude?: number | null;
 }
+
+/** Ce qu'une demande notée sur le terrain appelle (SQL 36). */
+export type SuiteDemande = 'a_facturer' | 'sav' | 'nouveau_devis';
 
 export interface Demande {
   id: string;
@@ -212,6 +222,10 @@ export interface Demande {
   rappeler_le: string | null;
   motif_perte: string | null;
   tiers_id: string | null;
+  suite?: SuiteDemande | null;
+  chantier_id?: string | null;
+  intervention_id?: string | null;
+  cree_par?: string | null;
 }
 
 export type TypeFil =
@@ -584,6 +598,58 @@ export interface Intervention {
   recuperee_kg: number | null;
   controle_etancheite: boolean;
   resultat_etancheite: string | null;
+  /** La visite d'un contrat d'entretien (SQL 37). */
+  contrat_id?: string | null;
+  /** L'échéance du contrat que cette visite a soldée, posée par la base. */
+  echeance_honoree?: string | null;
+}
+
+/** Pourquoi une position n'a pas été relevée. */
+export type SansPosition = 'refusee' | 'indisponible' | 'delai' | 'non_supportee';
+
+/**
+ * Une arrivée sur un chantier, et le départ qui la complète (SQL 35).
+ * Heures posées par le serveur ; position relevée une fois par geste.
+ */
+export interface Presence {
+  id: string;
+  entreprise_id: string;
+  membre_id: string;
+  chantier_id: string | null;
+  intervention_id: string | null;
+  arrive_le: string;
+  arrivee_latitude: number | null;
+  arrivee_longitude: number | null;
+  arrivee_precision_m: number | null;
+  arrivee_distance_m: number | null;
+  arrivee_sans_position: SansPosition | null;
+  parti_le: string | null;
+  depart_latitude: number | null;
+  depart_longitude: number | null;
+  depart_precision_m: number | null;
+  depart_distance_m: number | null;
+  depart_sans_position: SansPosition | null;
+  depart_auto: boolean;
+  commentaire: string | null;
+  created_at: string;
+}
+
+/** Un contrat d'entretien vendu à un client (SQL 37). Porte un prix. */
+export interface ContratEntretien {
+  id: string;
+  entreprise_id: string;
+  tiers_id: string;
+  site_id: string | null;
+  chantier_id: string | null;
+  libelle: string;
+  periodicite_mois: number;
+  prochaine_echeance: string;
+  debut_le: string;
+  fin_le: string | null;
+  prix_ht: number | null;
+  statut: 'actif' | 'suspendu' | 'resilie';
+  notes: string | null;
+  created_at: string;
 }
 
 export type TypePointage =
@@ -675,6 +741,8 @@ export interface Document {
   equipement_id: string | null;
   /** La fiche fluides dont c'est une signature ou le PDF (SQL 33). */
   fiche_fluide_id: string | null;
+  /** La demande notée sur le terrain que cette photo accompagne (SQL 36). */
+  demande_id?: string | null;
   /** Pièce de l'entreprise elle-même, rattachée à rien d'autre. */
   portee_entreprise: boolean;
   type: TypeDocument;

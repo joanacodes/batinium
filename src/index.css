@@ -1371,3 +1371,37 @@ tr.brouillon:hover td { background: #fdf7ee; }
 @media (hover: none) {
   .choix-devis { position: static; box-shadow: none; min-width: 0; }
 }
+
+/* --- Mode démonstration (SQL 38, temporaire) -------------------------------
+   Ambre, pas bleu : on doit savoir d'un coup d'œil qu'on n'est pas dans sa
+   propre vue, sinon on finit par croire qu'un technicien voit ce qu'on voit. */
+
+.choix-vue { width: auto; font-size: 13px; padding: 4px 6px; }
+
+.bandeau-demo {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  background: #fff4e0;
+  border-left: 3px solid #d98c00;
+}
+.bandeau-demo span { flex: 1; min-width: 220px; }
+
+/* Le réglage du préavis d'entretien, au pied de la cloche. */
+.volet-pied {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  border-top: 1px solid var(--filet);
+}
+.volet-pied label { margin: 0; }
+.volet-pied select { width: auto; }
+
+/* Photo, Filmer, Depuis le téléphone : des boutons qu'on vise avec le pouce,
+   souvent ganté. 44 px, comme le reste du terrain. */
+.choix-medias .depot { display: inline-flex; align-items: center; min-height: 44px; }

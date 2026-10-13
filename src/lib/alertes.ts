@@ -3,8 +3,9 @@ import {
   listerEquipements, listerInterventions, LIBELLES_DOCUMENT, listerDocumentsAEcheance,
   listerJournal, listerTaches, masquerAlerte,
 } from './db';
-import { voitLesPrix } from './session';
+import { preavisEntretien, voitLesPrix } from './session';
 import { alertesFluides } from './alertesFluides';
+import { contratsActifs, visitesPrevues } from './contrats';
 
 /**
  * Les alertes ne sont pas stockées : elles se recalculent à chaque affichage.
@@ -29,6 +30,9 @@ const dans = (n: number) => jour(new Date(Date.now() + n * 86400000));
 export async function calculerAlertes(): Promise<Alerte[]> {
   const aujourdhui = jour(new Date());
   const prix = voitLesPrix();
+  // Chacun choisit combien de temps à l'avance il veut être prévenu d'un
+  // entretien (SQL 37) : un mois pour caler la tournée, une semaine pour un autre.
+  const preavis = preavisEntretien();
 
   const [demandes, devis, chantiers, vigilance, taches, interventions, journal,
          equipements, parametres, masquees] = await Promise.all([
@@ -175,13 +179,45 @@ export async function calculerAlertes(): Promise<Alerte[]> {
         detail: e.numero_serie ? `N° de série ${e.numero_serie}` : undefined,
         lien: ou, date: e.prochain_entretien_le,
       });
-    } else if (e.prochain_entretien_le <= dans(30)) {
+    } else if (e.prochain_entretien_le <= dans(preavis)) {
       a.push({
         cle: `entretien:bientot:${e.id}:${e.prochain_entretien_le}`, gravite: 'attention',
         titre: `Entretien à prévoir — ${quoi}`,
         detail: `À faire avant le ${new Date(e.prochain_entretien_le).toLocaleDateString('fr-FR')}.`,
         lien: ou, date: e.prochain_entretien_le,
       });
+    }
+  }
+
+  // Contrats d'entretien à échéance, sans visite planifiée (SQL 37). Une
+  // visite calée fait taire l'alerte : il n'y a plus rien à faire, sinon y
+  // aller. Réservé à ceux qui voient les prix — le contrat en porte un, et la
+  // base ne le leur montre pas de toute façon.
+  if (prix) {
+    const [contrats, visites] = await Promise.all([
+      contratsActifs().catch(() => []),
+      visitesPrevues().catch(() => []),
+    ]);
+    const calees = new Set(visites.map((v) => v.contrat_id));
+    for (const c of contrats) {
+      if (calees.has(c.id)) continue;
+      const qui = c.tiers?.nom ?? 'un client';
+      const quand = new Date(c.prochaine_echeance).toLocaleDateString('fr-FR');
+      if (c.prochaine_echeance <= aujourdhui) {
+        a.push({
+          cle: `contrat:retard:${c.id}:${c.prochaine_echeance}`, gravite: 'urgent',
+          titre: `Entretien sous contrat en retard — ${qui}`,
+          detail: `${c.libelle} : échéance du ${quand}, aucune visite planifiée.`,
+          lien: `#/clients/${c.tiers_id}`, date: c.prochaine_echeance,
+        });
+      } else if (c.prochaine_echeance <= dans(preavis)) {
+        a.push({
+          cle: `contrat:bientot:${c.id}:${c.prochaine_echeance}`, gravite: 'attention',
+          titre: `Entretien sous contrat à planifier — ${qui}`,
+          detail: `${c.libelle} : à faire avant le ${quand}.`,
+          lien: `#/clients/${c.tiers_id}`, date: c.prochaine_echeance,
+        });
+      }
     }
   }
 

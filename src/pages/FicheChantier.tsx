@@ -1,22 +1,25 @@
 import { useCallback, useEffect, useState } from 'react';
 import { aller } from '../lib/router';
 import {
-  ajouterFil, chargerChantier, clePrealable, enregistrerIntervention,
-  enregistrerApprovisionnement, lienDocument, listerApprovisionnement, listerDocuments,
-  listerPrealables, poids, prealablesDu, supprimerApprovisionnement, televerserDocument,
-  listerFil, listerInterventions, listerMembres, majChantier,
-  prononcerReception,
+  chargerChantier, clePrealable, enregistrerIntervention,
+  enregistrerApprovisionnement, listerApprovisionnement, listerDemandes, listerDocuments,
+  listerPrealables, noterAuJournal, prealablesDu, supprimerApprovisionnement,
+  listerFil, listerInterventions, listerMembres, listerSites, majChantier,
+  prononcerReception, LIBELLE_SUITE, type DemandeAvecTiers,
 } from '../lib/db';
 import Modale from '../components/Modale';
 import { LIBELLE_STATUT } from './Chantiers';
 import type {
-  Approvisionnement, Chantier, Document, Fil, Intervention, Membre, Prealable,
+  Approvisionnement, Chantier, Document, Fil, Intervention, Membre, Prealable, Site,
 } from '../lib/types';
 import FilAriane from '../components/FilAriane';
 import Bulle from '../components/Bulle';
 import Dictee from '../components/Dictee';
 import { MachinesChantier } from '../components/Machines';
 import { FichesFluideChantier } from '../components/FichesFluide';
+import Vignettes from '../components/Vignettes';
+import Itineraire from '../components/Itineraire';
+import { PresencesChantier } from '../components/Presences';
 
 const TYPES_INTERVENTION: Record<Intervention['type'], string> = {
   visite_technique: 'Visite technique', pose: 'Pose', mise_en_service: 'Mise en service',
@@ -37,6 +40,8 @@ export default function PageFicheChantier({ chantierId }: { chantierId: string }
   const [erreur, setErreur] = useState<string | null>(null);
   const [note, setNote] = useState('');
   const [reception, setReception] = useState(false);
+  const [demandesTerrain, setDemandesTerrain] = useState<DemandeAvecTiers[]>([]);
+  const [site, setSite] = useState<Site | null>(null);
 
   const recharger = useCallback(async () => {
     try {
@@ -49,6 +54,16 @@ export default function PageFicheChantier({ chantierId }: { chantierId: string }
       ]);
       setC(ch); setInterventions(i); setMembres(m); setFil(f);
       setPrealables(pr); setPieces(doc); setAppro(ap);
+      // Après le reste, et sans bloquer la page : sans le SQL 36, aucune
+      // demande ne porte de chantier, la liste reste simplement vide.
+      listerDemandes()
+        .then((d) => setDemandesTerrain(d.filter((x) => x.chantier_id === chantierId)))
+        .catch(() => setDemandesTerrain([]));
+      if (ch.site_id) {
+        listerSites(ch.tiers_id)
+          .then((s) => setSite(s.find((x) => x.id === ch.site_id) ?? null))
+          .catch(() => setSite(null));
+      }
     } catch (e) { setErreur((e as Error).message); }
   }, [chantierId]);
 
@@ -87,16 +102,7 @@ export default function PageFicheChantier({ chantierId }: { chantierId: string }
     if (!note.trim() && jointes.length === 0) return;
     setEnvoi(true);
     try {
-      const f = await ajouterFil({
-        chantier_id: chantierId, tiers_id: c.tiers_id, type: 'note',
-        contenu: note.trim() || '(photos)', a_traiter: true,
-      });
-      for (const fichier of jointes) {
-        await televerserDocument({ chantier_id: chantierId }, fichier, {
-          type: 'photo', fil_id: f.id,
-          prise_le: fichier.lastModified ? new Date(fichier.lastModified).toISOString() : null,
-        });
-      }
+      await noterAuJournal({ chantierId, tiersId: c.tiers_id, texte: note, fichiers: jointes });
       setNote(''); setJointes([]);
       recharger();
     } catch (e) { setErreur((e as Error).message); }
@@ -125,6 +131,16 @@ export default function PageFicheChantier({ chantierId }: { chantierId: string }
           <div className="statut">
             {c.tiers?.nom ?? '—'} · {LIBELLE_STATUT[c.statut]}
           </div>
+          {/* L'adresse et le chemin, pour tout le monde : le bureau qui envoie
+              quelqu'un, le sous-traitant qui n'a que ce lien. */}
+          {site && (
+            <div style={{ marginTop: 4 }}>
+              {[site.adresse, site.code_postal, site.ville].filter(Boolean).join(' ')}
+              {' · '}
+              <Itineraire adresse={[site.adresse, site.code_postal, site.ville].filter(Boolean).join(' ')}
+                          latitude={site.latitude} longitude={site.longitude} />
+            </div>
+          )}
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           {/* Le seul écran de cette page utilisable par un technicien : il n'y
@@ -182,6 +198,29 @@ export default function PageFicheChantier({ chantierId }: { chantierId: string }
           <h2 style={{ marginBottom: 8 }}>Interventions</h2>
           <Interventions chantierId={chantierId} interventions={interventions} membres={membres}
                          onErreur={setErreur} onChange={recharger} />
+
+          <h2 style={{ margin: '20px 0 8px' }}>Arrivées et départs</h2>
+          <PresencesChantier chantierId={chantierId} />
+
+          {demandesTerrain.length > 0 && (
+            <>
+              <h2 style={{ margin: '20px 0 8px' }}>Demandes faites sur place</h2>
+              <div className="panneau" style={{ display: 'block' }}>
+                {demandesTerrain.map((d) => (
+                  <div key={d.id} style={{ marginBottom: 8 }}>
+                    {d.suite && <span className="jeton" style={{ marginRight: 6 }}>{LIBELLE_SUITE[d.suite]}</span>}
+                    {d.besoin}
+                    <div className="statut">
+                      {new Date(d.recu_le).toLocaleDateString('fr-FR')}
+                      {' · '}{d.nom || d.tiers?.nom || 'client du chantier'}
+                      {' · '}{d.repondu ? 'traitée' : 'à traiter'}
+                      {' · '}<a href="#/demandes">voir dans Demandes</a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
 
           <h2 style={{ margin: '20px 0 8px' }}>À commander et faire livrer</h2>
           <p className="statut" style={{ marginBottom: 8 }}>
@@ -405,7 +444,8 @@ function Interventions({ chantierId, interventions, membres, onErreur, onChange 
               const externe = !salarie && x.sous_traitant_id;
               return (
               <tr key={x.id} style={{
-                borderLeft: `3px solid ${salarie ? 'var(--bleu)' : externe ? '#7a5ea8' : 'var(--filet)'}`,
+                borderLeft: `3px solid ${salarie?.role === 'sous_traitant' || externe ? '#7a5ea8'
+                  : salarie ? 'var(--bleu)' : 'var(--filet)'}`,
               }}>
                 <td className="num ref">{x.date_prevue ? new Date(x.date_prevue).toLocaleDateString('fr-FR') : '—'}</td>
                 <td>{TYPES_INTERVENTION[x.type]}</td>
@@ -413,7 +453,13 @@ function Interventions({ chantierId, interventions, membres, onErreur, onChange 
                   {salarie ? (
                     <>
                       <a href={`#/equipe/${salarie.id}`}>{salarie.nom}</a>
-                      <div><span className="jeton" data-r="salarie">salarié</span></div>
+                      {/* Un sous-traitant peut avoir son compte : c'est alors un
+                          membre, mais pas un salarié. */}
+                      <div>
+                        {salarie.role === 'sous_traitant'
+                          ? <span className="jeton" data-r="sous_traitant">sous-traitant</span>
+                          : <span className="jeton" data-r="salarie">salarié</span>}
+                      </div>
                     </>
                   ) : externe ? (
                     <span className="jeton" data-r="sous_traitant">sous-traitant</span>
@@ -553,53 +599,5 @@ function Reception({ chantierId, reserves, onAnnuler, onFait, onErreur }: {
         </div>
       </div>
     </Modale>
-  );
-}
-
-
-/**
- * Les photos d'une note, en petit.
- *
- * Le seau est privé : chaque vignette réclame un lien signé, et on ne les
- * demande qu'une fois par document. Une vignette qui manque n'empêche pas la
- * note de s'afficher — l'explication vaut déjà quelque chose sans l'image.
- */
-function Vignettes({ docs, onErreur }: { docs: Document[]; onErreur: (m: string) => void }) {
-  const [liens, setLiens] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    let vivant = true;
-    (async () => {
-      for (const d of docs) {
-        if (!d.chemin || liens[d.id]) continue;
-        try {
-          const url = await lienDocument(d.chemin);
-          if (vivant) setLiens((l) => ({ ...l, [d.id]: url }));
-        } catch { /* une vignette absente ne casse pas la note */ }
-      }
-    })();
-    return () => { vivant = false; };
-  }, [docs, liens]);
-
-  async function ouvrir(d: Document) {
-    if (!d.chemin) return;
-    try { window.open(await lienDocument(d.chemin), '_blank', 'noopener'); }
-    catch (e) { onErreur((e as Error).message); }
-  }
-
-  return (
-    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
-      {docs.map((d) => (
-        <button key={d.id} className="galerie-vue" style={{ width: 84, height: 84 }}
-                title={`${d.nom} — ${poids(d.taille_octets)}`}
-                onClick={() => void ouvrir(d)}>
-          {liens[d.id] && d.type_mime?.startsWith('image/')
-            ? <img src={liens[d.id]} alt={d.legende ?? d.nom} />
-            : <span className="galerie-icone" style={{ fontSize: 18 }}>
-                {d.type_mime?.startsWith('video/') ? '▶' : '📄'}
-              </span>}
-        </button>
-      ))}
-    </div>
   );
 }

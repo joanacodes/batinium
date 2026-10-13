@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { calculerAlertes, masquerAlerte, type Alerte, type Gravite } from '../lib/alertes';
+import { preavisEntretien, reglerPreavisEntretien } from '../lib/session';
+
+/** Les préavis proposés, dits comme on les dit. Le réglage reste en jours. */
+const PREAVIS: [number, string][] = [
+  [3, '3 jours avant'], [7, '1 semaine avant'], [14, '2 semaines avant'],
+  [30, '1 mois avant'], [60, '2 mois avant'], [90, '3 mois avant'],
+];
 
 /** Chaque gravité porte son mot : la couleur seule ne se lit pas. */
 const MOT: Record<Gravite, string> = {
@@ -15,6 +22,8 @@ export default function Cloche() {
   // cherche « qu'est-ce qui est arrivé depuis hier » — l'autre question,
   // aussi fréquente, et à laquelle un tri par gravité ne répond pas.
   const [ordre, setOrdre] = useState<'gravite' | 'date'>('gravite');
+  const [preavis, setPreavis] = useState(preavisEntretien);
+  const [erreurPreavis, setErreurPreavis] = useState<string | null>(null);
   const zone = useRef<HTMLDivElement>(null);
   const minuteur = useRef<number | undefined>(undefined);
 
@@ -71,6 +80,19 @@ export default function Cloche() {
       // une échéance dépassée depuis trois semaines.
       ? (y.date ?? '').localeCompare(x.date ?? '')
       : 0));
+
+  async function changerPreavis(jours: number) {
+    setErreurPreavis(null);
+    const avant = preavis;
+    setPreavis(jours);
+    try {
+      await reglerPreavisEntretien(jours);
+      recharger();
+    } catch (e) {
+      setPreavis(avant);
+      setErreurPreavis((e as Error).message);
+    }
+  }
 
   async function ecarter(cle: string) {
     setAlertes((p) => p.filter((a) => a.cle !== cle));
@@ -165,6 +187,19 @@ export default function Cloche() {
               ))}
             </div>
           )}
+
+          {/* Le préavis est propre à chacun : c'est la cloche de chacun qu'il règle. */}
+          <div className="volet-pied">
+            <label htmlFor="preavis-entretien">Me prévenir des entretiens</label>
+            <select id="preavis-entretien" value={preavis}
+                    onChange={(e) => void changerPreavis(Number(e.target.value))}>
+              {!PREAVIS.some(([j]) => j === preavis) && (
+                <option value={preavis}>{preavis} jours avant</option>
+              )}
+              {PREAVIS.map(([j, libelle]) => <option key={j} value={j}>{libelle}</option>)}
+            </select>
+            {erreurPreavis && <div className="statut" style={{ color: 'var(--alerte)' }}>{erreurPreavis}</div>}
+          </div>
         </div>
       )}
     </div>
@@ -182,6 +217,13 @@ function quand(iso: string): string {
   const maintenant = new Date();
   const minutes = Math.round((maintenant.getTime() - d.getTime()) / 60000);
 
+  // Une échéance à venir — un entretien, une expiration — d'abord : sans ce
+  // test, toute date future passait pour « à l'instant », et un entretien
+  // dû dans trois semaines se lisait comme un événement qui vient d'arriver.
+  if (d.toDateString() !== maintenant.toDateString() && d > maintenant) {
+    const dans = Math.ceil((d.getTime() - maintenant.getTime()) / 86400000);
+    return dans <= 1 ? 'demain' : `dans ${dans} jours`;
+  }
   if (minutes < 1) return "à l'instant";
   if (minutes < 60) return `il y a ${minutes} min`;
 
@@ -193,11 +235,6 @@ function quand(iso: string): string {
   if (jours === 1) return `hier à ${heure}`;
   if (jours > 1 && jours < 7) {
     return `${d.toLocaleDateString('fr-FR', { weekday: 'long' })} à ${heure}`;
-  }
-  if (jours < 0) {
-    // Une échéance à venir : un rappel programmé, une date d'expiration.
-    const dans = Math.abs(jours);
-    return dans === 1 ? 'demain' : `dans ${dans} jours`;
   }
   return `${d.toLocaleDateString('fr-FR')} à ${heure}`;
 }

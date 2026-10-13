@@ -2,9 +2,12 @@ import { useCallback, useEffect, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from './lib/supabase';
 import { aller, useRoute } from './lib/router';
-import { chargerMembre, memoriserJetonGoogle, oublierMembre, voitLesPrix } from './lib/session';
+import {
+  basculerVue, chargerMembre, enDemonstration, memoriserJetonGoogle, oublierMembre,
+  roleReel, voitLesPrix,
+} from './lib/session';
 import { listerChantiers, listerDemandes, listerDevis } from './lib/db';
-import type { Membre } from './lib/types';
+import type { Membre, Role } from './lib/types';
 import Connexion, { NouveauMotDePasse } from './components/Connexion';
 import Bienvenue from './pages/Bienvenue';
 import Cloche from './components/Cloche';
@@ -123,6 +126,11 @@ export default function App() {
 
 interface Raccourci { id: string; libelle: string; detail?: string }
 
+const LIBELLE_ROLE: Record<Role, string> = {
+  direction: 'direction', chef_chantier: 'chef de chantier',
+  technicien: 'technicien', sous_traitant: 'sous-traitant',
+};
+
 function Atelier({ membre }: { membre: Membre }) {
   const route = useRoute();
   const [replie, setReplie] = useState(
@@ -135,6 +143,12 @@ function Atelier({ membre }: { membre: Membre }) {
   // vient d'ouvrir est un menu qu'on referme à la main à chaque fois.
   const [menuOuvert, setMenuOuvert] = useState(false);
   const [raccourcis, setRaccourcis] = useState<Record<string, Raccourci[]>>({});
+  const [erreurVue, setErreurVue] = useState<string | null>(null);
+
+  function vue(role: Role) {
+    setErreurVue(null);
+    basculerVue(role).catch((e) => setErreurVue((e as Error).message));
+  }
 
   useEffect(() => {
     window.localStorage.setItem(CLE_REPLI, replie ? 'oui' : 'non');
@@ -254,7 +268,11 @@ function Atelier({ membre }: { membre: Membre }) {
         </div>
 
         <div className="rail-pied">
-          {!replie && <div className="statut">{membre.nom}<br />{membre.role.replace('_', ' ')}</div>}
+          {!replie && (
+            <div className="statut">
+              {membre.nom}<br />{LIBELLE_ROLE[membre.role]}{enDemonstration() ? ' (démonstration)' : ''}
+            </div>
+          )}
         </div>
       </nav>
 
@@ -272,12 +290,36 @@ function Atelier({ membre }: { membre: Membre }) {
           </button>
           {replie && <div className="marque">Bat<em>inium</em></div>}
           <div className="pousse" />
+          {/* Le mode démonstration (SQL 38), pour la direction seulement.
+              Temporaire : il partira avec le SQL 38. */}
+          {roleReel() === 'direction' && (
+            <select className="choix-vue" value={membre.role} aria-label="Voir Batinium comme"
+                    onChange={(e) => vue(e.target.value as Role)}>
+              <option value="direction">Vue direction</option>
+              <option value="chef_chantier">Vue chef de chantier</option>
+              <option value="technicien">Vue technicien</option>
+              <option value="sous_traitant">Vue sous-traitant</option>
+            </select>
+          )}
           <Cloche />
           <button className="action discret" onClick={() => void supabase.auth.signOut()}>
             Quitter
           </button>
         </header>
         <main>
+          {erreurVue && <div className="erreur">{erreurVue}</div>}
+          {enDemonstration() && (
+            <div className="bandeau-demo sans-impression">
+              <span>
+                <strong>Démonstration.</strong> Vous voyez Batinium avec les droits
+                d’un {LIBELLE_ROLE[membre.role]} : ses menus, ses données, ses refus. Ce que
+                vous faites ici est réellement enregistré, à votre nom.
+              </span>
+              <button className="action" onClick={() => vue('direction')}>
+                Revenir à ma vue
+              </button>
+            </div>
+          )}
           {/* Un seul fil d'Ariane, déduit du menu, plutôt que vingt-cinq
               recopiés à la main : ils auraient fini par diverger, et une page
               oubliée serait restée sans repère. Les fiches de détail — un

@@ -2,17 +2,19 @@ import { useCallback, useEffect, useState } from 'react';
 import { aller } from '../lib/router';
 import {
   ajouterFil, creerDevis, devisDepuisModele, enregistrerDemande, enregistrerSite,
-  enregistrerTiers, fusionnerDemandes, listerDemandes, listerDevis, marquerRepondu,
-  supprimerDemande, type DemandeAvecTiers, type DevisAvecTiers,
+  enregistrerTiers, fusionnerDemandes, listerChantiers, listerDemandes, listerDevis,
+  LIBELLE_SUITE, listerMembres, listerPiecesDemandes, marquerRepondu, supprimerDemande,
+  type DemandeAvecTiers, type DevisAvecTiers,
 } from '../lib/db';
 import { estDirection, voitLesPrix } from '../lib/session';
-import type { Demande } from '../lib/types';
+import type { Demande, Document } from '../lib/types';
 import Modale from '../components/Modale';
 import Bulle from '../components/Bulle';
 import Dictee from '../components/Dictee';
 import { IANonConfiguree } from '../lib/ia';
 import { creerBrouillonDicte, lireDictee, type PropositionDevis } from '../lib/devisDicte';
 import { audioDemande, compteRenduNoms, retrouverNomsAllo } from '../lib/connecteurs';
+import Vignettes from '../components/Vignettes';
 
 /**
  * Le nom à afficher : celui de la demande, sinon celui de la fiche client.
@@ -43,11 +45,31 @@ export default function PageDemandes() {
   const [modeles, setModeles] = useState<DevisAvecTiers[]>([]);
   const [chercheNoms, setChercheNoms] = useState(false);
   const [retourNoms, setRetourNoms] = useState<string | null>(null);
+  // Ce qu'il faut pour lire une demande notée sur un chantier : ses photos,
+  // le numéro du chantier, le nom de qui l'a notée.
+  const [piecesDemandes, setPiecesDemandes] = useState<Record<string, Document[]>>({});
+  const [numeros, setNumeros] = useState<Record<string, string>>({});
+  const [auteurs, setAuteurs] = useState<Record<string, string>>({});
 
   const recharger = useCallback(async () => {
-    try { setDemandes(await listerDemandes()); }
+    try {
+      const [d, pieces] = await Promise.all([listerDemandes(), listerPiecesDemandes()]);
+      setDemandes(d);
+      setPiecesDemandes(pieces);
+    }
     catch (e) { setErreur((e as Error).message); }
     setCharge(true);
+  }, []);
+
+  // Une fois : les chantiers et l'équipe changent peu, inutile de les relire
+  // toutes les trente secondes avec les demandes.
+  useEffect(() => {
+    listerChantiers()
+      .then((c) => setNumeros(Object.fromEntries(c.map((x) => [x.id, x.numero]))))
+      .catch(() => setNumeros({}));
+    listerMembres()
+      .then((m) => setAuteurs(Object.fromEntries(m.map((x) => [x.id, x.nom]))))
+      .catch(() => setAuteurs({}));
   }, []);
 
   useEffect(() => { void recharger(); }, [recharger]);
@@ -365,18 +387,29 @@ export default function PageDemandes() {
                       : <span className="statut">sans nom</span>}
                   </td>
                   <td className="ref">
-                    {d.telephone && (
-                      <div><a href={`tel:${d.telephone.replace(/\s/g, '')}`}>{d.telephone}</a></div>
-                    )}
-                    {d.email && (
-                      <div style={{ wordBreak: 'break-all' }}>
-                        <a href={`mailto:${d.email}`}>{d.email}</a>
+                    {/* Une demande faite par le client d'un chantier pointe sa fiche
+                        sans en recopier les coordonnées : on les lit là. */}
+                    {(d.telephone || d.tiers?.telephone) && (
+                      <div>
+                        <a href={`tel:${(d.telephone || d.tiers?.telephone || '').replace(/\s/g, '')}`}>
+                          {d.telephone || d.tiers?.telephone}
+                        </a>
                       </div>
                     )}
-                    {!d.telephone && !d.email && <span className="statut">aucune coordonnée</span>}
+                    {(d.email || d.tiers?.email) && (
+                      <div style={{ wordBreak: 'break-all' }}>
+                        <a href={`mailto:${d.email || d.tiers?.email}`}>{d.email || d.tiers?.email}</a>
+                      </div>
+                    )}
+                    {!d.telephone && !d.email && !d.tiers?.telephone && !d.tiers?.email && (
+                      <span className="statut">aucune coordonnée</span>
+                    )}
                   </td>
                   <td>
                     <Besoin demande={d} deplie={deplies.has(d.id)}
+                            pieces={piecesDemandes[d.id] ?? []} onErreur={setErreur}
+                            chantier={d.chantier_id ? numeros[d.chantier_id] : undefined}
+                            auteur={d.cree_par ? auteurs[d.cree_par] : undefined}
                             onBasculer={() => setDeplies((x) => {
                               const n = new Set(x);
                               if (n.has(d.id)) n.delete(d.id); else n.add(d.id);
@@ -663,16 +696,36 @@ function DevisDepuisDemande({ demande, onCree, onErreur }: {
  * appel de trois minutes pèse deux mégaoctets ; sur mille appels, ce sont deux
  * gigaoctets stockés deux fois, pour rien.
  */
-function Besoin({ demande, deplie, onBasculer }: {
+function Besoin({ demande, deplie, onBasculer, pieces, onErreur, chantier, auteur }: {
   demande: DemandeAvecTiers;
   deplie: boolean;
   onBasculer: () => void;
+  pieces: Document[];
+  onErreur: (m: string) => void;
+  /** Le numéro du chantier où la demande a été notée, s'il y en a un. */
+  chantier?: string;
+  auteur?: string;
 }) {
   const texte = demande.besoin ?? demande.resume ?? '';
   const long = texte.length > 110;
 
   return (
     <>
+      {(demande.suite || demande.source === 'terrain') && (
+        <div style={{ marginBottom: 4 }}>
+          {demande.suite && (
+            <span className="jeton" style={{ marginRight: 6 }}>{LIBELLE_SUITE[demande.suite]}</span>
+          )}
+          {demande.source === 'terrain' && (
+            <span className="statut">
+              notée sur place{auteur ? ` par ${auteur}` : ''}
+              {demande.chantier_id && (
+                <> · <a href={`#/chantiers/${demande.chantier_id}`}>{chantier ?? 'le chantier'}</a></>
+              )}
+            </span>
+          )}
+        </div>
+      )}
       <div style={deplie ? { whiteSpace: 'pre-line' } : undefined}>
         {deplie || !long ? (texte || '—') : `${texte.slice(0, 110)}…`}
       </div>
@@ -686,6 +739,8 @@ function Besoin({ demande, deplie, onBasculer }: {
       {demande.adresse && <div className="fiche">{demande.adresse}</div>}
 
       {demande.enregistrement_url && <Ecoute demandeId={demande.id} />}
+
+      {pieces.length > 0 && <Vignettes docs={pieces} onErreur={onErreur} />}
 
       {demande.transcription && (
         <details className="fiche" open={deplie}>

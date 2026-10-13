@@ -62,3 +62,31 @@ export function antiRebond<A extends unknown[]>(
     minuteur = window.setTimeout(() => fn(...a), delai);
   };
 }
+
+const RECHERCHE = 'https://data.geopf.fr/geocodage/search';
+
+interface BrutRecherche {
+  features?: { geometry?: { coordinates?: [number, number] }; properties?: { score?: number } }[];
+}
+
+/**
+ * Les coordonnées d'une adresse complète, ou `null`.
+ *
+ * Un score sous 0,6 veut dire que l'IGN a deviné : une rue homonyme, une
+ * commune voisine. Mieux vaut pas de position qu'une position fausse, qui
+ * ferait dire « à 12 km du chantier » à un technicien arrivé à l'heure.
+ */
+export async function geocoder(texte: string): Promise<{ latitude: number; longitude: number } | null> {
+  const q = texte.trim();
+  if (q.length < 5) return null;
+  try {
+    const r = await fetch(`${RECHERCHE}?q=${encodeURIComponent(q)}&limit=1`);
+    if (!r.ok) return null;
+    const f = ((await r.json()) as BrutRecherche).features?.[0];
+    const c = f?.geometry?.coordinates;
+    if (!c || (f?.properties?.score ?? 0) < 0.6) return null;
+    return { longitude: c[0], latitude: c[1] };
+  } catch {
+    return null;
+  }
+}

@@ -9,7 +9,7 @@ import type {
   Intervention, Membre, Nature, PaiementEquipe, Parametres, Periodicite, Produit,
   Achat, AchatLigne, Approvisionnement, CoutMainOeuvre, CoutReel, EcartAchat, Facture,
   FactureLigne, Pointage, Prealable,
-  PrealableChantier, Rattachement, Remuneration, Role, Site, Tache, Tiers, TypeDocument,
+  PrealableChantier, Rattachement, Remuneration, Role, Site, SuiteDemande, Tache, Tiers, TypeDocument,
   TypeFacture, Variante,
 } from './types';
 
@@ -162,10 +162,36 @@ export async function retrouverTiers(telephone?: string | null, email?: string |
 
 // --- Demandes ---------------------------------------------------------------
 
-export type DemandeAvecTiers = Demande & { tiers: Pick<Tiers, 'id' | 'nom'> | null };
+export type DemandeAvecTiers = Demande & {
+  tiers: Pick<Tiers, 'id' | 'nom' | 'telephone' | 'email'> | null;
+};
 
+/**
+ * Le téléphone et l'e-mail du client viennent avec : une demande notée sur
+ * un chantier pour son propre client ne recopie pas ses coordonnées, elle
+ * pointe sa fiche — et il faut pouvoir le rappeler depuis la liste.
+ */
 export async function listerDemandes(): Promise<DemandeAvecTiers[]> {
-  return ok(await supabase.from('demande').select('*, tiers(id, nom)').order('recu_le', { ascending: false }));
+  return ok(await supabase.from('demande').select('*, tiers(id, nom, telephone, email)')
+    .order('recu_le', { ascending: false }));
+}
+
+/** Ce qu'une demande notée sur le terrain appelle, dit comme au bureau (SQL 36). */
+export const LIBELLE_SUITE: Record<SuiteDemande, string> = {
+  a_facturer: 'À facturer', sav: 'SAV', nouveau_devis: 'Nouveau devis',
+};
+
+/** Les photos et vidéos jointes aux demandes du terrain, rangées par demande (SQL 36). */
+export async function listerPiecesDemandes(): Promise<Record<string, Document[]>> {
+  const { data, error } = await supabase.from('document').select('*')
+    .not('demande_id', 'is', null).order('created_at');
+  // Sans le SQL 36, la colonne n'existe pas : pas de pièces, pas de panne.
+  if (error) return {};
+  const parDemande: Record<string, Document[]> = {};
+  for (const d of (data ?? []) as Document[]) {
+    (parDemande[d.demande_id!] ??= []).push(d);
+  }
+  return parDemande;
 }
 
 export async function enregistrerDemande(d: Partial<Demande>): Promise<Demande> {
@@ -195,6 +221,39 @@ export async function listerFil(filtre: { tiersId?: string; chantierId?: string;
 
 export async function ajouterFil(f: Partial<Fil>): Promise<Fil> {
   return ok(await supabase.from('fil').insert({ ...ent(), ...f }).select().single());
+}
+
+/**
+ * Une note de chantier et ses photos ou vidéos, envoyées ensemble.
+ *
+ * Une photo appartient à sa note : seule, retrouvée trois mois plus tard, elle
+ * ne prouve rien. Les pièces sont celles du chantier — c'est ce qui permet au
+ * terrain de les déposer — et peuvent en plus accompagner une demande.
+ *
+ * Les tailles sont vérifiées avant d'écrire quoi que ce soit : une vidéo trop
+ * lourde ne doit pas laisser derrière elle une note sans ses photos.
+ */
+export async function noterAuJournal(n: {
+  chantierId: string; tiersId?: string | null; texte: string; fichiers: File[];
+  demandeId?: string | null;
+}): Promise<Fil> {
+  const tropLourd = n.fichiers.find((f) => f.size > TAILLE_MAXIMALE);
+  if (tropLourd) {
+    throw new Error(`« ${tropLourd.name} » pèse ${Math.round(tropLourd.size / 1048576)} Mo : `
+      + `la limite est de ${TAILLE_MAXIMALE / 1048576} Mo par fichier. Pour une vidéo, filmez `
+      + 'plus court, en plusieurs fois si besoin.');
+  }
+  const f = await ajouterFil({
+    chantier_id: n.chantierId, tiers_id: n.tiersId ?? null, type: 'note',
+    contenu: n.texte.trim() || '(photos)', a_traiter: true, auteur: membre().nom,
+  });
+  for (const fichier of n.fichiers) {
+    await televerserDocument({ chantier_id: n.chantierId }, fichier, {
+      type: 'photo', fil_id: f.id, demande_id: n.demandeId ?? null,
+      prise_le: fichier.lastModified ? new Date(fichier.lastModified).toISOString() : null,
+    });
+  }
+  return f;
 }
 
 export async function traiterFil(id: string): Promise<void> {
@@ -2325,6 +2384,14 @@ export type CibleDocument =
   /** Une pièce de l'entreprise elle-même : attestation de capacité, Kbis. */
   | { portee_entreprise: true };
 
+/**
+ * La limite du seau `documents` (SQL 13 : 50 Mo). Vérifiée avant l'envoi :
+ * un refus du serveur arrive après une minute de téléversement sur un réseau
+ * de chantier, et son message ne dit pas quoi faire. Si la limite du seau est
+ * relevée dans Supabase, la relever ici aussi.
+ */
+export const TAILLE_MAXIMALE = 50 * 1048576;
+
 const DOSSIERS: Record<string, string> = {
   chantier_id: 'chantier', intervention_id: 'intervention',
   membre_id: 'membre', tiers_id: 'tiers', devis_id: 'devis', fil_id: 'note',
@@ -2353,8 +2420,20 @@ export async function televerserDocument(
     prise_le?: string | null; emis_le?: string | null; expire_le?: string | null;
     /** Rattachement secondaire : une photo appartient au chantier ET à sa note. */
     fil_id?: string | null;
+    /** Et, quand elle est prise pour une demande du client, à cette demande. */
+    demande_id?: string | null;
   } = {},
 ): Promise<Document> {
+  if (fichier.size > TAILLE_MAXIMALE) {
+    const mo = Math.round(fichier.size / 1048576);
+    throw new Error(
+      `« ${fichier.name} » pèse ${mo} Mo : la limite est de ${TAILLE_MAXIMALE / 1048576} Mo `
+      + 'par fichier. '
+      + (fichier.type.startsWith('video/')
+        ? 'Une minute de vidéo au téléphone dépasse souvent 100 Mo : filmez plus court, '
+          + 'en plusieurs fois si besoin.'
+        : 'Réduisez-le avant de l’envoyer.'));
+  }
   const [cle, valeur] = Object.entries(cible)[0];
   const extension = fichier.name.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'bin';
   const chemin = `${entrepriseId()}/${DOSSIERS[cle] ?? 'divers'}/${crypto.randomUUID()}.${extension}`;
@@ -2376,6 +2455,7 @@ export async function televerserDocument(
       emis_le: options.emis_le ?? null,
       expire_le: options.expire_le ?? null,
       fil_id: options.fil_id ?? null,
+      ...(options.demande_id ? { demande_id: options.demande_id } : {}),
       depose_par: membre().id,
     }).select().single());
   } catch (e) {
