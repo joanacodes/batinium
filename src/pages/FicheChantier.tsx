@@ -309,9 +309,12 @@ export default function PageFicheChantier({ chantierId }: { chantierId: string }
             </Bulle>
           </div>
           <div className="panneau" style={{ display: 'block', marginBottom: 12 }}>
-            <div style={{ display: 'flex', gap: 10 }}>
+            {/* Sur un téléphone, quatre éléments sur une ligne laissaient au champ
+                la place de « Ce qui : ». Le champ garde sa largeur et sa dictée,
+                les deux boutons passent dessous. */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
               <input placeholder="Ce qui s’est passé sur le chantier" value={note}
-                     style={{ flex: 1 }}
+                     style={{ flex: '1 1 220px', minWidth: 0 }}
                      onChange={(e) => setNote(e.target.value)} />
               {/* Une note se dicte mieux qu'elle ne se tape, sur un chantier. */}
               <Dictee onErreur={setErreur}

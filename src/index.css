@@ -274,7 +274,7 @@ details.fiche summary { color: var(--bleu); }
 .doc-table tr.doc-souslot td { background: #fbfcfd; font-weight: 600; }
 .doc-fiche { font-size: 11px; color: var(--encre-pale); white-space: pre-line; margin-top: 3px; }
 
-.doc-totaux { margin: 16px 0 0 auto; width: 330px; border-collapse: collapse; }
+.doc-totaux { margin: 16px 0 0 auto; width: 330px; max-width: 100%; border-collapse: collapse; }
 .doc-totaux td { padding: 4px 8px; }
 .doc-totaux tr.fort td { font-weight: 600; border-top: 1px solid var(--filet); }
 .doc-totaux tr.grand td { font-size: 16px; border-top: 2px solid var(--encre); }
@@ -293,6 +293,17 @@ details.fiche summary { color: var(--bleu); }
 .doc-pied {
   margin-top: 26px; padding-top: 10px; border-top: 1px solid var(--filet);
   font-size: 10px; color: var(--encre-pale); text-align: center; line-height: 1.5;
+}
+
+/* Le document vu sur un téléphone. L'émetteur à gauche et le cadre du client
+   à droite, avec ses 250 px minimum, ne tiennent pas côte à côte : l'émetteur
+   finissait sur une colonne de quelques lettres et le cadre sortait de
+   l'écran. On empile, à l'écran seulement — sur papier, la largeur d'une A4
+   peut tomber sous 720 px, et la mise en page imprimée doit rester celle-ci. */
+@media screen and (max-width: 720px) {
+  .doc-entete, .doc-signature { flex-direction: column; gap: 14px; }
+  .doc-client { min-width: 0; }
+  .doc-titre { flex-wrap: wrap; gap: 4px 14px; }
 }
 
 @media print {
@@ -1114,10 +1125,12 @@ tr.brouillon:hover td { background: #fdf7ee; }
       le haut de l'écran en permanence pour afficher des icônes sans libellé.
       Un tiroir ne coûte rien tant qu'il est fermé.
 
-   2. Les tableaux défilent horizontalement, avec une ombre qui dit qu'il y a
-      autre chose à droite. Les transformer en cartes aurait demandé d'annoter
-      chaque cellule dans vingt fichiers — et un tableau de chiffres reste plus
-      lisible en tableau, même s'il faut le faire glisser.
+   2. Un tableau qui ne tient pas devient une liste de cartes. Il défilait de
+      côté, avec une ombre à droite : dans les faits, il poussait toute la page
+      hors de l'écran et le téléphone dézoomait jusqu'à l'illisible. Fabrice ne
+      veut plus de tableau qui dépasse, sur téléphone comme sur tablette.
+      L'annotation des cellules, qui faisait reculer, se fait toute seule
+      (src/lib/tableauxAdaptatifs.ts) : un tableau qui tient reste un tableau.
 
    3. Les formulaires passent en une colonne. Les grilles sont écrites en style
       en ligne dans les pages, d'où le sélecteur d'attribut. C'est toujours une
@@ -1199,6 +1212,11 @@ tr.brouillon:hover td { background: #fdf7ee; }
   /* DETTE À RÉSORBER — voir plus bas. Les grilles sont en style en ligne, une
      règle ordinaire ne peut pas passer devant un attribut `style`. */
   main [style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
+  /* Une case qui s'étendait « sur deux colonnes » recréait une deuxième
+     colonne, implicite, une fois la grille ramenée à une seule : le
+     formulaire de facture se retrouvait sur deux colonnes de travers, le
+     titre écrasé et la date d'échéance illisible. Elle prend la ligne. */
+  main [style*="grid-template-columns"] > [style*="grid-column"] { grid-column: 1 / -1 !important; }
   main [style*="position: sticky"], main aside { position: static !important; }
   main [style*="width: 300px"], main [style*="width: 260px"],
   main [style*="width: 240px"], main [style*="width: 190px"] { width: 100% !important; }
@@ -1214,9 +1232,9 @@ tr.brouillon:hover td { background: #fdf7ee; }
   input[type='checkbox'], input[type='radio'] { min-width: 22px; min-height: 22px; }
   .points, .poignee { min-width: 40px; min-height: 40px; }
 
-  /* Un tableau à neuf colonnes ne se replie pas : il glisse. L'ombre à droite
-     dit qu'il continue — sans elle, personne n'essaie de le faire défiler. */
-  .cadre-table, main > table, .tableau-defilant {
+  /* Un conteneur de tableau qui défile encore garde son ombre à droite. Les
+     tableaux eux-mêmes ne débordent plus : ils passent en cartes. */
+  .cadre-table, .tableau-defilant {
     display: block;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
@@ -1229,7 +1247,6 @@ tr.brouillon:hover td { background: #fdf7ee; }
     background-size: 40px 100%, 40px 100%, 14px 100%, 14px 100%;
     background-attachment: local, local, scroll, scroll;
   }
-  main table { min-width: 620px; }
   tbody td, thead th { padding: 10px 12px; }
 
   /* En-tête de page : le titre d'abord, les actions dessous, en pleine
@@ -1254,8 +1271,10 @@ tr.brouillon:hover td { background: #fdf7ee; }
   .modale-entete { padding: 12px 14px; }
   .modale-corps { padding: 14px; }
 
-  .onglets { gap: 14px; overflow-x: auto; padding-bottom: 2px; }
-  .onglets button { white-space: nowrap; padding: 10px 0; }
+  /* Les onglets passent à la ligne : un onglet coupé au bord de l'écran est
+     un onglet qu'on ne voit pas. */
+  .onglets { gap: 4px 14px; flex-wrap: wrap; padding-bottom: 2px; }
+  .onglets button { padding: 10px 0; }
 
   .panneau { padding: 12px; }
   .galerie { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
@@ -1378,6 +1397,14 @@ tr.brouillon:hover td { background: #fdf7ee; }
 
 .choix-vue { width: auto; font-size: 13px; padding: 4px 6px; }
 
+/* À 360 px — la largeur la plus courante sous Android — ce sélecteur faisait
+   passer la barre sur deux lignes ; or elle reste collée en haut de l'écran,
+   c'étaient 118 px perdus sur chaque page. Il cède un peu de largeur. */
+@media (max-width: 420px) {
+  .barre { column-gap: 8px; }
+  .choix-vue { max-width: 34vw; }
+}
+
 .bandeau-demo {
   display: flex;
   gap: 12px;
@@ -1405,3 +1432,132 @@ tr.brouillon:hover td { background: #fdf7ee; }
 /* Photo, Filmer, Depuis le téléphone : des boutons qu'on vise avec le pouce,
    souvent ganté. 44 px, comme le reste du terrain. */
 .choix-medias .depot { display: inline-flex; align-items: center; min-height: 44px; }
+
+
+/* --- Tableaux en cartes ----------------------------------------------------
+   `data-cartes` est posé par src/lib/tableauxAdaptatifs.ts sur un tableau qui
+   ne tient pas dans sa largeur. Chaque ligne devient une carte, chaque
+   cellule une ligne « titre de colonne : valeur ».
+
+   Une cellule de simple texte met son titre à gauche ; une cellule qui
+   contient des éléments (un lien, un champ, deux lignes) le met au-dessus.
+   Une grille titre-valeur sur une cellule à plusieurs enfants répartirait
+   ces enfants dans les deux colonnes : la valeur passerait sous le titre.
+
+   Écran seulement : à l'impression, un tableau reste un tableau. */
+
+@media screen {
+  table[data-cartes] { display: block; background: none; width: 100% !important; }
+  table[data-cartes] thead { display: none; }
+  /* Une colonne de cartes sur téléphone, deux ou trois sur tablette : une
+     carte de 740 px de large, c'est une ligne de tableau étirée, pas une carte. */
+  table[data-cartes] tbody, table[data-cartes] tfoot {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr));
+    gap: 10px;
+    align-items: start;
+  }
+  table[data-cartes] tfoot { margin-top: 10px; }
+  table[data-cartes] tr[data-ligne-large] { grid-column: 1 / -1; }
+  table[data-cartes] tr {
+    display: block;
+    background: var(--surface);
+    border: 1px solid var(--filet);
+    padding: 2px 12px;
+  }
+  table[data-cartes] tbody td, table[data-cartes] tfoot td {
+    display: block;
+    width: auto !important;
+    max-width: none;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--filet);
+    text-align: left !important;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  /* Une cellule de boutons que la page garde sur une ligne (`nowrap` en style
+     en ligne, qui passe devant toute règle ordinaire) : en carte, les boutons
+     passent à la ligne plutôt que de sortir de l'écran. */
+  table[data-cartes] td[style*="nowrap"] { white-space: normal !important; }
+  table[data-cartes] tr > td:last-child { border-bottom: 0; }
+  table[data-cartes] td:empty { display: none; }
+  table[data-cartes] td::before {
+    content: attr(data-libelle);
+    display: block;
+    font-size: 11px;
+    color: var(--encre-pale);
+    margin-bottom: 3px;
+  }
+  /* Titre à gauche, valeur à droite, pour une cellule de simple texte ou une
+     case à cocher seule. Le sélecteur répète `tbody` : sans lui, la règle
+     générale ci-dessus, plus précise, gardait le titre au-dessus. Une case à
+     cocher sans titre de colonne (la sélection d'une ligne) n'en est pas : en
+     grille, elle se serait posée au milieu de la carte. */
+  table[data-cartes] tbody td:not(:has(> *)),
+  table[data-cartes] tfoot td:not(:has(> *)),
+  table[data-cartes] tbody td[data-libelle]:not([data-libelle=""]):has(> input[type='checkbox']:only-child) {
+    display: grid;
+    grid-template-columns: minmax(84px, 36%) minmax(0, 1fr);
+    gap: 12px;
+    align-items: baseline;
+  }
+  /* Une case à cocher n'a pas de ligne de texte : alignée « sur la ligne de
+     base », c'est son bord bas qui s'aligne, et le titre tombe plus bas qu'elle. */
+  table[data-cartes] tbody td[data-libelle]:not([data-libelle=""]):has(> input[type='checkbox']:only-child) {
+    align-items: center;
+  }
+  /* Étirée sur sa colonne, la case se dessinerait au milieu de la carte. */
+  table[data-cartes] td > input[type='checkbox']:only-child { justify-self: start; }
+  table[data-cartes] tbody td:not(:has(> *))::before,
+  table[data-cartes] tfoot td:not(:has(> *))::before,
+  table[data-cartes] tbody td[data-libelle]:not([data-libelle=""]):has(> input[type='checkbox']:only-child)::before { margin: 0; }
+  table[data-cartes] td[data-libelle=""]::before,
+  table[data-cartes] td:not([data-libelle])::before { content: none; }
+  table[data-cartes] tbody td[data-libelle=""], table[data-cartes] tbody td:not([data-libelle]) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  table[data-cartes] td input:not([type='checkbox']):not([type='radio']),
+  table[data-cartes] td select, table[data-cartes] td textarea { width: 100% !important; }
+
+  /* Une liste de cartes ne se range pas dans un cadre qui défile : sur un
+     téléphone, un défilement dans le défilement, c'est un pouce qui se perd. */
+  .tableau-defilant:has(> table[data-cartes]),
+  .cadre-table:has(> table[data-cartes]) {
+    max-height: none; overflow: visible; border: 0; background: none;
+  }
+}
+
+
+/* --- Rien ne dépasse de l'écran ---------------------------------------------
+   Sur tablette, les barres d'actions des en-têtes restaient sur une ligne et
+   poussaient la page : un champ de recherche de 220 px, deux listes de 200 px
+   et quatre boutons ne tiennent pas dans 768 px. Elles passent à la ligne. */
+
+.entete > div:last-child:not(:only-child) {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  min-width: 0;
+}
+main input, main select, main textarea { max-width: 100%; }
+
+/* « TVA intracommunautaire » dans une colonne de 150 px, à 360 px d'écran :
+   un mot si long sort de sa case s'il n'a pas le droit de se couper. */
+label { overflow-wrap: break-word; }
+
+/* Une case de grille ne descend pas sous la largeur de son contenu, sauf à le
+   lui dire. Sans ça, un champ de date d'iOS — qui a sa largeur à lui — sortait
+   de sa colonne, et du cadre du formulaire avec elle. */
+main [style*="display: grid"] > *, .panneau > * { min-width: 0; }
+
+@media (hover: none) and (pointer: coarse) {
+  /* iOS ignore la largeur demandée à un champ de date tant qu'il garde son
+     apparence native. Le calendrier, lui, s'ouvre toujours au toucher. */
+  input[type='date'], input[type='time'], input[type='datetime-local'] {
+    -webkit-appearance: none;
+    appearance: none;
+    min-width: 0;
+    min-height: 2.6em;
+  }
+  /* Sans apparence native, iOS centre la date : à gauche, comme le reste. */
+  input::-webkit-date-and-time-value { text-align: left; }
+}

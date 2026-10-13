@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { Fragment, useCallback, useEffect, useState } from 'react';
 import { estDirection, membre as moi, voitLesPrix } from '../lib/session';
 import {
   enregistrerPointage, heuresLisibles, listerChantiers, listerMembres, listerPointages,
@@ -268,7 +268,7 @@ export default function PagePointage() {
                 const duJour = visibles.filter((p) => p.jour === jour);
                 const totalJour = duJour.reduce((s, p) => s + Number(p.heures), 0);
                 return (
-                  <>
+                  <Fragment key={jour}>
                     {duJour.map((p, i) => (
                       <tr key={p.id} style={p.valide ? { opacity: 0.72 } : undefined}>
                         {direction && (
@@ -317,7 +317,7 @@ export default function PagePointage() {
                         </td>
                       </tr>
                     ))}
-                  </>
+                  </Fragment>
                 );
               })}
             </tbody>

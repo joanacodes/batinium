@@ -360,6 +360,39 @@ Ce qui reste sans nom après cela : les numéros que ni les fiches clients ni
 les contacts Allô ne connaissent. Les clients créés autrefois depuis un appel
 sans nom portent son numéro comme nom : à renommer dans leur fiche.
 
+### Téléphone et tablette — corrigé le 13 octobre, rien à exécuter
+
+Fabrice ne veut plus voir de tableau sortir de l'écran. Les tableaux
+défilaient de côté ; dans les faits, ils poussaient toute la page et le
+téléphone dézoomait jusqu'à l'illisible (Demandes, brouillon de facture).
+
+- **Un tableau qui ne tient pas devient une liste de cartes**, une ligne par
+  carte, chaque valeur précédée du titre de sa colonne. C'est automatique et
+  général : `src/lib/tableauxAdaptatifs.ts` annote les cellules et mesure
+  chaque tableau, `index.css` (« Tableaux en cartes ») dessine les cartes. Sur
+  téléphone, un tableau de plus de quatre colonnes passe en cartes même s'il
+  tient. Sur tablette, les cartes se rangent sur deux ou trois colonnes. Un
+  tableau qui tient reste un tableau, et le redevient dès que la place
+  revient (tablette tournée, menu replié). Un nouveau tableau n'a rien à
+  faire ; `data-cartes="jamais"` l'en dispense, `data-libelle-manuel` sur
+  une cellule garde une étiquette posée à la main.
+- **L'impression ne change pas** : les cartes ne valent qu'à l'écran. Un
+  devis ou une facture imprimés depuis un téléphone sortent en tableau, en-tête
+  côte à côte (vérifié en PDF A4, identique à avant).
+- **Le brouillon de facture** passait sur deux colonnes de travers : la case
+  « Introduction », en `gridColumn: 'span 2'`, recréait une deuxième colonne
+  une fois la grille ramenée à une seule. Toute case qui s'étend prend
+  désormais la ligne entière sur téléphone.
+- Les barres d'actions et les onglets passent à la ligne ; les champs ne
+  dépassent plus leur colonne (date d'iOS comprise) ; la barre du haut tient
+  sur une ligne dès 320 px malgré le sélecteur de vue.
+- **L'assistant** ne met plus le curseur dans son champ à l'ouverture sur un
+  écran tactile : le clavier s'ouvrait et cachait la moitié de l'écran. Il
+  s'ouvre quand on touche le champ. Avec une souris, rien ne change.
+
+Vérifié dans un navigateur simulé : 28 écrans à 320, 360, 390, 768, 834,
+1024 et 1180 px, aucun débordement.
+
 ### Phase 1 — intégrée, revue le 13 octobre, à corriger avant toute exécution
 
 Le registre des machines et la fiche Cerfa 15497*04 sont dans le dépôt : la
@@ -497,6 +530,9 @@ prérequis et dit de s'arrêter s'ils manquent.
   attestations migrées (`drop table document_vigilance_ancien`).
 - Dette CSS : des `!important` dans le repli mobile, parce que les grilles
   sont en style en ligne dans les pages. À résorber page par page.
+- Les cartes reposent sur `:has()` (Safari 15.4, mars 2022). Sur un iPad plus
+  ancien, elles restent lisibles mais moins soignées : titre toujours
+  au-dessus de la valeur, liste enfermée dans son cadre défilant.
 - `equipement.prochain_entretien_le` : alertes implémentées, données vides
   jusqu'à la phase 2 (mise en service automatique).
 - Pas de compte technicien de test : à créer pour valider les écrans de

@@ -55,7 +55,15 @@ export default function Assistant() {
   const champ = useRef<HTMLInputElement>(null);
 
   useEffect(() => { bas.current?.scrollIntoView({ behavior: 'smooth' }); }, [echanges, ouvert]);
-  useEffect(() => { if (ouvert) champ.current?.focus(); }, [ouvert]);
+  // Le curseur va dans le champ à l'ouverture seulement avec une souris. Sur
+  // un téléphone, donner le focus ouvre le clavier : il recouvrait la moitié
+  // de l'écran avant même qu'on ait lu les exemples. Le clavier s'ouvre
+  // quand on touche le champ, pas avant.
+  useEffect(() => {
+    if (ouvert && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+      champ.current?.focus();
+    }
+  }, [ouvert]);
 
   // Échap referme, comme partout ailleurs dans l'application.
   useEffect(() => {
