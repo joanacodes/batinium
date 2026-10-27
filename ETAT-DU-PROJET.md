@@ -428,7 +428,7 @@ et six étapes, en commençant par la file « À décider » et les droits des
 sous-traitants.
 
 **Avant de coder** : les décisions D1 à D7 du plan — la première change une
-règle de `CLAUDE.md` (l'IA proposerait des actions, validées d'un toucher) —
+règle de `CLAUDE.md` (l'IA proposerait des actions, validées d'un clic) —
 et les douze questions à Fabrice. Rien n'est codé.
 
 ### Phase 1 — intégrée, revue le 13 octobre, à corriger avant toute exécution

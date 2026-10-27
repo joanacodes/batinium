@@ -174,7 +174,7 @@ qui, quoi, combien, ce qui cloche, et porte deux à quatre gros boutons. Le
 bouton principal dit ce qui va se passer : « Envoyer le devis », « Émettre et
 envoyer l'acompte », « Relancer », « Planifier jeudi 8 h avec Alex ». Quand
 quelque chose doit partir, il montre d'abord le mail exact et ses pièces
-jointes, et c'est le toucher sur « Envoyer ce mail » qui vaut accord.
+jointes, et c'est le clic sur « Envoyer ce mail » qui vaut accord.
 Partout : « Déjà traité » (rangé sans rien faire) et « Plus tard » (revient à
 la date choisie).
 
@@ -208,7 +208,7 @@ demandes du terrain). Le **technicien** garde Ma journée.
 ### Module N — La chaîne après signature
 
 Le cœur de « il ne veut pas réfléchir ». Chaque étape crée la carte suivante
-dans la file, au bon moment, prête à un toucher. Celles que Fabrice aura
+dans la file, au bon moment, prête à un clic. Celles que Fabrice aura
 passées en automatique (décision D2) se font seules et le disent.
 
 1. **Signature** (F4) : chantier, machines, matériel à commander,
@@ -355,7 +355,7 @@ Fabrice peut valider malgré un point : il décide, la carte l'informe.
 
 La première étape de sa chaîne, et les « rendez-vous » prévus avec la phase 5.
 Depuis une demande, « Prendre rendez-vous » propose trois créneaux (planning,
-agenda Google, trajet). Un toucher crée la visite, l'inscrit dans l'agenda,
+agenda Google, trajet). Un clic crée la visite, l'inscrit dans l'agenda,
 envoie la confirmation au client — date, heure, adresse, nom du technicien —,
 puis le rappel la veille (F3).
 
@@ -398,7 +398,7 @@ même la nuit.
 bons de commande, module G).
 *Fabrice voit* : après une signature, les cartes arrivent seules dans
 l'ordre — acompte, commande, planification, échéance, solde, relances —, un
-toucher chacune, ou aucun pour celles qu'il a passées en automatique.
+clic chacune, ou aucun pour celles qu'il a passées en automatique.
 
 **Étape 4 — Le point du matin à la voix** (P complet). Dépend des étapes 1 à
 3 : il faut des actions à proposer.
@@ -411,7 +411,7 @@ plus fins.
 
 **Étape 6 — Rendez-vous et planning** (T, et la phase 5 : planning d'équipe,
 module J).
-*Fabrice voit* : une demande devient un rendez-vous en un toucher et le
+*Fabrice voit* : une demande devient un rendez-vous en un clic et le
 client reçoit sa confirmation ; le planning propose les créneaux de pose.
 
 ---
@@ -422,14 +422,14 @@ client reçoit sa confirmation ; le planning propose les créneaux de pose.
 tout à jour ». La règle actuelle (`CLAUDE.md`) : l'assistant n'écrit que des
 notes et des brouillons de devis, jamais envoyés, signés ni facturés.
 Proposition : l'IA *propose* des actions prises dans une liste fermée ; rien
-ne part, ne se signe ni ne se facture sans un toucher de la direction sur
+ne part, ne se signe ni ne se facture sans un clic de la direction sur
 l'action exacte — le mail tel qu'il partira, la facture telle qu'elle sera
 émise ; Batinium exécute, pas l'IA ; tout est tracé. C'est le principe même de
 son artifact (« Envoyer ce mail vaut votre accord »). À valider, puis à écrire
 dans `CLAUDE.md`.
 
-**D2 — Un toucher ou automatique, étape par étape.** Recommandation : un
-toucher par défaut ; dans Entreprise, un interrupteur « automatique » par type
+**D2 — Un clic ou automatique, étape par étape.** Recommandation : un
+clic par défaut ; dans Entreprise, un interrupteur « automatique » par type
 — relance de devis, relance de paiement, envoi de l'acompte, commande — à
 allumer quand il a confiance. Jamais d'automatique avant les dates légales
 (§ 7).
@@ -440,7 +440,7 @@ Sans cette bascule, rien de ce plan ne se déclenche pour ses devis.
 **D4 — Le canal d'envoi** : son Gmail (recommandé pour Pilotech) ou un
 service d'envoi au domaine de l'entreprise (indispensable à la revente).
 
-**D5 — Les PDF** : rendu côté serveur, ou génération au moment du toucher
+**D5 — Les PDF** : rendu côté serveur, ou génération au moment du clic
 (F2).
 
 **D6 — La signature à distance** : signature électronique simple faite dans
@@ -498,7 +498,7 @@ lien de paiement par carte, avec des frais à chaque paiement.
 - **Elle reçoit du texte.** La voix est transcrite par le navigateur, sans
   coût, comme la dictée actuelle ; seul le texte part vers la passerelle.
 - **Elle ne fait que proposer** (D1) : chaque action est un outil déclaré dans
-  la passerelle, que l'IA remplit ; Batinium l'exécute après le toucher.
+  la passerelle, que l'IA remplit ; Batinium l'exécute après le clic.
 - **Le modèle.** La passerelle appelle `claude-sonnet-4-6` (réglable par la
   variable `IA_MODELE`). Pour l'assistant qui propose des actions, passer au
   modèle actuel, `claude-opus-5-5` (4 $ le million de jetons lus, 20 $ le
@@ -532,7 +532,7 @@ lien de paiement par carte, avec des frais à chaque paiement.
 3. **« Cerfa » dans la chaîne** : la fiche fluides, le formulaire de TVA, ou
    les deux ?
 4. **La facture d'acompte** : émise et envoyée seule (après sept jours hors
-   établissement), ou un toucher ?
+   établissement), ou préparée puis validée d'un clic avant de partir ?
 5. **La commande de matériel** : dès la signature, ou à la réception de
    l'acompte ?
 6. **Tolteck** : quand bascule-t-il ? Combien de brouillons en cours à
