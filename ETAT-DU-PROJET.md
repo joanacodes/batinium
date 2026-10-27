@@ -295,6 +295,7 @@ leur prix, leur unité et leur TVA ; les autres restent à zéro.
 | `INSTALLATION.md` | Installation des services extérieurs (stockage, IA, Allô, Google, hébergement) |
 | `GOOGLE.md` | Configuration OAuth Google, pas à pas |
 | `PLAN-FLUIDES-COMMANDES-PLANNING.md` | Cahier des charges des douze modules à venir, sept phases, points légaux, questions à Fabrice |
+| `PLAN-AUTOMATISATION-ERGONOMIE.md` | Plan du 27 octobre : la chaîne après signature, la file « À décider », le point du matin à la voix, les vues terrain — modules M à U, étapes 0 à 6, décisions et questions à Fabrice |
 | `PROMPT-PHASE-1.md` … `PROMPT-PHASE-5.md` | Un prompt détaillé par phase — **pas encore dans le dépôt**, à y ajouter |
 | `INTEGRATION-PHASE-1.md` | Les dix modifications de fichiers existants pour brancher la phase 1 — **appliquées** le 13 octobre |
 | `REVUE-PHASE-1.md` | Revue de la phase 1 du 13 octobre : défauts confirmés, correctifs, décisions à prendre avec Fabrice |
@@ -410,6 +411,25 @@ téléphone dézoomait jusqu'à l'illisible (Demandes, brouillon de facture).
 
 Vérifié dans un navigateur simulé : 28 écrans à 320, 360, 390, 768, 834,
 1024 et 1180 px, aucun débordement.
+
+### Plan du 27 octobre — automatisation et ergonomie, à valider avec Fabrice
+
+Ses nouvelles notes, ses messages sur l'assistant à la voix et l'artifact
+« Devis à valider » qu'il a commencé lui-même disent la même chose : il ne
+veut pas réfléchir. Après la signature, tout doit s'enchaîner ; ce qui reste
+à décider doit lui arriver en cartes, avec de gros boutons ; et le matin, il
+veut parler à l'application, valider, et la laisser travailler.
+
+`PLAN-AUTOMATISATION-ERGONOMIE.md` en fait un plan : ce qui existe (la
+chaîne de signature fait déjà les deux tiers du travail), les quatre
+fondations qui manquent (envoyer depuis le serveur, PDF sans personne devant
+l'écran, tâches planifiées, signature traitée en base), neuf modules (M à U)
+et six étapes, en commençant par la file « À décider » et les droits des
+sous-traitants.
+
+**Avant de coder** : les décisions D1 à D7 du plan — la première change une
+règle de `CLAUDE.md` (l'IA proposerait des actions, validées d'un toucher) —
+et les douze questions à Fabrice. Rien n'est codé.
 
 ### Phase 1 — intégrée, revue le 13 octobre, à corriger avant toute exécution
 
