@@ -5,7 +5,7 @@
 -- Ne touche qu'aux tables du SQL 01 : indépendant des SQL 32 et 33.
 --
 -- Les devis de Pilotech vendent des contrats d'entretien (485 € HT par an
--- chez Freguia, 250 € HT la visite chez Malher), et rien ne s'en souvenait.
+-- sur un devis, 250 € HT la visite sur un autre), et rien ne s'en souvenait.
 -- Un entretien oublié, c'est une garantie constructeur qui tombe — elle est
 -- presque toujours conditionnée à un entretien annuel — et un client qui
 -- appelle en panne le premier jour de chaleur.

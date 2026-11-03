@@ -143,7 +143,7 @@ export default function PageParametres() {
           {p.numerotation_chantier ? (
             <select value={p.numerotation_chantier}
                     onChange={(e) => set('numerotation_chantier', e.target.value)}>
-              <option value="rue_client">La rue et le client — Rue des Lilas – Freguia</option>
+              <option value="rue_client">La rue et le client — Rue des Lilas – Durand</option>
               <option value="compteur">Le compteur — {p.prefixe_chantier || 'CH'}-2026-0057</option>
             </select>
           ) : (

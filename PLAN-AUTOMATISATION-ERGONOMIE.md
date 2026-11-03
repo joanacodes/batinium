@@ -739,6 +739,41 @@ longues.
 8. **Plus grand** : corps de texte et libellés agrandis, cibles de 44 px
    partout, pas seulement au doigt.
 
-**Prochaine étape** : des maquettes des écrans clés — l'accueil « À décider »,
-la fiche chantier, Ma journée, le devis fait sur place —, sur téléphone et
-sur ordinateur, à valider avec Fabrice avant de coder l'étape 1.
+**Les références** (3 novembre) : l'artifact de Fabrice, et huit captures
+d'applications retenues pour leur ergonomie. On n'en garde que l'ergonomie ;
+l'apparence (couleurs, police, logo) viendra après.
+
+| Ce qu'elles font | Ce que ça devient dans Batinium |
+|---|---|
+| Une barre d'onglets en bas, quatre ou cinq entrées, une action au centre | Direction : Aujourd'hui, Demandes, « + », Chantiers, Plus. Terrain : Ma journée, Mes chantiers, Mes documents, Mes heures |
+| Un accueil qui salue, un chiffre clé, quelques actions | Aujourd'hui : la file « À décider » et ses compteurs. Ma journée : la grande carte de l'intervention en cours |
+| Une action principale par écran, une discrète à côté | La prochaine étape de la chaîne en bas de la fiche chantier ; « Plus tard » et « Déjà traité » en simple texte |
+| Des cartes qui se déplient, une frise d'étapes | Les points à vérifier, repliés ; les sept étapes du chantier, dont trois visibles |
+| Une question à la fois, des réponses proposées, le fil des réponses | Le devis fait sur place : client, pièce, surface, orientation, existant, appareil, photo |
+| Des pastilles de réponse rapide | Surfaces, orientations ; la suite d'une demande sur place (à facturer, SAV, nouveau devis) |
+| Une feuille qui monte du bas : en cours, puis fait | Le mail exact avant l'envoi, puis « émise et envoyée » (D1) |
+| Des onglets segmentés avec leur compte | Urgent, À décider, Chez le client, Fait aujourd'hui |
+
+**Le dilemme « peu de clics, pas 4 000 informations »** : on montre la
+décision, pas le dossier. Chaque écran dit d'abord quoi faire — une carte, un
+bouton qui dit ce qui va se passer. Le reste existe, mais replié : les points
+à vérifier, les étapes, les onglets de la fiche. Il s'ouvre d'un clic quand on
+le demande. La voix sert de raccourci : dicter une pièce remplit quatre
+questions, dire « relance Leroy » prépare la relance à valider.
+
+**Les maquettes** : https://claude.ai/artifact/HT5FFCUr3Zt3PHDKSTUTQ5 (à
+partager avec Fabrice depuis le menu Partager de la page). Sur téléphone :
+Aujourd'hui, la fiche chantier, Ma journée, le devis fait sur place. Sur
+ordinateur : Aujourd'hui et la fiche chantier. On peut cliquer dedans ; les
+noms et montants sont inventés. Ce qu'elles mesurent :
+
+| Geste | Clics |
+|---|---|
+| Envoyer l'acompte depuis l'accueil, sur téléphone | 2 (voir le mail, émettre et envoyer) |
+| Le même, sur ordinateur | 1 (la carte et son mail sont déjà affichés) |
+| Faire avancer le chantier (acompte, virement reçu, commande) | 1 par étape, 2 quand quelque chose part (le voir, puis l'envoyer) |
+| Une pièce du devis fait sur place | 6 avec la dictée, 9 sans |
+| Une demande sur place (à facturer, SAV, nouveau devis) | 3, plus ce qu'on dicte |
+
+**Prochaine étape** : valider les maquettes avec Fabrice, puis coder
+l'étape 1.

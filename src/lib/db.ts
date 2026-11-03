@@ -805,7 +805,7 @@ export async function chargerChantier(id: string): Promise<ChantierAvecTiers> {
 }
 
 /**
- * Le numéro d'un nouveau chantier : « Rue des Lilas – Freguia », ou le
+ * Le numéro d'un nouveau chantier : « Rue des Lilas – Durand », ou le
  * compteur, selon le réglage d'Entreprise. C'est la base qui le calcule
  * (SQL 40), pour qu'il soit le même quel que soit l'écran qui crée le
  * chantier. Tant que le SQL 40 n'a pas tourné, la fonction n'existe pas :

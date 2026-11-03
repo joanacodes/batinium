@@ -6,9 +6,9 @@
 -- créés : indépendant des SQL 32 à 39.
 --
 -- Fabrice reconnaît un chantier à sa rue et à son client, pas à un compteur :
--- « CH-2026-0042 » ne lui dit rien, « Rue des Lilas – Freguia » tout. Il le
+-- « CH-2026-0042 » ne lui dit rien, « Rue des Lilas – Durand » tout. Il le
 -- veut ainsi, avec un numéro quand la même personne a plusieurs chantiers :
--- « Rue des Lilas – Freguia 2 ». Ses bons de commande portent la même
+-- « Rue des Lilas – Durand 2 ». Ses bons de commande portent la même
 -- référence.
 --
 -- Le numéro se calcule une fois, à la création, puis ne bouge plus : il sert
@@ -34,7 +34,7 @@ alter table parametres add constraint parametres_numerotation_chantier_check
   check (numerotation_chantier in ('rue_client', 'compteur'));
 
 comment on column parametres.numerotation_chantier is
-  'rue_client : « Rue des Lilas – Freguia », numéroté à partir du deuxième chantier du même client. compteur : prochain_numero(''chantier'').';
+  'rue_client : « Rue des Lilas – Durand », numéroté à partir du deuxième chantier du même client. compteur : prochain_numero(''chantier'').';
 
 -- La base ferme `parametres` à qui ne voit pas les prix : lu avec les droits
 -- d'un technicien, le réglage serait vide, et un chantier qu'il créerait
@@ -71,7 +71,7 @@ $$;
 -- -----------------------------------------------------------------------------
 -- 3. Le nom du client, tel qu'on l'appelle
 --
--- « M. et Mme Freguia » donne « Freguia » : la civilité n'identifie personne.
+-- « M. et Mme Durand » donne « Durand » : la civilité n'identifie personne.
 -- « Ryan DORVILMA » donne « Dorvilma » : en France, le nom de famille s'écrit
 -- en capitales, c'est lui qu'on dit sur un chantier. Une entreprise garde son
 -- nom tel quel (« SCI Les Pins ») : on n'y devine pas de nom de famille.
@@ -270,5 +270,5 @@ begin
   if cardinality(v_echecs) > 0 then
     raise exception 'SQL 40 : vérification en échec — %', array_to_string(v_echecs, ' ; ');
   end if;
-  raise notice 'SQL 40 appliqué. Un nouveau chantier se numérote « Rue des Lilas – Freguia », puis « 2 » pour le deuxième du même client.';
+  raise notice 'SQL 40 appliqué. Un nouveau chantier se numérote « Rue des Lilas – Durand », puis « 2 » pour le deuxième du même client.';
 end $$;

@@ -110,7 +110,7 @@ tiennent entre eux.
 | **37** | **Contrats d'entretien : `contrat_entretien` (réservé à ceux qui voient les prix), échéance qui avance seule à la visite terminée, `membre.preavis_entretien_jours` réglé par chacun** — à exécuter |
 | **38** | **Mode démonstration, temporaire : `membre.apercu_role`, `mon_role()` qui le lit, `entrer_apercu()` / `quitter_apercu()`** — à exécuter, à retirer avant la revente (procédure dans son en-tête) |
 | **39** | **Vidéos : le seau `documents` passe de 50 à 500 Mo par fichier** — à exécuter avec l'offre Pro, après avoir relevé la limite du projet (voir §5) |
-| **40** | **Numéro de chantier « Rue des Lilas – Freguia », puis « 2 » pour le deuxième chantier du même client : `numero_chantier()`, réglage `parametres.numerotation_chantier` (ou le compteur)** — à exécuter ; avant, les chantiers suivent le compteur |
+| **40** | **Numéro de chantier « Rue des Lilas – Durand », puis « 2 » pour le deuxième chantier du même client : `numero_chantier()`, réglage `parametres.numerotation_chantier` (ou le compteur)** — à exécuter ; avant, les chantiers suivent le compteur |
 
 Fichiers d'essai : `essai_achats.sql` (jeu de factures fournisseurs, se
 retire par `delete from achat where numero like 'ESSAI-%'`).
@@ -186,7 +186,7 @@ réglables, impression.
 ### Terrain
 
 **Chantiers** — numérotés par la rue et le client (« Rue des Lilas –
-Freguia », puis « 2 » pour un deuxième chantier du même client ; SQL 40,
+Durand », puis « 2 » pour un deuxième chantier du même client ; SQL 40,
 réglable dans Entreprise), fiche avec préalables cochables (jeux par métier,
 modifiables), section « À commander et faire livrer » (approvisionnement),
 interventions, journal avec photos et vidéos, PV de réception, et depuis la
@@ -450,8 +450,10 @@ codé (SQL 40).
 **Ergonomie** (§ 10 du plan) : état des lieux du 3 novembre en captures et
 mesures — accueil sans décision, menu de vingt entrées, pages fleuves
 (Entreprise : 8,7 écrans de téléphone), boutons de la direction visibles par
-le terrain — et huit principes pour la suite. Prochaine étape : maquettes des
-écrans clés, à valider avec Fabrice.
+le terrain — et huit principes pour la suite. Les maquettes des écrans clés
+sont faites (3 novembre, d'après l'artifact de Fabrice et huit captures de
+référence) : https://claude.ai/artifact/HT5FFCUr3Zt3PHDKSTUTQ5, à valider
+avec Fabrice avant de coder l'étape 1.
 
 ### Phase 1 — intégrée, revue le 13 octobre, à corriger avant toute exécution
 
