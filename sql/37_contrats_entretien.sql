@@ -207,8 +207,13 @@ begin
     return;
   end if;
   v_ent := v_direction.entreprise_id;
+  -- Un technicien qui n'appartient qu'à cette entreprise : la session d'un
+  -- compte inscrit dans deux entreprises n'en retient qu'une, pas forcément
+  -- celle-ci, et l'essai échouerait pour une raison étrangère à ce script.
   select m.* into v_poseur from membre m
    where m.actif and m.entreprise_id = v_ent and m.role in ('technicien', 'sous_traitant')
+     and not exists (select 1 from membre x
+                      where x.user_id = m.user_id and x.actif and x.id <> m.id)
    order by m.created_at limit 1;
 
   begin
@@ -249,6 +254,13 @@ begin
     end if;
 
     if v_poseur.id is not null then
+      -- Le bureau planifie la visite, le technicien la clôt depuis Ma journée :
+      -- c'est ce parcours qui compte, et une base qui ne laisserait pas le
+      -- terrain créer d'intervention n'a pas à faire échouer ce script.
+      insert into intervention (entreprise_id, chantier_id, type, contrat_id, date_prevue, membre_id)
+      values (v_ent, v_chantier, 'entretien', v_contrat, current_date, v_poseur.id)
+      returning id into v_inter;
+
       perform set_config('request.jwt.claims',
                          json_build_object('sub', v_poseur.user_id, 'role', 'authenticated')::text, true);
       set local role authenticated;
@@ -258,10 +270,11 @@ begin
         v_echecs := array_append(v_echecs, 'un technicien lit un contrat, prix compris');
       end if;
 
-      insert into intervention (entreprise_id, chantier_id, type, contrat_id, date_prevue, membre_id)
-      values (v_ent, v_chantier, 'entretien', v_contrat, current_date, v_poseur.id)
-      returning id into v_inter;
       update intervention set statut = 'terminee', fin_le = now() where id = v_inter;
+      get diagnostics v_n = row_count;
+      if v_n <> 1 then
+        v_echecs := array_append(v_echecs, 'un technicien ne peut pas clore sa propre visite');
+      end if;
 
       if regler_preavis_entretien(15) <> 15 then
         v_echecs := array_append(v_echecs, 'le préavis n''a pas été réglé');

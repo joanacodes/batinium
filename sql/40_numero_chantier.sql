@@ -179,10 +179,17 @@ declare
   v_num text; v_attendu text;
   v_echecs text[] := '{}';
 begin
+  -- Un compte qui n'appartient qu'à une entreprise : la session d'un compte
+  -- inscrit dans deux entreprises n'en retient qu'une, pas forcément celle de
+  -- la ligne choisie, et l'essai échouerait pour une raison étrangère à ce
+  -- script.
   select m.* into v_membre from membre m
-   where m.actif and m.role = 'direction' order by m.created_at limit 1;
+   where m.actif and m.role = 'direction'
+     and not exists (select 1 from membre x
+                      where x.user_id = m.user_id and x.actif and x.id <> m.id)
+   order by m.created_at limit 1;
   if v_membre.id is null then
-    raise notice 'Aucun membre de direction : vérification sautée.';
+    raise notice 'Aucun membre de direction rattaché à une seule entreprise : vérification sautée.';
     return;
   end if;
   v_ent := v_membre.entreprise_id;

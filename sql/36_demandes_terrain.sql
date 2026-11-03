@@ -2,9 +2,9 @@
 -- BATINIUM — 36. Ce que le client demande en plus, noté sur le chantier
 --
 -- À exécuter en une fois dans l'éditeur SQL de Supabase. Rejouable.
--- Ne touche qu'aux tables du SQL 01 et à `document` : indépendant des SQL 32
--- et 33, et compatible avec eux (ils réécrivent la politique de `document`
--- sans retirer de colonne).
+-- Ne touche qu'à `demande` (colonnes et deux politiques) et à `document` :
+-- indépendant des SQL 32 et 33, et compatible avec eux (ils réécrivent la
+-- politique de `document` sans retirer de colonne).
 --
 -- Sur place, le client — ou le client du client : l'occupant, le voisin, le
 -- syndic — demande quelque chose en plus. Aujourd'hui, ça repart dans la tête
@@ -70,44 +70,136 @@ create index if not exists document_demande_idx
 
 
 -- -----------------------------------------------------------------------------
--- 3. Vérification
+-- 3. Ce que le terrain a le droit d'en faire
+--
+-- Écrit ici, et non laissé à la politique `acces` du SQL 01 : celle-ci ouvre
+-- toute la table à toute l'équipe, et là où elle a été resserrée — la liste
+-- des demandes, transcriptions d'appel comprises, n'a pas à descendre vers un
+-- technicien — le terrain ne pourrait plus rien noter. Ces deux politiques lui
+-- donnent juste ce qu'il faut : écrire une demande du terrain, à son nom, dans
+-- son entreprise, et relire celles qu'il a notées (l'application relit la
+-- ligne qu'elle vient d'écrire). Rien sur les appels, rien sur les demandes
+-- des autres. Là où `acces` est encore ouverte, elles n'ajoutent rien.
+-- -----------------------------------------------------------------------------
+
+drop policy if exists terrain_note on demande;
+create policy terrain_note on demande for insert to authenticated
+  with check (entreprise_id = mon_entreprise() and source = 'terrain'
+              and cree_par = mon_membre());
+
+drop policy if exists terrain_relit on demande;
+create policy terrain_relit on demande for select to authenticated
+  using (entreprise_id = mon_entreprise() and source = 'terrain'
+         and cree_par = mon_membre());
+
+
+-- -----------------------------------------------------------------------------
+-- 4. Vérification
 --
 -- Rejouée en rôle `authenticated`, avec un technicien s'il y en a un : c'est
--- lui qui notera ces demandes. Il doit pouvoir créer la demande et y joindre
--- une photo ; une suite inconnue doit être refusée ; supprimer la demande doit
--- laisser la photo au chantier. Bloc annulé à la fin.
+-- lui qui notera ces demandes. Le compte essayé n'appartient qu'à une seule
+-- entreprise : la session d'un compte inscrit dans deux entreprises n'en
+-- retient qu'une, pas forcément celle de la ligne choisie, et l'essai
+-- échouerait pour une raison étrangère à ce script.
+--
+-- Les politiques du terrain sont éprouvées seules : le temps de l'essai, les
+-- autres politiques permissives de `demande` sont retirées, à commencer par
+-- l'`acces` du SQL 01, qui laisserait tout passer. Les restrictives restent,
+-- puisque l'application les subirait aussi. Le technicien doit pouvoir noter
+-- la demande, la relire et y joindre une photo ; il ne doit ni lire un appel,
+-- ni écrire une demande d'une autre source ou au nom d'un autre ; une suite
+-- inconnue est refusée ; supprimer la demande laisse la photo au chantier.
+-- Si la base refuse au technicien ce qu'il doit pouvoir faire, le message
+-- donne les politiques qu'elle porte sur `demande`. Bloc annulé à la fin.
 -- -----------------------------------------------------------------------------
 
 do $$
 declare
-  v_membre membre; v_ent uuid; v_tiers uuid; v_chantier uuid;
-  v_demande demande; v_doc uuid; v_refus boolean; v_lien uuid;
+  v_membre membre; v_ent uuid; v_autre uuid; v_tiers uuid; v_chantier uuid;
+  v_appel uuid; v_demande demande; v_doc uuid; v_lien uuid; v_n integer;
+  v_refus boolean; v_politique text; v_politiques text; v_nb_politiques integer;
   v_echecs text[] := '{}';
 begin
   select m.* into v_membre from membre m
    where m.actif
+     and not exists (select 1 from membre x
+                      where x.user_id = m.user_id and x.actif and x.id <> m.id)
    order by (m.role in ('technicien', 'sous_traitant')) desc, m.created_at
    limit 1;
   if v_membre.id is null then
-    raise notice 'Aucun membre : vérification sautée.';
+    raise notice 'Aucun membre rattaché à une seule entreprise : vérification sautée.';
     return;
   end if;
   v_ent := v_membre.entreprise_id;
+  select m.id into v_autre from membre m
+   where m.entreprise_id = v_ent and m.id <> v_membre.id
+   order by m.created_at limit 1;
+
+  select count(*), string_agg(format('%s (%s, %s ; using %s ; check %s)', policyname, cmd,
+                                     lower(permissive), coalesce(qual, '—'),
+                                     coalesce(with_check, '—')), ' | ' order by policyname)
+    into v_nb_politiques, v_politiques
+    from pg_policies where schemaname = 'public' and tablename = 'demande';
 
   begin
     insert into tiers (entreprise_id, nom) values (v_ent, 'Essai SQL 36') returning id into v_tiers;
     insert into chantier (entreprise_id, numero, tiers_id, libelle)
     values (v_ent, 'ESSAI-36', v_tiers, 'Vérification SQL 36') returning id into v_chantier;
+    insert into demande (entreprise_id, source, besoin)
+    values (v_ent, 'telephone', 'Appel d''essai SQL 36') returning id into v_appel;
+
+    for v_politique in
+      select policyname from pg_policies
+       where schemaname = 'public' and tablename = 'demande' and permissive = 'PERMISSIVE'
+         and policyname not in ('terrain_note', 'terrain_relit')
+    loop
+      execute format('drop policy %I on demande', v_politique);
+    end loop;
 
     perform set_config('request.jwt.claims',
                        json_build_object('sub', v_membre.user_id, 'role', 'authenticated')::text, true);
     set local role authenticated;
+    if mon_entreprise() is distinct from v_ent or mon_membre() is distinct from v_membre.id then
+      raise exception 'SQL 36 : la session de « % » ne donne pas sa propre fiche membre ; mon_entreprise() ou mon_membre() ne sont plus celles des SQL 01 et 13.',
+                      v_membre.nom;
+    end if;
 
-    insert into demande (entreprise_id, source, tiers_id, chantier_id, suite, besoin)
-    values (v_ent, 'terrain', v_tiers, v_chantier, 'a_facturer', 'Un second split dans la chambre')
-    returning * into v_demande;
+    begin
+      insert into demande (entreprise_id, source, tiers_id, chantier_id, suite, besoin)
+      values (v_ent, 'terrain', v_tiers, v_chantier, 'a_facturer', 'Un second split dans la chambre')
+      returning * into v_demande;
+    exception when insufficient_privilege then
+      raise exception 'SQL 36 : la base refuse à un compte « % » de noter une demande du terrain. Politiques de demande : %',
+                      v_membre.role, v_politiques;
+    end;
     if v_demande.cree_par is distinct from v_membre.id then
       v_echecs := array_append(v_echecs, 'l''auteur de la demande n''a pas été pris dans la session');
+    end if;
+
+    select count(*) into v_n from demande where id = v_appel;
+    if v_n <> 0 then
+      v_echecs := array_append(v_echecs, 'les droits du terrain laissent lire un appel');
+    end if;
+
+    v_refus := false;
+    begin
+      insert into demande (entreprise_id, source, besoin) values (v_ent, 'telephone', 'Essai SQL 36');
+    exception when insufficient_privilege then v_refus := true;
+    end;
+    if not v_refus then
+      v_echecs := array_append(v_echecs, 'le terrain a pu écrire une demande d''une autre source');
+    end if;
+
+    if v_autre is not null then
+      v_refus := false;
+      begin
+        insert into demande (entreprise_id, source, cree_par, besoin)
+        values (v_ent, 'terrain', v_autre, 'Essai SQL 36');
+      exception when insufficient_privilege then v_refus := true;
+      end;
+      if not v_refus then
+        v_echecs := array_append(v_echecs, 'le terrain a pu noter une demande au nom d''un autre');
+      end if;
     end if;
 
     insert into document (entreprise_id, chantier_id, demande_id, type, nom)
@@ -116,7 +208,8 @@ begin
 
     v_refus := false;
     begin
-      update demande set suite = 'cadeau' where id = v_demande.id;
+      insert into demande (entreprise_id, source, chantier_id, suite, besoin)
+      values (v_ent, 'terrain', v_chantier, 'cadeau', 'Essai SQL 36');
     exception when check_violation then v_refus := true;
     end;
     if not v_refus then
@@ -140,9 +233,13 @@ begin
   if exists (select 1 from chantier where numero = 'ESSAI-36' and entreprise_id = v_ent) then
     v_echecs := array_append(v_echecs, 'la vérification a laissé des lignes en base');
   end if;
+  if (select count(*) from pg_policies where schemaname = 'public' and tablename = 'demande')
+     <> v_nb_politiques then
+    v_echecs := array_append(v_echecs, 'la vérification n''a pas rendu les politiques de demande');
+  end if;
 
   if cardinality(v_echecs) > 0 then
     raise exception 'SQL 36 : vérification en échec — %', array_to_string(v_echecs, ' ; ');
   end if;
-  raise notice 'SQL 36 appliqué. Le terrain note ce que le client demande en plus, avec ses photos.';
+  raise notice 'SQL 36 appliqué. Le terrain note ce que le client demande en plus, avec ses photos, et le pourra encore quand la liste des demandes lui sera fermée.';
 end $$;

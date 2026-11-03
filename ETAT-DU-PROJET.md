@@ -70,6 +70,19 @@ démonstration — tous indépendants de 32 et 33), **puis 39** (vidéos de
 32 et 33** (phase 1) — la revue du 13 octobre y a trouvé des défauts
 bloquants, voir `REVUE-PHASE-1.md`.
 
+Premier essai du paquet 34 → 38 + 40 sur Supabase, le 3 novembre : arrêté
+par la vérification du 36 (« new row violates row-level security policy for
+table demande »). L'éditeur passe le collage en une transaction : tout a été
+annulé, 34 et 35 compris. Reproduit le soir même sur une copie locale, de deux
+façons : un compte de terrain inscrit dans deux entreprises, ou une politique
+de `demande` resserrée par un script 04 à 11. La base vivante n'a pas pu être
+lue (le connecteur Supabase refuse), on ne sait donc pas laquelle des deux
+joue. Le 36 donne désormais au terrain ses propres droits sur ses demandes,
+et les vérifications de 36, 37, 38 et 40 n'essaient plus que des comptes
+rattachés à une seule entreprise. Si le 36 échoue encore, son message
+donne les politiques que la base porte sur `demande`. **À relancer d'un
+coup.**
+
 Depuis le 13 octobre, `sql/` contient 01 à 03 et 12 à 40, plus
 `essai_achats.sql` : les scripts 12 à 31 ont été reconstitués depuis la
 conversation où ils avaient été livrés, et tous (01 à 33) ont tourné sans
@@ -106,7 +119,7 @@ tiennent entre eux.
 | **33** | **Fiche fluides Cerfa : table, numérotation `FF-AAAA-NNNN` par `prochain_numero_fiche()`, autocontrôles, signature du client selon le seuil, immuabilité, rectification** — en attente des corrections de la revue |
 | **34** | **Appels et clients : `normaliser_telephone()`, `tiers_par_telephone()`, rattachement des demandes à l'arrivée et quand une fiche client prend leur numéro, reprise des appels déjà reçus** — à exécuter, indépendant de 32 et 33 |
 | **35** | **Arrivées et départs : table `presence`, `noter_arrivee()` / `noter_depart()` (heure du serveur, position relevée au geste), distance au site, positions effacées après un an** — à exécuter |
-| **36** | **Demandes faites sur place : `demande.suite` (à facturer, SAV, nouveau devis), `chantier_id`, `intervention_id`, `cree_par`, et `document.demande_id` pour leurs photos** — à exécuter |
+| **36** | **Demandes faites sur place : `demande.suite` (à facturer, SAV, nouveau devis), `chantier_id`, `intervention_id`, `cree_par`, et `document.demande_id` pour leurs photos ; deux politiques du terrain (`terrain_note`, `terrain_relit`) : noter une demande du terrain à son nom et relire les siennes, même si `acces` est resserrée** — à exécuter |
 | **37** | **Contrats d'entretien : `contrat_entretien` (réservé à ceux qui voient les prix), échéance qui avance seule à la visite terminée, `membre.preavis_entretien_jours` réglé par chacun** — à exécuter |
 | **38** | **Mode démonstration, temporaire : `membre.apercu_role`, `mon_role()` qui le lit, `entrer_apercu()` / `quitter_apercu()`** — à exécuter, à retirer avant la revente (procédure dans son en-tête) |
 | **39** | **Vidéos : le seau `documents` passe de 50 à 500 Mo par fichier** — à exécuter avec l'offre Pro, après avoir relevé la limite du projet (voir §5) |
@@ -671,6 +684,17 @@ Relevés le 13 octobre dans le code du lot 37, à traiter :
   - l'habilitation électrique n'est pas un type de document ;
   - le compte d'un sous-traitant (`membre`) et sa fiche entreprise
     (`tiers`) ne semblent reliés par rien : à confirmer avant le module Q1.
+- **Un compte inscrit dans deux entreprises n'en choisit aucune** (relevé en
+  corrigeant le 36, 3 novembre) : `mon_entreprise()`, `mon_role()` et
+  `mon_membre()` prennent la première ligne `membre` active, sans ordre, et
+  `entrer_apercu()` (SQL 38) agit sur la ligne de direction quelle que soit
+  l'entreprise. Un sous-traitant qui travaille pour deux clients de Batinium
+  tomberait dans l'une ou l'autre. Il faut une entreprise courante choisie
+  par la personne, et des fonctions qui la lisent, avant la revente.
+- **Les droits réels de la base vivante sont inconnus** tant que les
+  scripts 04 à 11 n'ont pas été relus : `npx supabase db dump --schema public`
+  les rend, politiques comprises. Le premier essai du 36 laisse penser que
+  `demande` y a été resserrée ou qu'un compte y est inscrit deux fois.
 
 ---
 
