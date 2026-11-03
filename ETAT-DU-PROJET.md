@@ -432,14 +432,15 @@ le devis sur place sans voir de prix, et le gérant le valide ; l'échéancier
 reste au choix ; les sous-traitants voient tout comme un salarié sur leurs
 chantiers, sans prix ni heures (heures en option) ; il veut régler lui-même
 qui a accès à quoi (nouveau module V) ; les relances partent à la main, avec
-un rappel hebdomadaire ; acompte par virement seulement ; quinze brouillons
-Tolteck à reprendre.
+un rappel hebdomadaire, par e-mail ; acompte par virement seulement ;
+facture d'acompte et commande de matériel réglables dans Entreprise, d'un
+clic par défaut ; factures des sous-traitants par e-mail ou dans Batinium, au
+choix ; quinze brouillons Tolteck à reprendre.
 
 **Avant de coder** : la décision D1 — elle change une règle de `CLAUDE.md`
-(l'IA proposerait des actions, validées d'un clic) — et les cinq questions
-encore ouvertes (facture d'acompte seule ou validée, moment de la commande,
-date de bascule Tolteck, canal et signature des relances, factures des
-sous-traitants). Rien n'est codé.
+(l'IA proposerait des actions, validées d'un clic) — et une dernière
+question : à partir de quand Fabrice fait-il ses devis dans Batinium plutôt
+que dans Tolteck. Rien n'est codé.
 
 ### Phase 1 — intégrée, revue le 13 octobre, à corriger avant toute exécution
 

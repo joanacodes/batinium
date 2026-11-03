@@ -222,15 +222,18 @@ passées en automatique (décision D2) se font seules et le disent.
 1. **Signature** (F4) : chantier, machines, matériel à commander,
    interventions à planifier, échéancier, facture d'acompte en brouillon — ce
    que fait déjà `signerDevis`, côté serveur, une seule fois.
-2. **Acompte** : carte « Émettre et envoyer la facture d'acompte », avec l'IBAN
-   et la référence à rappeler (virement seulement, D7). Hors établissement, aucun paiement avant
-   sept jours : la carte n'arrive qu'à la date déjà calculée
+2. **Acompte** : la facture d'acompte se prépare, avec l'IBAN et la référence
+   à rappeler (virement seulement, D7). Par défaut, carte « Émettre et envoyer
+   la facture d'acompte » ; envoi tout seul si Fabrice l'a réglé ainsi
+   (réglages ci-dessous). Hors établissement, aucun paiement avant sept jours :
+   ni la carte ni l'envoi tout seul n'arrivent avant la date déjà calculée
    (`encaissement_autorise_le`).
-3. **Commande de matériel** : à la réception de l'acompte, ou dès la signature
-   (sans réponse, § 9), carte « Commander » : un bon par fournisseur, tiré de
-   la liste « À commander », avec en référence **le nom de la rue et le nom du
-   client** (réponse de Fabrice ; le plan précédent prévoyait
-   `BC-AAAAMMJJ-NNNN`). C'est le module G (phase 4), qui s'y branche.
+3. **Commande de matériel** : dès la signature ou à la réception de
+   l'acompte, selon le réglage ; carte « Commander » par défaut, envoi tout
+   seul si Fabrice l'a réglé ainsi. Un bon par fournisseur, tiré de la liste
+   « À commander », avec en référence **le nom de la rue et le nom du client**
+   (réponse de Fabrice ; le plan précédent prévoyait `BC-AAAAMMJJ-NNNN`).
+   C'est le module G (phase 4), qui s'y branche.
 4. **Affectation** : carte « Planifier la pose » — à l'étape 3, une date et une
    personne à choisir ; avec le planning (étape 6), un créneau proposé : équipe
    libre, matériel livré avant, délai de rétractation passé (§ 7). Puis le
@@ -256,6 +259,21 @@ passées en automatique (décision D2) se font seules et le disent.
 
 Chaque passage s'écrit au journal du chantier (« Acompte émis et envoyé le
 … »), comme la signature aujourd'hui.
+
+**Les réglages** (Entreprise → Automatisation). Fabrice l'a dit pour chacun :
+« laisse l'utilisateur décider ». Les valeurs par défaut sont les plus
+prudentes, et se changent d'un menu :
+
+| Réglage | Choix | Par défaut |
+|---|---|---|
+| Facture d'acompte | Validée d'un clic, ou envoyée toute seule | D'un clic (réponse de Fabrice) |
+| Commande de matériel : quand | Dès la signature, ou à la réception de l'acompte | À la réception de l'acompte |
+| Commande de matériel : envoi | Validé d'un clic, ou tout seul | D'un clic |
+| Échéancier | Modèles (30 / 70, 30 / 40 / 30…), modifiable devis par devis | Celui d'Entreprise |
+| Relances | Toujours à la main, par e-mail, envoi programmable | — (réponse de Fabrice) |
+| Rappel des relances au gérant | Jour et heure | Le lundi à 8 h |
+| Factures des sous-traitants | Reçues par e-mail, ou déposées dans Batinium | Par e-mail |
+| Point du matin | Heure, lecture à voix haute | 7 h, sans lecture |
 
 ### Module O — La signature du client, à distance
 
@@ -318,6 +336,10 @@ photos, plans, fiche de pose, journal — sans aucun prix (règle 8). Une
 différence, par défaut : il ne déclare pas d'heures, puisqu'il travaille au
 projet et non à l'heure ; une option, sous-traitant par sous-traitant, les lui
 ouvre. Il reçoit les demandes de documents (vigilance) et sait où les déposer.
+Ses factures arrivent par e-mail ou se déposent dans Batinium, au choix de
+Fabrice (réglages du module N) ; déposées, elles se rattachent au chantier et
+au paiement d'équipe — le coût d'un sous-traitant ne va jamais en dépense
+(SQL 12).
 Son menu : Ma journée, Mes chantiers, Mes documents, et Mes heures si
 l'option est ouverte.
 
@@ -409,7 +431,9 @@ puis le rappel la veille (F3).
   heure (F3).
 - **Un rappel au gérant une fois par semaine** : la liste des relances à
   faire, jour et heure réglables, dans la file et par e-mail.
-- Reste à savoir : e-mail ou SMS, et signées de qui (§ 9).
+- **Par e-mail** (réponse de Fabrice), depuis l'adresse de l'entreprise (F1),
+  signées du gérant avec la signature de l'entreprise — réglable dans
+  Entreprise.
 
 ### Module V — Qui a accès à quoi
 
@@ -496,16 +520,16 @@ l'action exacte — le mail tel qu'il partira, la facture telle qu'elle sera
 son artifact (« Envoyer ce mail vaut votre accord »). À valider, puis à écrire
 dans `CLAUDE.md`.
 
-**D2 — Un clic ou automatique, étape par étape.** Tranché pour les
-relances : toujours à la main, envoi programmable (§ 9). Restent l'envoi de la
-facture d'acompte et la commande de matériel. Recommandation : un clic par
-défaut ; dans Entreprise, un interrupteur « automatique » pour ces deux-là, à
-allumer quand il a confiance. Jamais d'automatique avant les dates légales
-(§ 7).
+**D2 — Un clic ou automatique : tranché.** Les relances partent toujours à
+la main ; la facture d'acompte et la commande de matériel se règlent dans
+Entreprise, d'un clic par défaut (réglages du module N). Jamais rien de tout
+seul avant les dates légales (§ 7).
 
 **D3 — Les devis se font dans Batinium.** Quinze brouillons Tolteck sont à
-reprendre (import CSV) ; la date de bascule reste à fixer. Sans cette
-bascule, rien de ce plan ne se déclenche pour ses devis.
+reprendre (import CSV) ; la date de bascule reste à fixer (§ 9). Sans cette
+bascule, rien de ce plan ne se déclenche pour ses devis. Ce jour-là, régler
+aussi dans Entreprise la suite des numéros de devis et de factures, pour
+qu'ils prolongent ceux de Tolteck sans trou ni doublon.
 
 **D4 — Le canal d'envoi** : son Gmail (recommandé pour Pilotech) ou un
 service d'envoi au domaine de l'entreprise (indispensable à la revente).
@@ -603,20 +627,21 @@ carte attendra.
 | Point du matin : heure, appareil, lecture à voix haute | Toutes ces options | P |
 | Sous-traitants : ce qu'ils voient, heures, factures | Tout comme les salariés, sauf les déclarations d'heures : ils travaillent au projet. Les heures en option | Q1, V |
 | Emplacements des chantiers | Oui, tout : surface, étage, orientation, ancien équipement | R |
-| Relances | À la main, envoi programmable, et un rappel au gérant une fois par semaine | U, D2 |
+| Relances | À la main, par e-mail, envoi programmable, et un rappel au gérant une fois par semaine | U, D2 |
+| Facture d'acompte : toute seule ou validée | « Laisse le décider dans les paramètres. Manuel par défaut. » | N2, réglages |
+| Commande : dès la signature ou à l'acompte | « Laisse le décider dans les paramètres » | N3, réglages |
+| Factures des sous-traitants | « Deux options : e-mail ou Batinium. Laisse le décider » | Q1, réglages |
 | Paiement en ligne de l'acompte | IBAN seulement pour l'instant | D7 |
 | Bons de commande (question ancienne) | Référence : nom de la rue + nom du client | N3 |
 | Accès (demande nouvelle) | Régler qui a accès à quoi, sur ordinateur, par menus déroulants | V |
 
-**Restent à poser** :
+**Reste à poser** une seule question, reformulée — la première version n'a
+pas été comprise :
 
-1. **La facture d'acompte** : elle part toute seule après la signature, ou il
-   la valide d'un clic avant qu'elle parte ?
-2. **La commande de matériel** : dès la signature, ou à la réception de
-   l'acompte ?
-3. **Tolteck** : à quelle date bascule-t-il ?
-4. **Les relances** : par e-mail ou par SMS, et signées de qui ?
-5. **Les sous-traitants** : leurs factures passent-elles par Batinium ?
+> À partir de quand veux-tu faire tous tes nouveaux devis dans Batinium
+> plutôt que dans Tolteck ? Ce jour-là, on reprend tes quinze brouillons en
+> cours dans Batinium. Tant qu'un devis est fait dans Tolteck, rien ne
+> s'enchaîne tout seul après sa signature.
 
 Deux questions du 27 octobre n'ont pas été posées : « Cerfa » dans la chaîne
 (fiche fluides, formulaire de TVA, ou les deux) et « plusieurs TVA dans le
