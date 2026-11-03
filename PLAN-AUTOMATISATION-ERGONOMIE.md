@@ -869,5 +869,50 @@ terrain. Les menus de tous les écrans mènent à ces nouvelles entrées.
     terrain ?
 12. Les notifications classées par date, la gravité dans « ⋯ » ?
 
+Celles de la deuxième vague :
+
+13. Un devis préparé chez le client puis signé en ligne : vente hors
+    établissement (aucun paiement avant la fin du délai) ou à distance ? À
+    trancher avec un juriste. La case TVA à la signature remplace-t-elle
+    l'attestation (avis de l'expert-comptable) ? La preuve : signature
+    simple, code SMS, ou prestataire (D6) ?
+14. Lien expiré ou devis modifié : « Demander un nouveau lien » passe par
+    Fabrice, une carte et un clic, plutôt qu'un renvoi automatique ?
+15. L'ordre d'intervention part-il quand le matériel n'est pas commandé
+    (avec un point « À régler ») ? Pour un sous-traitant sans l'application,
+    l'ordre imprimé ou en PDF ? Client absent au rapport : signature à
+    distance ?
+16. La météo : les seuils par défaut (dehors : pluie 60 % ou rafales
+    60 km/h ; en hauteur : rafales 50 km/h ; toiture : pluie 40 % ou rafales
+    40 km/h ; gel du matin dès qu'on est dehors) ; une alerte devient une
+    carte à deux jours ou à trois ; prévenir l'équipe toujours d'un clic, ou
+    tout seul quand ni l'heure ni le client ne changent ?
+17. Le chef de chantier envoie-t-il lui-même ce qui touche au planning (le
+    décalage annoncé au client, les messages à l'équipe), rien d'argent ?
+    Une carte présente chez Fabrice et chez Yann : les deux, et le premier
+    qui agit la range ?
+18. « Voir comme » : par personne (écran Accès) ou par rôle (SQL 38, Mon
+    compte) ?
+19. Les fournisseurs : « le moins cher » au total livré, port compris ;
+    panacher une commande entre deux fournisseurs ; prévenir les non
+    retenus ; commander avant l'acompte, avec un avertissement ?
+20. Les analyses : comparer à la même date l'an dernier (les saisons) ;
+    « cette année » par défaut ; le taux de transformation sur les devis
+    envoyés ou sur les demandes ; compter la paie et estimer la TVA dans la
+    trésorerie ?
+21. Les machines : un DRV à deux cassettes est-il une machine (une fiche
+    Cerfa par circuit) ou deux unités ? Le contrôle dans le mois qui suit
+    une fuite réparée ; les fiches rectificatives après correction d'une
+    plaque, à chaque fois ou seulement quand l'erreur compte ; qui contrôle
+    les détecteurs, qui reprend les bouteilles ?
+22. Hors connexion, ce qui attend n'est gardé que dans l'onglet ouvert
+    (règle 9), et une arrivée notée sans réseau prend l'heure du téléphone :
+    acceptable ? « Annuler » pendant six secondes ; annuler un mail envoyé
+    pendant vingt secondes ?
+23. Le site public promet des fonctions pas encore codées : on ne le publie
+    qu'une fois tout livré ? Le témoignage de Fabrice, le tarif ?
+24. Mon compte : chacun change-t-il son nom, ou seulement son téléphone et
+    sa photo ? La dictée en portugais ou en espagnol, traduite en français ?
+
 **Prochaine étape** : valider les maquettes avec Fabrice, puis coder
 l'étape 1.
