@@ -775,5 +775,51 @@ noms et montants sont inventés. Ce qu'elles mesurent :
 | Une pièce du devis fait sur place | 6 avec la dictée, 9 sans |
 | Une demande sur place (à facturer, SAV, nouveau devis) | 3, plus ce qu'on dicte |
 
+**Tous les écrans** (3 novembre, au soir) : le même lien porte maintenant
+les maquettes de toute l'application, 78 écrans sur sept pages — les écrans
+clés, puis Pour tout le monde (connexion, premiers pas, menus « Plus » et
+« + », recherche, notifications, assistant), La vente (demandes, clients,
+fiche client, devis, éditeur, boîte mail, factures, facture, reprise de
+Tolteck), Les chantiers (liste, planning, tâches, journal), L'argent et les
+heures (achats et commandes, dépenses, rentabilité, heures de l'équipe),
+L'équipe et les réglages (équipe, fiche salarié, fiche sous-traitant,
+accès, entreprise, catalogue, remplir le catalogue, connexions, données) et
+Le terrain (mes chantiers, chantier vu du terrain, fiche de pose, fiches
+fluides, PV de réception, mes heures, mes documents, Ma journée sur
+ordinateur). Chaque écran existe sur téléphone et sur ordinateur, sauf ceux
+du terrain, dessinés sur téléphone ; les liens mènent de l'un à l'autre.
+Rien de ce que les pages font aujourd'hui n'est perdu : ce qui n'est pas
+en tête est replié, dans « ⋯ », un onglet ou une bulle « ? ».
+
+**Les questions que les maquettes posent à Fabrice** :
+
+1. Sur téléphone, Devis, Factures et Clients passent sous « Plus » ; la
+   barre garde Aujourd'hui, Demandes, « + », Chantiers. Cela lui va-t-il ?
+2. Les accès par défaut : devis fermés au sous-traitant, clients et
+   demandes fermés au technicien (la base leur ouvre tout aujourd'hui) ; et
+   modifier un devis, une facture, une commande ou voir la rentabilité exige
+   « voit les prix ».
+3. Dans l'assistant, « Tout valider » suffit-il pour plusieurs factures à
+   émettre, ou chaque facture garde-t-elle son propre clic ?
+4. « Le virement est arrivé » d'un clic, ou la date et le montant (paiement
+   partiel) ? La date d'une facture : modifiable, ou toujours celle de
+   l'émission ?
+5. Le PV de réception : Alex signe-t-il pour Pilotech sur place, ou
+   Fabrice contresigne-t-il ? Sous le seuil, fait-on quand même signer la
+   fiche fluides par le client ?
+6. Les heures ajoutées à la main par un salarié : permises par défaut ?
+   avec un motif ?
+7. Le planning : équipes fixes ou recomposées par chantier ? Regroupé par
+   personne ou par équipe ?
+8. Les demandes : peut-on se passer du statut « Qualifiée » ? Un rendez-vous
+   se confirme par e-mail seulement, ou aussi par SMS plus tard ?
+9. Les devis : ne supprimer que les brouillons ? La liste en TTC (elle est
+   en HT aujourd'hui) ?
+10. La reprise de Tolteck : les anciens devis tous « signés » par défaut, ou
+    leur statut lu dans l'export ? Reste-t-il des factures Tolteck impayées ?
+11. Une connexion sans mot de passe, par un lien reçu par mail, pour le
+    terrain ?
+12. Les notifications classées par date, la gravité dans « ⋯ » ?
+
 **Prochaine étape** : valider les maquettes avec Fabrice, puis coder
 l'étape 1.

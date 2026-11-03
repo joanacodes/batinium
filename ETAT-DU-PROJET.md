@@ -452,8 +452,10 @@ mesures — accueil sans décision, menu de vingt entrées, pages fleuves
 (Entreprise : 8,7 écrans de téléphone), boutons de la direction visibles par
 le terrain — et huit principes pour la suite. Les maquettes des écrans clés
 sont faites (3 novembre, d'après l'artifact de Fabrice et huit captures de
-référence) : https://claude.ai/artifact/HT5FFCUr3Zt3PHDKSTUTQ5, à valider
-avec Fabrice avant de coder l'étape 1.
+référence) : https://claude.ai/artifact/HT5FFCUr3Zt3PHDKSTUTQ5. Le soir
+même, toute l'application y est : 78 écrans sur sept pages, téléphone et
+ordinateur, cliquables d'un écran à l'autre, avec les questions qu'ils
+posent (§ 10 du plan). À valider avec Fabrice avant de coder l'étape 1.
 
 ### Phase 1 — intégrée, revue le 13 octobre, à corriger avant toute exécution
 
@@ -654,6 +656,21 @@ Relevés le 13 octobre dans le code du lot 37, à traiter :
 - La recherche des noms chez Allô suppose la forme de réponse de leur API
   `crm/people/search` d'après leur documentation, sans essai réel depuis ce
   dépôt : le premier clic sur « Retrouver les noms » en est le test.
+- **Relevé en dessinant les maquettes (3 novembre)**, vérifié dans le code :
+  - `v_cout_reel_chantier` (SQL 24) ne compte pas les paiements de
+    sous-traitant rattachés au chantier : la marge réelle d'un chantier
+    sous-traité est surestimée ;
+  - `rapprocher()` (`db.ts`) date la livraison au rapprochement : une
+    facture fournisseur arrivée avant le matériel le déclare livré trop tôt ;
+  - `Catalogue.tsx` dit encore « le stockage est public » ; le seau des
+    photos est privé ;
+  - le calage du compteur (Entreprise) ne vaut que pour les devis, pas pour
+    les factures ;
+  - `Import.tsx` ne lit que du CSV et du collage : la reprise de Tolteck
+    depuis des PDF (module W) demande une tâche d'IA à créer ;
+  - l'habilitation électrique n'est pas un type de document ;
+  - le compte d'un sous-traitant (`membre`) et sa fiche entreprise
+    (`tiers`) ne semblent reliés par rien : à confirmer avant le module Q1.
 
 ---
 
