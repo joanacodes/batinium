@@ -9,7 +9,7 @@ quoi (module V).
 
 Ce document complète `PLAN-FLUIDES-COMMANDES-PLANNING.md` (modules A à L,
 phases 1 à 7) sans le remplacer : ses modules sont repris là où la chaîne en
-a besoin, et les nouveaux continuent la lettre (M à V). Comme lui, il dit quoi
+a besoin, et les nouveaux continuent la lettre (M à W). Comme lui, il dit quoi
 construire, sur quoi ça s'appuie et ce que la loi impose ; il ne contient pas
 de code. Un prompt par étape s'écrira une fois les décisions du § 6 prises.
 
@@ -460,6 +460,37 @@ poser ses documents ».
 - Le mode démonstration (SQL 38) vérifie un réglage avec les vrais droits du
   rôle.
 
+### Module W — La bascule depuis Tolteck, automatisée
+
+Demande du 3 novembre : « fais en sorte que ça soit automatisé » — Fabrice
+donne un document, ou un accès à Tolteck s'il y a une API, et à partir de là
+Batinium démarre.
+
+- **Pas d'API publique connue** chez Tolteck, logiciel de Saint-Gobain
+  Distribution Bâtiment France : ses seules intégrations documentées sont les
+  fournisseurs Point.P et Cedeo, et l'outil de métré Solu+. Si son support en
+  ouvre une, on s'y branche ; sinon, des fichiers. Lui demander l'export
+  complet : clients, devis, factures, articles.
+- **Un seul dépôt** : Fabrice dépose ce qu'il a — un export en tableur, ou
+  simplement les PDF de ses devis — dans un écran « Reprendre mes données ».
+  Batinium reconnaît chaque fichier : un tableur se lit par règles (l'import
+  de devis le fait déjà pour le CSV), un PDF par l'IA (comme « Remplir le
+  catalogue » le fait déjà pour les tarifs).
+- **Ce qui se crée** : les clients et leurs adresses, sans doublon avec ceux
+  déjà là ; les devis avec leurs numéros d'origine ; les articles du
+  catalogue. Les quinze brouillons arrivent dans la file « Devis à valider »
+  (module M), avec leurs points à vérifier (module S).
+- **Rien ne s'écrit sans relecture** : l'écran montre ce qu'il a compris,
+  fichier par fichier, et Fabrice valide d'un clic — la règle de l'import
+  actuel : un import qui devine sans montrer ne se vérifie pas.
+- **Puis Batinium démarre** : les numéros de devis et de factures reprennent
+  la suite de ceux de Tolteck, sans trou ni doublon, et chaque devis signé
+  déclenche la chaîne (module N).
+- **Les factures déjà émises** dans Tolteck ne se réémettent pas : on en
+  reprend la trace (numéro, client, montant, échéances non payées) et leurs
+  PDF dans la bibliothèque. À récupérer avant toute résiliation de Tolteck :
+  une facture se conserve dix ans.
+
 ---
 
 ## 5. Ordre de réalisation
@@ -471,14 +502,16 @@ Pennylane, Dropbox) gardent leur place.
 **Étape 0 — Finir ce qui est en cours.** Exécuter les SQL 34 à 38, puis le 39
 une fois Supabase passé en Pro. Corriger la phase 1 (`REVUE-PHASE-1.md`),
 puis exécuter 32 et 33. Configurer Google avec l'autorisation longue
-(`GOOGLE.md`) : l'étape 2 en dépend. Décider de la bascule de Tolteck vers
-Batinium pour les devis (D3) et importer les quinze brouillons en cours.
+(`GOOGLE.md`) : l'étape 2 en dépend. Demander à Tolteck l'export complet de
+ses données (module W).
 
-**Étape 1 — La file « À décider », les accès et les sous-traitants** (M, S
-par règles, V, Q1, première version de P). Sans nouvelle infrastructure.
+**Étape 1 — La file « À décider », les accès, les sous-traitants, la reprise
+de Tolteck** (M, S par règles, V, Q1, W, première version de P). Sans
+nouvelle infrastructure.
 *Fabrice voit* : en ouvrant Batinium, ce qu'il a à décider, le rouge
 d'abord, de gros boutons et des compteurs ; il règle depuis l'ordinateur qui a
-accès à quoi ; les sous-traitants ne voient plus que leurs chantiers.
+accès à quoi ; les sous-traitants ne voient plus que leurs chantiers ; il
+dépose ses données Tolteck, et ses quinze brouillons arrivent à valider.
 
 **Étape 2 — Les fondations et la signature à distance** (F1 à F4, O).
 *Fabrice voit* : « Envoyer » envoie pour de vrai, mail exact et PDF joint ;
@@ -525,11 +558,10 @@ la main ; la facture d'acompte et la commande de matériel se règlent dans
 Entreprise, d'un clic par défaut (réglages du module N). Jamais rien de tout
 seul avant les dates légales (§ 7).
 
-**D3 — Les devis se font dans Batinium.** Quinze brouillons Tolteck sont à
-reprendre (import CSV) ; la date de bascule reste à fixer (§ 9). Sans cette
-bascule, rien de ce plan ne se déclenche pour ses devis. Ce jour-là, régler
-aussi dans Entreprise la suite des numéros de devis et de factures, pour
-qu'ils prolongent ceux de Tolteck sans trou ni doublon.
+**D3 — Les devis se font dans Batinium : tranché.** La bascule est
+automatisée (module W) : elle a lieu quand Fabrice dépose ses données
+Tolteck, quinze brouillons compris. Sans elle, rien de ce plan ne se
+déclenche pour ses devis.
 
 **D4 — Le canal d'envoi** : son Gmail (recommandé pour Pilotech) ou un
 service d'envoi au domaine de l'entreprise (indispensable à la revente).
@@ -634,14 +666,11 @@ carte attendra.
 | Paiement en ligne de l'acompte | IBAN seulement pour l'instant | D7 |
 | Bons de commande (question ancienne) | Référence : nom de la rue + nom du client | N3 |
 | Accès (demande nouvelle) | Régler qui a accès à quoi, sur ordinateur, par menus déroulants | V |
+| Date de bascule Tolteck | « Fais en sorte que ça soit automatisé » : il fournit un document, ou un accès s'il y a une API | W |
 
-**Reste à poser** une seule question, reformulée — la première version n'a
-pas été comprise :
-
-> À partir de quand veux-tu faire tous tes nouveaux devis dans Batinium
-> plutôt que dans Tolteck ? Ce jour-là, on reprend tes quinze brouillons en
-> cours dans Batinium. Tant qu'un devis est fait dans Tolteck, rien ne
-> s'enchaîne tout seul après sa signature.
+**Plus aucune question ouverte** pour Fabrice sur ce plan. Reste la
+décision D1, à prendre par l'équipe qui développe : elle change une règle de
+`CLAUDE.md`.
 
 Deux questions du 27 octobre n'ont pas été posées : « Cerfa » dans la chaîne
 (fiche fluides, formulaire de TVA, ou les deux) et « plusieurs TVA dans le

@@ -295,7 +295,7 @@ leur prix, leur unité et leur TVA ; les autres restent à zéro.
 | `INSTALLATION.md` | Installation des services extérieurs (stockage, IA, Allô, Google, hébergement) |
 | `GOOGLE.md` | Configuration OAuth Google, pas à pas |
 | `PLAN-FLUIDES-COMMANDES-PLANNING.md` | Cahier des charges des douze modules à venir, sept phases, points légaux, questions à Fabrice |
-| `PLAN-AUTOMATISATION-ERGONOMIE.md` | Plan du 27 octobre : la chaîne après signature, la file « À décider », le point du matin à la voix, les vues terrain, qui a accès à quoi — modules M à V, étapes 0 à 6, décisions, réponses de Fabrice du 3 novembre |
+| `PLAN-AUTOMATISATION-ERGONOMIE.md` | Plan du 27 octobre : la chaîne après signature, la file « À décider », le point du matin à la voix, les vues terrain, qui a accès à quoi, la reprise de Tolteck — modules M à W, étapes 0 à 6, décisions, réponses de Fabrice du 3 novembre |
 | `PROMPT-PHASE-1.md` … `PROMPT-PHASE-5.md` | Un prompt détaillé par phase — **pas encore dans le dépôt**, à y ajouter |
 | `INTEGRATION-PHASE-1.md` | Les dix modifications de fichiers existants pour brancher la phase 1 — **appliquées** le 13 octobre |
 | `REVUE-PHASE-1.md` | Revue de la phase 1 du 13 octobre : défauts confirmés, correctifs, décisions à prendre avec Fabrice |
@@ -438,9 +438,9 @@ clic par défaut ; factures des sous-traitants par e-mail ou dans Batinium, au
 choix ; quinze brouillons Tolteck à reprendre.
 
 **Avant de coder** : la décision D1 — elle change une règle de `CLAUDE.md`
-(l'IA proposerait des actions, validées d'un clic) — et une dernière
-question : à partir de quand Fabrice fait-il ses devis dans Batinium plutôt
-que dans Tolteck. Rien n'est codé.
+(l'IA proposerait des actions, validées d'un clic). La bascule depuis
+Tolteck sera automatisée (module W) : elle a lieu quand Fabrice dépose ses
+données. Rien n'est codé.
 
 ### Phase 1 — intégrée, revue le 13 octobre, à corriger avant toute exécution
 
