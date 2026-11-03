@@ -138,6 +138,21 @@ export default function PageParametres() {
             <option value="annee">{p.prefixe_devis}-2026-0057</option>
           </select>
         </div>
+        <div style={{ gridColumn: 'span 2' }}>
+          <label>Numéro des chantiers</label>
+          {p.numerotation_chantier ? (
+            <select value={p.numerotation_chantier}
+                    onChange={(e) => set('numerotation_chantier', e.target.value)}>
+              <option value="rue_client">La rue et le client — Rue des Lilas – Freguia</option>
+              <option value="compteur">Le compteur — {p.prefixe_chantier || 'CH'}-2026-0057</option>
+            </select>
+          ) : (
+            <p className="statut">
+              Le numéro « rue et client » demande le SQL 40 : exécutez-le dans Supabase.
+              D'ici là, les chantiers suivent le compteur.
+            </p>
+          )}
+        </div>
 
         <div style={{ gridColumn: 'span 4', borderTop: '1px solid var(--filet)', paddingTop: 12 }}>
           <strong style={{ fontSize: 13 }}>Reprendre la numérotation existante</strong>

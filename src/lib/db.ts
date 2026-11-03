@@ -804,8 +804,24 @@ export async function chargerChantier(id: string): Promise<ChantierAvecTiers> {
   return ok(await supabase.from('chantier').select('*, tiers(id, nom)').eq('id', id).single());
 }
 
+/**
+ * Le numéro d'un nouveau chantier : « Rue des Lilas – Freguia », ou le
+ * compteur, selon le réglage d'Entreprise. C'est la base qui le calcule
+ * (SQL 40), pour qu'il soit le même quel que soit l'écran qui crée le
+ * chantier. Tant que le SQL 40 n'a pas tourné, la fonction n'existe pas :
+ * le compteur d'avant prend le relais plutôt que d'empêcher de créer.
+ */
+async function numeroNouveauChantier(tiersId: string | null, siteId: string | null): Promise<string> {
+  const r = await supabase.rpc('numero_chantier', { p_tiers: tiersId, p_site: siteId });
+  if (!r.error) return r.data as string;
+  if (r.error.code === 'PGRST202') {
+    return ok<string>(await supabase.rpc('prochain_numero', { p_type: 'chantier' }));
+  }
+  throw new Error(r.error.message);
+}
+
 export async function creerChantier(init: Partial<Chantier>): Promise<Chantier> {
-  const numero = ok<string>(await supabase.rpc('prochain_numero', { p_type: 'chantier' }));
+  const numero = await numeroNouveauChantier(init.tiers_id ?? null, init.site_id ?? null);
   // Copie de la liste au moment de la création, pas une référence : modifier
   // l'organisation plus tard ne doit ni décocher ni rouvrir un chantier en cours.
   const liste = await listerPrealables().catch(() => []);

@@ -32,7 +32,7 @@ Projet Supabase : `sryazbmnhgbtfjvyakgd`. Fonctions déployées : `ia` (passerel
 * Le coût d'un sous-traitant vit dans le prix d'achat de la ligne de devis ou dans `paiement_equipe`, jamais en dépense (SQL 12).
 * Le matériel d'un chantier passe par les achats, jamais par les dépenses (SQL 29). Les dépenses gardent carburant, péages, repas, véhicule, formation, certification, et le matériel d'atelier hors chantier.
 * Les photos de catalogue et les documents sont dans des seaux privés.
-* L'assistant IA lit avec les droits de la personne connectée (le navigateur rassemble le contexte, la RLS filtre). Il n'écrit que des notes et des brouillons de devis — jamais envoyés, signés ni facturés.
+* L'assistant IA lit avec les droits de la personne connectée (le navigateur rassemble le contexte, la RLS filtre). Il écrit des notes et des brouillons de devis, et il peut **proposer** des actions prises dans une liste fermée (émettre et envoyer une facture, relancer, répondre à un client, planifier…). Rien ne part, ne se signe ni ne se facture sans un clic de la direction sur l'action exacte : le mail tel qu'il partira, la facture telle qu'elle sera émise. C'est Batinium qui exécute, pas l'IA, et chaque action est tracée (décision D1 du 3 novembre, `PLAN-AUTOMATISATION-ERGONOMIE.md`).
 * La clé d'API du modèle est partagée (secret Supabase) avec un plafond mensuel par entreprise (`parametres.quota_ia_mensuel`). Une entreprise peut poser la sienne. Une clé posée ne se relit jamais (`connecteur_secret`, sans politique SELECT).
 * Les jetons de webhook sont en base (`connecteur.jeton`), uniques, et désignent l'entreprise à eux seuls.
 * L'anonymisation RGPD est conditionnelle : complète sans facture émise, partielle sinon (nom et adresse sont des mentions obligatoires de la facture, dix ans).
@@ -42,3 +42,5 @@ Projet Supabase : `sryazbmnhgbtfjvyakgd`. Fonctions déployées : `ia` (passerel
 ## Cahier des charges en cours
 
 `PLAN-FLUIDES-COMMANDES-PLANNING.md` (douze modules, sept phases, points légaux) et `PROMPT-PHASE-1.md` à `PROMPT-PHASE-5.md` (un prompt par phase, à exécuter dans l'ordre 1 → 2 → 3 ; 4 et 5 indépendantes). La phase 1 est codée et livrée, à intégrer avec `INTEGRATION-PHASE-1.md`.
+
+`PLAN-AUTOMATISATION-ERGONOMIE.md` (27 octobre, réponses de Fabrice du 3 novembre) : la chaîne après signature, la file « À décider », le point du matin à la voix, les vues terrain, les accès, la reprise de Tolteck et l'ergonomie — modules M à W, étapes 0 à 6. Il s'appuie sur le précédent et le complète.

@@ -65,11 +65,12 @@ Dossier `sql/`, numérotés, rejouables, autovérifiés. **Exécutés sur Supaba
 01 à 31.** **À exécuter : 34 à 38** (appels rattachés à leur client,
 arrivées sur chantier, demandes faites sur place, contrats d'entretien, mode
 démonstration — tous indépendants de 32 et 33), **puis 39** (vidéos de
-500 Mo) une fois Supabase passé à l'offre Pro. **À ne pas exécuter encore :
+500 Mo) une fois Supabase passé à l'offre Pro, **et 40** (numéro de chantier
+« rue et client », indépendant de tous les autres). **À ne pas exécuter encore :
 32 et 33** (phase 1) — la revue du 13 octobre y a trouvé des défauts
 bloquants, voir `REVUE-PHASE-1.md`.
 
-Depuis le 13 octobre, `sql/` contient 01 à 03 et 12 à 39, plus
+Depuis le 13 octobre, `sql/` contient 01 à 03 et 12 à 40, plus
 `essai_achats.sql` : les scripts 12 à 31 ont été reconstitués depuis la
 conversation où ils avaient été livrés, et tous (01 à 33) ont tourné sans
 erreur, vérifications comprises, sur une base Postgres 16 locale où les
@@ -109,6 +110,7 @@ tiennent entre eux.
 | **37** | **Contrats d'entretien : `contrat_entretien` (réservé à ceux qui voient les prix), échéance qui avance seule à la visite terminée, `membre.preavis_entretien_jours` réglé par chacun** — à exécuter |
 | **38** | **Mode démonstration, temporaire : `membre.apercu_role`, `mon_role()` qui le lit, `entrer_apercu()` / `quitter_apercu()`** — à exécuter, à retirer avant la revente (procédure dans son en-tête) |
 | **39** | **Vidéos : le seau `documents` passe de 50 à 500 Mo par fichier** — à exécuter avec l'offre Pro, après avoir relevé la limite du projet (voir §5) |
+| **40** | **Numéro de chantier « Rue des Lilas – Freguia », puis « 2 » pour le deuxième chantier du même client : `numero_chantier()`, réglage `parametres.numerotation_chantier` (ou le compteur)** — à exécuter ; avant, les chantiers suivent le compteur |
 
 Fichiers d'essai : `essai_achats.sql` (jeu de factures fournisseurs, se
 retire par `delete from achat where numero like 'ESSAI-%'`).
@@ -183,7 +185,9 @@ réglables, impression.
 
 ### Terrain
 
-**Chantiers** — fiche avec préalables cochables (jeux par métier,
+**Chantiers** — numérotés par la rue et le client (« Rue des Lilas –
+Freguia », puis « 2 » pour un deuxième chantier du même client ; SQL 40,
+réglable dans Entreprise), fiche avec préalables cochables (jeux par métier,
 modifiables), section « À commander et faire livrer » (approvisionnement),
 interventions, journal avec photos et vidéos, PV de réception, et depuis la
 phase 1 les sections **Machines** et **Fiches fluides**.
@@ -437,10 +441,11 @@ facture d'acompte et commande de matériel réglables dans Entreprise, d'un
 clic par défaut ; factures des sous-traitants par e-mail ou dans Batinium, au
 choix ; quinze brouillons Tolteck à reprendre.
 
-**Avant de coder** : la décision D1 — elle change une règle de `CLAUDE.md`
-(l'IA proposerait des actions, validées d'un clic). La bascule depuis
-Tolteck sera automatisée (module W) : elle a lieu quand Fabrice dépose ses
-données. Rien n'est codé.
+**Décision D1 prise le 3 novembre** : l'IA propose des actions, la direction
+les valide d'un clic, Batinium les exécute — la règle de `CLAUDE.md` est
+réécrite. La bascule depuis Tolteck sera automatisée (module W) : elle a lieu
+quand Fabrice dépose ses données. Du plan, seul le numéro de chantier est
+codé (SQL 40).
 
 **Ergonomie** (§ 10 du plan) : état des lieux du 3 novembre en captures et
 mesures — accueil sans décision, menu de vingt entrées, pages fleuves

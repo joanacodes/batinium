@@ -232,7 +232,8 @@ passées en automatique (décision D2) se font seules et le disent.
    l'acompte, selon le réglage ; carte « Commander » par défaut, envoi tout
    seul si Fabrice l'a réglé ainsi. Un bon par fournisseur, tiré de la liste
    « À commander », avec en référence **le nom de la rue et le nom du client**
-   (réponse de Fabrice ; le plan précédent prévoyait `BC-AAAAMMJJ-NNNN`).
+   — c'est désormais le numéro du chantier (SQL 40) ; le plan précédent
+   prévoyait `BC-AAAAMMJJ-NNNN`.
    C'est le module G (phase 4), qui s'y branche.
 4. **Affectation** : carte « Planifier la pose » — à l'étape 3, une date et une
    personne à choisir ; avec le planning (étape 6), un créneau proposé : équipe
@@ -543,15 +544,13 @@ client reçoit sa confirmation ; le planning propose les créneaux de pose.
 
 ## 6. Décisions à prendre avant de coder
 
-**D1 — L'IA propose, Fabrice valide.** Fabrice veut que « le logiciel mette
-tout à jour ». La règle actuelle (`CLAUDE.md`) : l'assistant n'écrit que des
-notes et des brouillons de devis, jamais envoyés, signés ni facturés.
-Proposition : l'IA *propose* des actions prises dans une liste fermée ; rien
-ne part, ne se signe ni ne se facture sans un clic de la direction sur
-l'action exacte — le mail tel qu'il partira, la facture telle qu'elle sera
-émise ; Batinium exécute, pas l'IA ; tout est tracé. C'est le principe même de
-son artifact (« Envoyer ce mail vaut votre accord »). À valider, puis à écrire
-dans `CLAUDE.md`.
+**D1 — L'IA propose, Fabrice valide : tranché le 3 novembre.** Fabrice veut
+que « le logiciel mette tout à jour ». L'IA *propose* des actions prises dans
+une liste fermée ; rien ne part, ne se signe ni ne se facture sans un clic de
+la direction sur l'action exacte — le mail tel qu'il partira, la facture
+telle qu'elle sera émise ; Batinium exécute, pas l'IA ; tout est tracé. C'est
+le principe même de son artifact (« Envoyer ce mail vaut votre accord »). La
+règle de `CLAUDE.md` est réécrite en ce sens.
 
 **D2 — Un clic ou automatique : tranché.** Les relances partent toujours à
 la main ; la facture d'acompte et la commande de matériel se règlent dans
@@ -667,10 +666,10 @@ carte attendra.
 | Bons de commande (question ancienne) | Référence : nom de la rue + nom du client | N3 |
 | Accès (demande nouvelle) | Régler qui a accès à quoi, sur ordinateur, par menus déroulants | V |
 | Date de bascule Tolteck | « Fais en sorte que ça soit automatisé » : il fournit un document, ou un accès s'il y a une API | W |
+| Numéro de chantier (demande nouvelle) | La rue du chantier et le nom du client, plus un numéro si la même personne a plusieurs chantiers | Codé le 3 novembre (SQL 40) |
 
-**Plus aucune question ouverte** pour Fabrice sur ce plan. Reste la
-décision D1, à prendre par l'équipe qui développe : elle change une règle de
-`CLAUDE.md`.
+**Plus aucune question ouverte** pour Fabrice sur ce plan, et la décision D1
+est prise.
 
 Deux questions du 27 octobre n'ont pas été posées : « Cerfa » dans la chaîne
 (fiche fluides, formulaire de TVA, ou les deux) et « plusieurs TVA dans le

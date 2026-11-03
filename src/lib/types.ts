@@ -800,6 +800,9 @@ export interface Parametres {
   prefixe_chantier: string;
   prefixe_facture: string;
   numero_avec_mois: boolean;
+  /** « Rue des Lilas – Freguia » ou le compteur (SQL 40). Absent tant que le
+   *  SQL 40 n'a pas tourné : l'écran le dit au lieu d'enregistrer en vain. */
+  numerotation_chantier?: 'rue_client' | 'compteur';
   /** Multiplicateur brut → coût employeur, pour le prévisionnel seulement.
    *  Environ 1,42 au régime général. C'est une estimation, jamais un bulletin. */
   coefficient_charges: number;
