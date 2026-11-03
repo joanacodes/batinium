@@ -676,3 +676,70 @@ Deux questions du 27 octobre n'ont pas été posées : « Cerfa » dans la chaî
 (fiche fluides, formulaire de TVA, ou les deux) et « plusieurs TVA dans le
 même devis », déjà possible dans Batinium. S'ajoutent les questions ouvertes
 de `ETAT-DU-PROJET.md` (§ 5).
+
+---
+
+## 10. Ergonomie — l'état des lieux du 3 novembre, et la direction
+
+Captures de seize écrans de la direction (ordinateur 1280 px, téléphone
+390 px) et de la vue technicien, avec quelques mesures. Les données d'essai
+sont minimes — un ou deux éléments par liste —, les vraies pages seront plus
+longues.
+
+| Écran | Ordinateur | Téléphone | Ce qui frappe |
+|---|---|---|---|
+| Accueil | 1 écran, aucune action principale | 2,5 écrans ; le premier n'est fait que de compteurs | Des listes à lire, pas des décisions |
+| Fiche chantier | 1,9 écran, 10 sections, 13 boutons | 4 écrans | Tout sur une seule page |
+| Entreprise (réglages) | 4,3 écrans, 49 champs, 780 mots | 8,7 écrans | Un seul formulaire géant |
+| Éditeur de devis | 13 boutons, 18 champs | 3,5 écrans ; le premier n'est fait que de boutons | Quatre boutons de même poids en tête |
+| Demandes | 11 boutons | Chaque carte commence par deux cases à cocher | L'essentiel (qui, quoi, rappeler) n'est pas en tête |
+| Menu | 20 entrées pour la direction, 10 pour le terrain | Les mêmes, dans un tiroir | Trop pour « ne pas réfléchir » |
+| Vue technicien | — | Ma journée est le meilleur écran | Mais il voit « Prononcer la réception », « Nouveau chantier », la planification |
+
+**Les constats**
+
+1. L'accueil montre des listes et des compteurs, pas des décisions.
+2. Le menu est long, et le même pour tout le monde à quelques entrées près.
+3. Pas d'action principale claire : souvent quatre boutons de même poids en
+   tête d'écran, qui prennent tout le premier écran d'un téléphone.
+4. Beaucoup de texte d'explication à l'écran (« La case Répondu est le cœur du
+   suivi… », « Ce brouillon n'a pas de numéro… ») : utile à lire une fois,
+   du bruit ensuite.
+5. Des pages fleuves : la fiche chantier (dix sections) et Entreprise
+   (quarante-neuf champs) tiennent chacune sur une seule page.
+6. Le terrain voit des boutons de la direction. La base refusera peut-être
+   l'action ; l'écran ne devrait pas la proposer.
+7. Sur téléphone, les cartes tirées des tableaux ne commencent pas par
+   l'essentiel.
+8. Texte de base à 14 px, libellés et informations secondaires à 12 px en
+   gris : lisible, mais petit pour un usage rapide.
+
+**La direction** — celle de l'artifact de Fabrice, appliquée partout :
+
+1. **Un accueil qui dit quoi faire** : la file « À décider » (module M), le
+   rouge d'abord.
+2. **Un menu court, par rôle.** Direction : Aujourd'hui, Demandes, Devis,
+   Chantiers, Factures, Clients, et « Plus » pour le reste (Rentabilité,
+   Dépenses, Achats, Catalogue, Équipe, Réglages…). Terrain : Ma journée, Mes
+   chantiers, Mes documents, et Mes heures si l'accès est ouvert. Sur
+   téléphone, une **barre d'onglets en bas**, sous le pouce, à la place du
+   tiroir.
+3. **Une seule action principale par écran**, toujours au même endroit : en
+   haut à droite sur ordinateur, en bas de l'écran sur téléphone. Les autres
+   dans un menu « ⋯ ». Plus de grand bouton « Retour » : le fil d'Ariane et le
+   geste retour suffisent.
+4. **Moins de texte** : les explications passent dans une bulle « ? » ; à
+   l'écran ne reste que ce qui change une décision.
+5. **Des pages découpées en onglets** : la fiche chantier (L'essentiel,
+   Interventions, Matériel, Photos et journal, Documents) ; Entreprise
+   (Société, Devis et factures, Numérotation, Automatisation, Accès, Équipe).
+6. **Chacun ne voit que ses boutons** : les écrans suivent les accès du module
+   V ; la base reste le vrai garde-fou (règle 4).
+7. **Des cartes qui commencent par l'essentiel** : qui, quoi, combien, puis
+   l'action ; le détail se déplie.
+8. **Plus grand** : corps de texte et libellés agrandis, cibles de 44 px
+   partout, pas seulement au doigt.
+
+**Prochaine étape** : des maquettes des écrans clés — l'accueil « À décider »,
+la fiche chantier, Ma journée, le devis fait sur place —, sur téléphone et
+sur ordinateur, à valider avec Fabrice avant de coder l'étape 1.

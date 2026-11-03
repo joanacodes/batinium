@@ -442,6 +442,12 @@ choix ; quinze brouillons Tolteck à reprendre.
 Tolteck sera automatisée (module W) : elle a lieu quand Fabrice dépose ses
 données. Rien n'est codé.
 
+**Ergonomie** (§ 10 du plan) : état des lieux du 3 novembre en captures et
+mesures — accueil sans décision, menu de vingt entrées, pages fleuves
+(Entreprise : 8,7 écrans de téléphone), boutons de la direction visibles par
+le terrain — et huit principes pour la suite. Prochaine étape : maquettes des
+écrans clés, à valider avec Fabrice.
+
 ### Phase 1 — intégrée, revue le 13 octobre, à corriger avant toute exécution
 
 Le registre des machines et la fiche Cerfa 15497*04 sont dans le dépôt : la
