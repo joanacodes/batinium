@@ -466,9 +466,12 @@ mesures — accueil sans décision, menu de vingt entrées, pages fleuves
 le terrain — et huit principes pour la suite. Les maquettes des écrans clés
 sont faites (3 novembre, d'après l'artifact de Fabrice et huit captures de
 référence) : https://claude.ai/artifact/HT5FFCUr3Zt3PHDKSTUTQ5. Le soir
-même, toute l'application y est : 78 écrans sur sept pages, téléphone et
-ordinateur, cliquables d'un écran à l'autre, avec les questions qu'ils
-posent (§ 10 du plan). À valider avec Fabrice avant de coder l'étape 1.
+même, toute l'application y est : 112 écrans sur dix pages (78 d'abord,
+puis la deuxième vague : analyses, météo, machines et fluides, site public,
+messages, signature à distance, fournisseurs, mon compte, le chef de
+chantier), téléphone et ordinateur, cliquables d'un écran à l'autre, avec
+les questions qu'ils posent (§ 10 du plan). À valider avec Fabrice avant de
+coder l'étape 1.
 
 ### Phase 1 — intégrée, revue le 13 octobre, à corriger avant toute exécution
 

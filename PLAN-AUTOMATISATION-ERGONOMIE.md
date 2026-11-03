@@ -827,6 +827,18 @@ du terrain, dessinés sur téléphone ; les liens mènent de l'un à l'autre.
 Rien de ce que les pages font aujourd'hui n'est perdu : ce qui n'est pas
 en tête est replié, dans « ⋯ », un onglet ou une bulle « ? ».
 
+**Deuxième vague** (même lien, publiée le 3 novembre au soir) : 112 écrans
+sur dix pages. Trois pages nouvelles : Machines et fluides (fiche machine,
+carnet des fluides), Les analyses (vue d'ensemble, ventes et devis,
+trésorerie, activité et équipe) et Le site et les messages (le site public,
+et les quinze messages de validation, de confirmation et d'erreur, chacun
+dans l'écran où il apparaît). Ailleurs : la météo des chantiers et d'un
+chantier, l'ordre d'intervention et l'Aujourd'hui du chef de chantier dans
+Les chantiers ; fournisseurs et demandes de prix dans L'argent ; Mon compte
+dans Pour tout le monde ; la signature du devis par le client à distance
+dans La vente ; la météo vue du terrain et le rapport d'intervention dans Le
+terrain. Les menus de tous les écrans mènent à ces nouvelles entrées.
+
 **Les questions que les maquettes posent à Fabrice** :
 
 1. Sur téléphone, Devis, Factures et Clients passent sous « Plus » ; la
