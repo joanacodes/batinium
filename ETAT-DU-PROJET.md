@@ -470,8 +470,14 @@ même, toute l'application y est : 112 écrans sur dix pages (78 d'abord,
 puis la deuxième vague : analyses, météo, machines et fluides, site public,
 messages, signature à distance, fournisseurs, mon compte, le chef de
 chantier), téléphone et ordinateur, cliquables d'un écran à l'autre, avec
-les questions qu'ils posent (§ 10 du plan). À valider avec Fabrice avant de
-coder l'étape 1.
+les questions qu'ils posent (§ 10 du plan). Les trois besoins de la page
+« Devis à valider » de Fabrice y sont dessinés (versions, pièces jointes
+d'office, consigne à l'assistant), et les données sont alignées d'un écran à
+l'autre. Restent, laissés exprès parce qu'ils toucheraient beaucoup d'écrans :
+le catalogue propre à l'éditeur, qui diffère de l'écran Catalogue (l'aligner
+changerait le total de Bernard), les références de la fiche de pose et des
+demandes (EXT-25, GRP-25, LIA-5), les dates de Dubois et la gravité de
+l'alerte URSSAF de Nicolas. À valider avec Fabrice avant de coder l'étape 1.
 
 ### Phase 1 — intégrée, revue le 13 octobre, à corriger avant toute exécution
 
