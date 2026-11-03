@@ -295,7 +295,7 @@ leur prix, leur unité et leur TVA ; les autres restent à zéro.
 | `INSTALLATION.md` | Installation des services extérieurs (stockage, IA, Allô, Google, hébergement) |
 | `GOOGLE.md` | Configuration OAuth Google, pas à pas |
 | `PLAN-FLUIDES-COMMANDES-PLANNING.md` | Cahier des charges des douze modules à venir, sept phases, points légaux, questions à Fabrice |
-| `PLAN-AUTOMATISATION-ERGONOMIE.md` | Plan du 27 octobre : la chaîne après signature, la file « À décider », le point du matin à la voix, les vues terrain — modules M à U, étapes 0 à 6, décisions et questions à Fabrice |
+| `PLAN-AUTOMATISATION-ERGONOMIE.md` | Plan du 27 octobre : la chaîne après signature, la file « À décider », le point du matin à la voix, les vues terrain, qui a accès à quoi — modules M à V, étapes 0 à 6, décisions, réponses de Fabrice du 3 novembre |
 | `PROMPT-PHASE-1.md` … `PROMPT-PHASE-5.md` | Un prompt détaillé par phase — **pas encore dans le dépôt**, à y ajouter |
 | `INTEGRATION-PHASE-1.md` | Les dix modifications de fichiers existants pour brancher la phase 1 — **appliquées** le 13 octobre |
 | `REVUE-PHASE-1.md` | Revue de la phase 1 du 13 octobre : défauts confirmés, correctifs, décisions à prendre avec Fabrice |
@@ -427,9 +427,19 @@ l'écran, tâches planifiées, signature traitée en base), neuf modules (M à U
 et six étapes, en commençant par la file « À décider » et les droits des
 sous-traitants.
 
-**Avant de coder** : les décisions D1 à D7 du plan — la première change une
-règle de `CLAUDE.md` (l'IA proposerait des actions, validées d'un clic) —
-et les douze questions à Fabrice. Rien n'est codé.
+**Réponses de Fabrice du 3 novembre** (§ 9 du plan) : ses techniciens font
+le devis sur place sans voir de prix, et le gérant le valide ; l'échéancier
+reste au choix ; les sous-traitants voient tout comme un salarié sur leurs
+chantiers, sans prix ni heures (heures en option) ; il veut régler lui-même
+qui a accès à quoi (nouveau module V) ; les relances partent à la main, avec
+un rappel hebdomadaire ; acompte par virement seulement ; quinze brouillons
+Tolteck à reprendre.
+
+**Avant de coder** : la décision D1 — elle change une règle de `CLAUDE.md`
+(l'IA proposerait des actions, validées d'un clic) — et les cinq questions
+encore ouvertes (facture d'acompte seule ou validée, moment de la commande,
+date de bascule Tolteck, canal et signature des relances, factures des
+sous-traitants). Rien n'est codé.
 
 ### Phase 1 — intégrée, revue le 13 octobre, à corriger avant toute exécution
 
@@ -539,7 +549,8 @@ prérequis et dit de s'arrêter s'ils manquent.
    - **numérotation des devis** : ses numéros repartent à 0001 chaque mois
      (DEV-2026/09-0001), Batinium compte à l'année ;
    - **bons de commande** : BC-20260930-0063 reprend le numéro du devis
-     DEV-2026/09-0063. Est-ce la règle ?
+     DEV-2026/09-0063. Est-ce la règle ? — *Réponse du 3 novembre : la
+     référence, c'est le nom de la rue et le nom du client.*
    - **Allô** : son forfait (l'historique des appels n'est visible que
      30 jours sur le forfait Solo) et une clé d'API avec le droit
      `CONVERSATIONS_READ` pour importer l'historique ;

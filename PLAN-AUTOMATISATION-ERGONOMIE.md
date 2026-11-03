@@ -3,11 +3,13 @@
 Établi le 27 octobre 2026, à partir de : les deux pages de notes de Fabrice
 (« Batinium Pilotech Notes »), ses deux messages du matin sur l'assistant à
 la voix, et la capture de son artifact « Devis à valider » du 15 octobre, où
-il relit ses brouillons Tolteck avec Claude.
+il relit ses brouillons Tolteck avec Claude. Mis à jour le 3 novembre avec
+ses réponses (§ 9) et une demande nouvelle : régler lui-même qui a accès à
+quoi (module V).
 
 Ce document complète `PLAN-FLUIDES-COMMANDES-PLANNING.md` (modules A à L,
 phases 1 à 7) sans le remplacer : ses modules sont repris là où la chaîne en
-a besoin, et les nouveaux continuent la lettre (M à U). Comme lui, il dit quoi
+a besoin, et les nouveaux continuent la lettre (M à V). Comme lui, il dit quoi
 construire, sur quoi ça s'appuie et ce que la loi impose ; il ne contient pas
 de code. Un prompt par étape s'écrira une fois les décisions du § 6 prises.
 
@@ -56,6 +58,11 @@ bosser et mettre dans les cases tout seul. »
 - *vue devis des techniciens* ;
 - *sous-traitants* : « simplifier la vue, pour pas qu'il se monte la tête en
   voyant les prix. Il doit juste savoir ce qui doit être installé et où. »
+- *les accès* (message du 3 novembre) : une version sous-traitant, sur
+  téléphone comme sur ordinateur, « comme l'interface technicien » puisqu'ils
+  font aussi du SAV, et « le moyen de gérer les accès, qui a accès à quoi »,
+  réglé sur l'ordinateur par menus déroulants — « la demande de documents,
+  l'endroit où il doit poser ses documents ».
 
 **Et encore** : plusieurs TVA dans le même devis ; le suivi client.
 
@@ -81,8 +88,9 @@ SAV / nouveau devis, contrats d'entretien — sont codées depuis le 13 octobre
 | Plusieurs TVA dans le même devis | **Déjà là** : un taux par ligne, ventilation par taux sur le devis, l'acompte et la facture | Rien — à montrer à Fabrice |
 | Fiche d'intervention | Intervention SAV ; Ma journée : adresse, itinéraire, accès, fiche de pose, journal, arrivée et départ | L'ordre d'intervention du module F (phase 3) : code d'accès à part, historique complet, technicien prévenu, version imprimable ; et l'heure |
 | Emplacements (chambres) | Un texte libre « emplacement » sur la ligne de devis et sur la machine | Pas de pièces par site (nom, surface) ; rien ne relie une pièce à ses lignes, ses machines, sa puissance |
-| Vue devis des techniciens | Fiche de pose : le devis sans aucun prix, garanti par la base (`v_fiche_pose`) | À préciser (question 1) |
+| Vue devis des techniciens | Fiche de pose : le devis sans aucun prix, garanti par la base (`v_fiche_pose`) | Faire le devis sur place, sans prix, et l'envoyer au gérant (Q2) ; la base laisse aujourd'hui un technicien lire les prix du catalogue |
 | Sous-traitants | Un rôle à part, sans prix ; le mode démonstration montre son écran | La base leur ouvre tous les clients, demandes et chantiers ; leur menu est celui d'un technicien |
+| Qui a accès à quoi | Quatre rôles fixes ; les prix réservés à la direction et aux chefs de chantier (`voit_les_prix()`) | Rien ne se règle : les droits sont écrits dans les scripts SQL |
 | Suivi client | Fiche client et son historique ; devis à relancer (date, alerte) ; « Devis envoyés sans réponse » sur l'accueil ; Boîte mail en lecture | Relances écrites et envoyées à la main ; pas de relance de paiement ; pas de rappel d'entretien au client |
 | Réunion du matin | La cloche : toutes les alertes, par gravité ; l'accueil | Une liste de liens, pas de décisions : chaque alerte oblige à ouvrir un écran et à savoir quoi y faire |
 | Assistant à la voix | Bulle sur toutes les pages, qui lit avec les droits de la personne ; dictée du navigateur ; notes et brouillons de devis | Aucune autre action (facture, relance, réponse) ; ne sait pas ce qui est à l'écran (« celui-là ») |
@@ -214,20 +222,25 @@ passées en automatique (décision D2) se font seules et le disent.
 1. **Signature** (F4) : chantier, machines, matériel à commander,
    interventions à planifier, échéancier, facture d'acompte en brouillon — ce
    que fait déjà `signerDevis`, côté serveur, une seule fois.
-2. **Acompte** : carte « Émettre et envoyer la facture d'acompte », avec le
-   moyen de paiement (décision D7). Hors établissement, aucun paiement avant
+2. **Acompte** : carte « Émettre et envoyer la facture d'acompte », avec l'IBAN
+   et la référence à rappeler (virement seulement, D7). Hors établissement, aucun paiement avant
    sept jours : la carte n'arrive qu'à la date déjà calculée
    (`encaissement_autorise_le`).
 3. **Commande de matériel** : à la réception de l'acompte, ou dès la signature
-   (question 5), carte « Commander » : un bon par fournisseur, tiré de la liste
-   « À commander ». C'est le module G (phase 4), qui s'y branche.
+   (sans réponse, § 9), carte « Commander » : un bon par fournisseur, tiré de
+   la liste « À commander », avec en référence **le nom de la rue et le nom du
+   client** (réponse de Fabrice ; le plan précédent prévoyait
+   `BC-AAAAMMJJ-NNNN`). C'est le module G (phase 4), qui s'y branche.
 4. **Affectation** : carte « Planifier la pose » — à l'étape 3, une date et une
    personne à choisir ; avec le planning (étape 6), un créneau proposé : équipe
    libre, matériel livré avant, délai de rétractation passé (§ 7). Puis le
    technicien prévenu (F1, F5) et le client informé de la date.
 5. **Matériel livré** (achats rapprochés, livraison cochée) : si l'échéancier
-   prévoit un appel à la livraison — sa « réception du paiement de
-   matériaux », question 2 —, carte « Émettre la facture d'échéance ».
+   du devis prévoit un paiement à la livraison — sa « réception du paiement de
+   matériaux » —, carte « Émettre la facture d'échéance ». L'échéancier reste
+   au choix de l'utilisateur, devis par devis (réponse de Fabrice) :
+   Entreprise en propose des modèles (30 / 70, 30 / 40 / 30…), dont une étape
+   « à la livraison du matériel ».
 6. **Fin de chantier** : PV de réception (existe), fiches fluides (phase 1),
    attestation de TVA si la règle l'exige encore (§ 7), et la **facture de
    solde préparée** : total du devis moins les acomptes et situations émis,
@@ -236,8 +249,8 @@ passées en automatique (décision D2) se font seules et le disent.
    le déduire, mais aucun écran ne lui passe la somme, qui vaut donc zéro.
    Carte « Émettre et envoyer le solde », PV et Cerfa joints.
 7. **Relances** : échéance dépassée, carte « Relancer », texte prêt, avec un
-   ton pour le particulier et un autre pour le professionnel (§ 7). Délais
-   réglables.
+   ton pour le particulier et un autre pour le professionnel (§ 7). Elles
+   partent à la main (module U).
 8. **Après** : à la mise en service, proposer le contrat d'entretien
    (SQL 37).
 
@@ -260,8 +273,10 @@ signature déclenche F4. La page ne montre que ce devis : une fonction
 
 ### Module P — Le point du matin, à la voix
 
-1. **Avant 7 h** (F3) : la file M se calcule, et l'IA en écrit le résumé en
-   cinq lignes (« 3 urgences : … »), prêt à l'ouverture.
+1. **À l'heure que chacun choisit** (F3) : la file M se calcule, et l'IA en
+   écrit le résumé en cinq lignes (« 3 urgences : … »), prêt à l'ouverture,
+   sur l'ordinateur comme sur le téléphone (réponse de Fabrice : toutes les
+   options).
 2. **L'écran** : le résumé en tête, la file dessous, le rouge d'abord, et un
    gros micro.
 3. **La conversation** : Fabrice parle ; chaque phrase devient une réponse ou
@@ -283,8 +298,8 @@ signature déclenche F4. La page ne montre que ce devis : une fonction
    Batinium les exécute — son code, avec les droits de Fabrice, pas l'IA — et
    écrit le compte rendu : « 6 faites, 1 bloquée : e-mail du client
    manquant ».
-7. **Lecture à voix haute** du résumé et des réponses par le navigateur, sans
-   coût : pour la voiture.
+7. **Lecture à voix haute**, au choix de chacun, du résumé et des réponses par
+   le navigateur, sans coût : pour la voiture.
 
 **En base** : `action_proposee` — type, cible, contenu exact, proposée par
 (IA ou règle), statut (proposée, validée, exécutée, échouée, annulée), qui a
@@ -296,19 +311,39 @@ ranger ou reporter une carte, préparer un brouillon de devis.
 
 ### Module Q — Les vues du terrain
 
-**Q1. Le sous-traitant — d'abord pour la sécurité.** Aujourd'hui la base lui
-ouvre tous les clients, toutes les demandes et tous les chantiers ; seuls les
-prix lui sont cachés. Il ne doit recevoir — par la RLS, pas par l'écran
-(règle 4) — que ses interventions, leur chantier et leur site (adresse,
-accès, contact sur place), la fiche de pose de ces chantiers (déjà sans prix)
-et leur journal. Plus de liste de clients, de demandes, de devis ni de
-factures. Son menu : Ma journée, Mes chantiers, Mes documents. Le mode
-démonstration (SQL 38) permet de l'éprouver avec ses vrais droits.
+**Q1. Le sous-traitant.** Il fait aussi du SAV : son écran est celui du
+technicien, sur téléphone comme sur ordinateur. Sur ses chantiers, il voit
+tout ce que voit un salarié — adresse, code d'accès, contact sur place,
+photos, plans, fiche de pose, journal — sans aucun prix (règle 8). Une
+différence, par défaut : il ne déclare pas d'heures, puisqu'il travaille au
+projet et non à l'heure ; une option, sous-traitant par sous-traitant, les lui
+ouvre. Il reçoit les demandes de documents (vigilance) et sait où les déposer.
+Son menu : Ma journée, Mes chantiers, Mes documents, et Mes heures si
+l'option est ouverte.
 
-**Q2. La vue devis du technicien.** La fiche de pose enrichie : par pièce
-(module R), ce qui va où, quantités, références, notes du devis destinées à
-la pose, photos de la visite. Sans prix d'achat ni marge ; les prix de vente
-selon la réponse de Fabrice (question 1).
+Aujourd'hui, la base lui ouvre tous les clients, toutes les demandes et tous
+les chantiers ; seuls les prix lui sont cachés. Il ne doit recevoir — par la
+RLS, pas par l'écran (règle 4) — que ses interventions, leur chantier et leur
+site. C'est la première application du module V ; le mode démonstration
+(SQL 38) permet de l'éprouver avec ses vrais droits.
+
+**Q2. Le devis fait sur place, sans prix.** Réponse de Fabrice : les
+techniciens font le devis sur place, sans voir aucun prix ; il part chez le
+gérant, qui voit les prix, ajuste et l'envoie. Sur place, le technicien relève
+les pièces (module R), choisit appareils et accessoires dans un catalogue sans
+prix, dicte ce qu'il faut, prend les photos. En validant, un brouillon arrive
+dans la file du gérant (« Devis à valider », module M) : les prix, la TVA et
+la marge s'y posent en base, depuis le catalogue, et ne redescendent jamais
+vers le technicien (règle 4).
+
+Deux trous à boucher pour cela : la base laisse aujourd'hui un technicien lire
+le catalogue avec ses prix (`produit`, SQL 01) — il faut une vue du catalogue
+sans prix, comme `v_fiche_pose` pour les devis ; et le devis dicté rassemble
+le catalogue, prix compris, dans le navigateur — sa version terrain ne doit
+voir que les références.
+
+Une fois le devis signé, le technicien le retrouve en fiche de pose, pièce par
+pièce, toujours sans prix.
 
 **Q3. La fiche d'intervention** (« tel jour, telle heure, tel endroit ») :
 c'est l'ordre d'intervention du module F (phase 3) — code d'accès à part,
@@ -322,14 +357,16 @@ Ses notes et son artifact raisonnent par pièce : « chambre des enfants »,
 « salon de 51,8 m² », « option chambre d'amis ». Aujourd'hui, une pièce n'est
 qu'un texte libre (`emplacement`) sur la ligne de devis et sur la machine.
 
-- Par site, des **pièces** : nom, surface, étage, ancien équipement.
+- Par site, des **pièces** : nom, surface, étage, orientation, ancien
+  équipement (réponse de Fabrice : « oui, tout »).
 - La ligne de devis, la machine, la fiche de pose et la fiche fluides
   pointent la pièce au lieu de la recopier (règle 3).
 - La fiche de pose et la vue devis se lisent pièce par pièce ; le devis peut
   s'imprimer par pièce, options comprises.
 - La puissance posée dans une pièce se rapproche de sa surface (module S).
-- Les pièces se saisissent à la visite, dictées (« salon, 51,8 m² »), ou se
-  tirent du devis dicté.
+- Les pièces se saisissent à la visite, par le technicien qui fait le devis
+  sur place (Q2) : dictées (« salon, 51,8 m², plein sud »), ou tirées du devis
+  dicté.
 
 Les `emplacement` existants restent lisibles ; les nouvelles lignes pointent
 une pièce.
@@ -364,10 +401,40 @@ puis le rappel la veille (F3).
 - La fiche client se lit d'un seul fil : appels, e-mails, devis, factures,
   interventions, notes, photos. L'essentiel existe ; il manque les mails
   envoyés et reçus.
-- Les relances deviennent des cartes, texte prêt : devis sans réponse (J+7,
-  J+14, puis « abandonné ? »), paiements, documents de vigilance des
-  sous-traitants, entretien annuel à proposer au client (SQL 37).
-- Chaque type de relance peut passer en automatique (D2).
+- Les relances deviennent des cartes, texte prêt : devis sans réponse,
+  paiements, documents de vigilance des sous-traitants, entretien annuel à
+  proposer au client (SQL 37).
+- **Elles partent à la main**, jamais seules (réponse de Fabrice) : le gérant
+  envoie la relance tout de suite, ou en programme l'envoi à une date et une
+  heure (F3).
+- **Un rappel au gérant une fois par semaine** : la liste des relances à
+  faire, jour et heure réglables, dans la file et par e-mail.
+- Reste à savoir : e-mail ou SMS, et signées de qui (§ 9).
+
+### Module V — Qui a accès à quoi
+
+Demande du 3 novembre : « qu'on puisse avoir le moyen de gérer les accès —
+qui a accès à quoi — […] un vrai menu déroulant, sur l'ordinateur […] : le
+sous-traitant a accès à ça, la demande de documents, l'endroit où il doit
+poser ses documents ».
+
+- **Un écran Équipe → Accès**, sur ordinateur : pour chaque rôle — et pour une
+  personne, si elle fait exception —, une ligne par partie de Batinium (Ma
+  journée, chantiers, journal et photos, heures, documents, clients,
+  demandes, devis, factures, achats…) et un menu déroulant : aucun accès,
+  lecture, lecture et écriture.
+- **C'est la base qui applique ces réglages** (règle 4) : ils sont en base, et
+  les politiques RLS les lisent par une fonction, comme elles lisent
+  `voit_les_prix()` aujourd'hui. Un réglage qui ne changerait que le menu ne
+  protégerait rien.
+- **Des garde-fous que nul réglage ne lève** : aucun prix sur un écran de
+  terrain (règle 8) ; un sous-traitant ne voit que ses chantiers ; la
+  direction garde tout.
+- **Les valeurs par défaut** sont celles des réponses de Fabrice : le
+  sous-traitant comme un salarié sur ses chantiers, sans heures, avec ses
+  documents à déposer (Q1).
+- Le mode démonstration (SQL 38) vérifie un réglage avec les vrais droits du
+  rôle.
 
 ---
 
@@ -381,13 +448,13 @@ Pennylane, Dropbox) gardent leur place.
 une fois Supabase passé en Pro. Corriger la phase 1 (`REVUE-PHASE-1.md`),
 puis exécuter 32 et 33. Configurer Google avec l'autorisation longue
 (`GOOGLE.md`) : l'étape 2 en dépend. Décider de la bascule de Tolteck vers
-Batinium pour les devis (D3) et importer les brouillons en cours.
+Batinium pour les devis (D3) et importer les quinze brouillons en cours.
 
-**Étape 1 — La file « À décider » et les droits des sous-traitants** (M, S par
-règles, Q1, première version de P). Sans nouvelle infrastructure.
+**Étape 1 — La file « À décider », les accès et les sous-traitants** (M, S
+par règles, V, Q1, première version de P). Sans nouvelle infrastructure.
 *Fabrice voit* : en ouvrant Batinium, ce qu'il a à décider, le rouge
-d'abord, de gros boutons et des compteurs ; les sous-traitants ne voient plus
-que leurs chantiers.
+d'abord, de gros boutons et des compteurs ; il règle depuis l'ordinateur qui a
+accès à quoi ; les sous-traitants ne voient plus que leurs chantiers.
 
 **Étape 2 — Les fondations et la signature à distance** (F1 à F4, O).
 *Fabrice voit* : « Envoyer » envoie pour de vrai, mail exact et PDF joint ;
@@ -405,9 +472,10 @@ clic chacune, ou aucun pour celles qu'il a passées en automatique.
 *Fabrice voit* : il parle, Batinium propose, il valide, tout se fait.
 
 **Étape 5 — Le terrain** (Q2, Q3 — c'est la phase 3 —, R, S par l'IA, F5).
-*Fabrice voit* : l'ordre d'intervention complet, avec l'heure, sur le
-téléphone du technicien ; le devis pièce par pièce ; des points à vérifier
-plus fins.
+*Fabrice voit* : ses techniciens font le devis sur place, sans prix, et il le
+reçoit à valider ; l'ordre d'intervention complet, avec l'heure, sur leur
+téléphone ; des points à vérifier plus fins. Le devis fait sur place (Q2, R)
+peut passer plus tôt : il ne dépend que de la file (étape 1).
 
 **Étape 6 — Rendez-vous et planning** (T, et la phase 5 : planning d'équipe,
 module J).
@@ -428,14 +496,16 @@ l'action exacte — le mail tel qu'il partira, la facture telle qu'elle sera
 son artifact (« Envoyer ce mail vaut votre accord »). À valider, puis à écrire
 dans `CLAUDE.md`.
 
-**D2 — Un clic ou automatique, étape par étape.** Recommandation : un
-clic par défaut ; dans Entreprise, un interrupteur « automatique » par type
-— relance de devis, relance de paiement, envoi de l'acompte, commande — à
+**D2 — Un clic ou automatique, étape par étape.** Tranché pour les
+relances : toujours à la main, envoi programmable (§ 9). Restent l'envoi de la
+facture d'acompte et la commande de matériel. Recommandation : un clic par
+défaut ; dans Entreprise, un interrupteur « automatique » pour ces deux-là, à
 allumer quand il a confiance. Jamais d'automatique avant les dates légales
 (§ 7).
 
-**D3 — Les devis se font dans Batinium.** Quand Fabrice quitte-t-il Tolteck ?
-Sans cette bascule, rien de ce plan ne se déclenche pour ses devis.
+**D3 — Les devis se font dans Batinium.** Quinze brouillons Tolteck sont à
+reprendre (import CSV) ; la date de bascule reste à fixer. Sans cette
+bascule, rien de ce plan ne se déclenche pour ses devis.
 
 **D4 — Le canal d'envoi** : son Gmail (recommandé pour Pilotech) ou un
 service d'envoi au domaine de l'entreprise (indispensable à la revente).
@@ -446,8 +516,9 @@ service d'envoi au domaine de l'entreprise (indispensable à la revente).
 **D6 — La signature à distance** : signature électronique simple faite dans
 Batinium, ou prestataire (Yousign, par exemple), payant et plus probant.
 
-**D7 — Le paiement de l'acompte** : virement (RIB, référence, QR code), ou
-lien de paiement par carte, avec des frais à chaque paiement.
+**D7 — Le paiement de l'acompte** : tranché, virement seulement pour
+l'instant — l'IBAN et la référence à rappeler sur la facture. Le paiement par
+carte attendra.
 
 ---
 
@@ -522,33 +593,32 @@ lien de paiement par carte, avec des frais à chaque paiement.
 
 ---
 
-## 9. Questions à poser à Fabrice
+## 9. Questions à Fabrice — ses réponses du 3 novembre
 
-1. **Vue devis des techniciens** : le devis sans aucun prix (comme la fiche de
-   pose), avec les prix de vente, ou pour qu'ils fassent eux-mêmes des devis
-   sur place ?
-2. **« Réception du paiement de matériaux »** : un appel de fonds à la
-   livraison du matériel ? Son échéancier habituel (30 / 70 ? 30 / 40 / 30 ?) ?
-3. **« Cerfa » dans la chaîne** : la fiche fluides, le formulaire de TVA, ou
-   les deux ?
-4. **La facture d'acompte** : émise et envoyée seule (après sept jours hors
-   établissement), ou préparée puis validée d'un clic avant de partir ?
-5. **La commande de matériel** : dès la signature, ou à la réception de
+| Question | Sa réponse | Dans le plan |
+|---|---|---|
+| Vue devis des techniciens | Sans prix. Ils font le devis sur place ; il part chez le gérant, qui voit les prix, puis l'envoie | Q2 |
+| Paiement à la livraison du matériel, échéancier habituel | « Je ne sais pas, laisse l'utilisateur décider » | N5 : échéancier au choix, avec des modèles |
+| Tolteck | Quinze brouillons à reprendre | D3, étape 0 |
+| Point du matin : heure, appareil, lecture à voix haute | Toutes ces options | P |
+| Sous-traitants : ce qu'ils voient, heures, factures | Tout comme les salariés, sauf les déclarations d'heures : ils travaillent au projet. Les heures en option | Q1, V |
+| Emplacements des chantiers | Oui, tout : surface, étage, orientation, ancien équipement | R |
+| Relances | À la main, envoi programmable, et un rappel au gérant une fois par semaine | U, D2 |
+| Paiement en ligne de l'acompte | IBAN seulement pour l'instant | D7 |
+| Bons de commande (question ancienne) | Référence : nom de la rue + nom du client | N3 |
+| Accès (demande nouvelle) | Régler qui a accès à quoi, sur ordinateur, par menus déroulants | V |
+
+**Restent à poser** :
+
+1. **La facture d'acompte** : elle part toute seule après la signature, ou il
+   la valide d'un clic avant qu'elle parte ?
+2. **La commande de matériel** : dès la signature, ou à la réception de
    l'acompte ?
-6. **Tolteck** : quand bascule-t-il ? Combien de brouillons en cours à
-   reprendre ?
-7. **Le point du matin** : à quelle heure, sur quel appareil (bureau,
-   téléphone en voiture), lu à voix haute ou non ?
-8. **Les sous-traitants** : que doivent-ils voir — adresse, code d'accès,
-   contact sur place, photos, plans ? Déclarent-ils leurs heures, leurs
-   factures ?
-9. **« Emplacements des chantiers (chambres… »** : la note est coupée. Quoi
-   d'autre : surface, étage, orientation, ancien équipement ?
-10. **Les relances** : à combien de jours, par e-mail ou par SMS, signées de
-    qui ?
-11. **Plusieurs TVA dans le même devis** : c'est déjà possible dans Batinium.
-    Qu'est-ce qui coinçait ?
-12. **Le paiement en ligne de l'acompte** : le souhaite-t-il, avec les frais ?
+3. **Tolteck** : à quelle date bascule-t-il ?
+4. **Les relances** : par e-mail ou par SMS, et signées de qui ?
+5. **Les sous-traitants** : leurs factures passent-elles par Batinium ?
 
-S'ajoutent aux questions ouvertes de `ETAT-DU-PROJET.md` (§ 5), toujours sans
-réponse.
+Deux questions du 27 octobre n'ont pas été posées : « Cerfa » dans la chaîne
+(fiche fluides, formulaire de TVA, ou les deux) et « plusieurs TVA dans le
+même devis », déjà possible dans Batinium. S'ajoutent les questions ouvertes
+de `ETAT-DU-PROJET.md` (§ 5).
