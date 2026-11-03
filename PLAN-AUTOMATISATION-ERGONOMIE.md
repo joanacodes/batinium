@@ -447,6 +447,15 @@ modifier » avant « brouillon validé », et « abandonné ». Le temps de la
 bascule depuis Tolteck (module W), un onglet « Anciens brouillons » range
 les brouillons repris, avec leur lien vers Tolteck.
 
+Les trois sont dessinés dans les maquettes (3 novembre au soir), sur
+l'exemple de Bernard en deux versions (« L'essentiel », 4 920,00 € ; « Le
+confort », 5 915,50 €) : Devis (versions groupées, consigne et version
+corrigée, statuts, « Sans suite », « Anciens brouillons »), l'éditeur
+(versions, feuille d'envoi avec comparatif, pièces d'office et copie), la
+signature du client (le choix de la version) et Entreprise (pièces jointes
+d'office, copie, texte type du mail). Les questions qu'ils posent sont au
+§ 10 (25 à 29).
+
 ### Module T — La prise de rendez-vous
 
 La première étape de sa chaîne, et les « rendez-vous » prévus avec la phase 5.
@@ -913,6 +922,30 @@ Celles de la deuxième vague :
     qu'une fois tout livré ? Le témoignage de Fabrice, le tarif ?
 24. Mon compte : chacun change-t-il son nom, ou seulement son téléphone et
     sa photo ? La dictée en portugais ou en espagnol, traduite en français ?
+
+Celles des trois besoins de sa page « Devis à valider », une fois dessinés :
+
+25. Le brouillon validé va-t-il dans « Brouillons », dans un onglet
+    « Validés » à part, ou devient-il une carte « À décider » d'Aujourd'hui ?
+    « Anciens brouillons » disparaît-il une fois la reprise de Tolteck
+    finie ? « Sans suite » lui va-t-il pour réunir refusés, expirés,
+    abandonnés et non retenues ?
+26. La consigne : une pour tout le projet, ou une par version ? La version
+    corrigée remplace le brouillon sous le même numéro (ce n'est pas une
+    nouvelle version du projet) : d'accord ? « À modifier » sans consigne,
+    comme simple marque, sert-il ?
+27. Les versions : une nouvelle version est-elle cochée d'office pour
+    l'envoi ? Une version jamais envoyée passe-t-elle « non retenue » quand
+    une autre est signée ? Le nom d'une version est-il obligatoire (il
+    figure dans le comparatif) ?
+28. À la signature : aucune version présélectionnée, pas même la moins
+    chère ? L'acompte de 30 % sur la version choisie, avec le même
+    échéancier pour toutes ? Une version modifiée après l'envoi ferme le
+    lien pour toutes (choix des maquettes), ou laisse-t-on signer celle qui
+    n'a pas changé ?
+29. Les pièces jointes d'office : la RC professionnelle s'y ajoute-t-elle ?
+    La copie de Fabrice est-elle visible du client ou cachée, et chacun
+    a-t-il la sienne ?
 
 **Prochaine étape** : valider les maquettes avec Fabrice, puis coder
 l'étape 1.
