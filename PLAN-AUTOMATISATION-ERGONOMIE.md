@@ -411,6 +411,42 @@ valider ».
 
 Fabrice peut valider malgré un point : il décide, la carte l'informe.
 
+**Ce que sa page « Devis à valider » ajoute** (lue le 3 novembre). Fabrice
+relit avec Claude, carte par carte, les brouillons préparés dans Tolteck. La
+file, les points à vérifier, la marge, « Déjà envoyé » et le mail exact avant
+l'envoi sont déjà prévus ici, au module M et en F1. Il reste trois besoins que
+Batinium n'a pas :
+
+1. **Plusieurs versions d'un même projet**, envoyées ensemble. Il propose
+   souvent deux ou trois solutions au même client (la plus économique, la
+   plus complète). Les devis d'un même projet se regroupent en versions
+   (« Version 1 », « Version 2 »). Le mail d'envoi laisse cocher celles qui
+   partent et écrit seul un comparatif : une ligne par version avec son
+   montant TTC, puis l'écart entre la moins chère et la plus complète. Le
+   client choisit sa version en signant en ligne (module O), et les autres
+   passent en « non retenue ». Les « variantes » de Batinium sont autre
+   chose : les déclinaisons d'un produit du catalogue.
+2. **Les pièces jointes d'office et la copie.** Le mail d'un devis emporte
+   le PDF et les pièces de l'entreprise choisies une fois pour toutes dans
+   Entreprise : décennale, attestation de capacité fluides, RIB. Ces pièces
+   sont déjà rangées dans Entreprise ; il manque de les joindre seules. Un
+   réglage « me mettre en copie des mails envoyés » s'y ajoute. Le texte type
+   (remerciement de la visite, accusé de réception demandé, signature) vient
+   d'Entreprise, jamais du code. L'attestation de TVA réduite à signer devient
+   la case de la signature en ligne, sous réserve de l'avis de l'expert-
+   comptable (§ 7).
+3. **La consigne en langage courant.** Sous chaque devis à valider, une case
+   de commentaire, à la voix ou au clavier : « pose à 4 800 €, enlever la
+   pompe de relevage ». L'assistant en prépare la version corrigée et montre
+   ce qui change, ligne par ligne. Fabrice la valide d'un clic, ou la
+   reprend (D1 : l'assistant écrit des brouillons de devis, il n'envoie
+   rien).
+
+Les statuts d'un devis s'enrichissent en conséquence : « à valider » et « à
+modifier » avant « brouillon validé », et « abandonné ». Le temps de la
+bascule depuis Tolteck (module W), un onglet « Anciens brouillons » range
+les brouillons repris, avec leur lien vers Tolteck.
+
 ### Module T — La prise de rendez-vous
 
 La première étape de sa chaîne, et les « rendez-vous » prévus avec la phase 5.
