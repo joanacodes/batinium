@@ -97,10 +97,11 @@ create policy terrain_relit on demande for select to authenticated
 -- 4. Vérification
 --
 -- Rejouée en rôle `authenticated`, avec un technicien s'il y en a un : c'est
--- lui qui notera ces demandes. Le compte essayé n'appartient qu'à une seule
--- entreprise : la session d'un compte inscrit dans deux entreprises n'en
--- retient qu'une, pas forcément celle de la ligne choisie, et l'essai
--- échouerait pour une raison étrangère à ce script.
+-- lui qui notera ces demandes. Le membre essayé a un compte, et un seul
+-- rattachement : une fiche sans compte (un salarié qui ne se connecte pas) ne
+-- donne aucune session, et la session d'un compte inscrit dans deux
+-- entreprises n'en retient qu'une, pas forcément celle de la ligne choisie.
+-- Dans les deux cas l'essai échouerait pour une raison étrangère à ce script.
 --
 -- Les politiques du terrain sont éprouvées seules : le temps de l'essai, les
 -- autres politiques permissives de `demande` sont retirées, à commencer par
@@ -121,13 +122,13 @@ declare
   v_echecs text[] := '{}';
 begin
   select m.* into v_membre from membre m
-   where m.actif
+   where m.actif and m.user_id is not null
      and not exists (select 1 from membre x
                       where x.user_id = m.user_id and x.actif and x.id <> m.id)
    order by (m.role in ('technicien', 'sous_traitant')) desc, m.created_at
    limit 1;
   if v_membre.id is null then
-    raise notice 'Aucun membre rattaché à une seule entreprise : vérification sautée.';
+    raise notice 'Aucun membre avec un compte, rattaché à une seule entreprise : vérification sautée.';
     return;
   end if;
   v_ent := v_membre.entreprise_id;

@@ -344,9 +344,12 @@ begin
     v_echecs := array_append(v_echecs, 'distance_metres donne des distances fausses');
   end if;
 
-  select m.* into v_membre from membre m where m.actif order by m.created_at limit 1;
+  -- Un membre qui a un compte : une fiche sans compte ne donne aucune session,
+  -- et l'essai de ses droits ne prouverait rien.
+  select m.* into v_membre from membre m
+   where m.actif and m.user_id is not null order by m.created_at limit 1;
   if v_membre.id is null then
-    raise notice 'Aucun membre : seule la distance a été vérifiée.';
+    raise notice 'Aucun membre avec un compte : seule la distance a été vérifiée.';
   else
     v_ent := v_membre.entreprise_id;
     begin
@@ -407,7 +410,7 @@ begin
                          'role', 'authenticated')::text, true)
         from membre m
        where m.entreprise_id = v_ent and m.actif and m.role in ('technicien', 'sous_traitant')
-         and m.id <> v_membre.id
+         and m.id <> v_membre.id and m.user_id is not null
        limit 1;
       if found then
         select count(*) into v_n from presence where id = v_p.id;

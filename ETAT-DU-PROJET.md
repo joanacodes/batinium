@@ -61,27 +61,26 @@ fluides sans jamais reculer (compteur par entreprise, type et année).
 
 ### Les scripts SQL
 
-Dossier `sql/`, numérotés, rejouables, autovérifiés. **Exécutés sur Supabase :
-01 à 31.** **À exécuter : 34 à 38** (appels rattachés à leur client,
-arrivées sur chantier, demandes faites sur place, contrats d'entretien, mode
-démonstration — tous indépendants de 32 et 33), **puis 39** (vidéos de
-500 Mo) une fois Supabase passé à l'offre Pro, **et 40** (numéro de chantier
-« rue et client », indépendant de tous les autres). **À ne pas exécuter encore :
-32 et 33** (phase 1) — la revue du 13 octobre y a trouvé des défauts
-bloquants, voir `REVUE-PHASE-1.md`.
+Dossier `sql/`, numérotés, rejouables, autovérifiés. **Sur Supabase, constaté
+le 4 novembre en lisant la base : 01 à 31, et aussi 32, 33 et 38.** 32 et 33
+y sont donc, malgré les défauts bloquants que la revue du 13 octobre y a
+trouvés (`REVUE-PHASE-1.md`) : les corrections de la revue devront s'appliquer
+à une base qui les porte déjà. **À exécuter : 34 à 37 et 40** (appels rattachés
+à leur client, arrivées sur chantier, demandes faites sur place, contrats
+d'entretien, numéro de chantier « rue et client » ; 38 se rejoue sans dommage),
+**puis 39** (vidéos de 500 Mo) une fois Supabase passé à l'offre Pro.
 
-Premier essai du paquet 34 → 38 + 40 sur Supabase, le 3 novembre : arrêté
-par la vérification du 36 (« new row violates row-level security policy for
-table demande »). L'éditeur passe le collage en une transaction : tout a été
-annulé, 34 et 35 compris. Reproduit le soir même sur une copie locale, de deux
-façons : un compte de terrain inscrit dans deux entreprises, ou une politique
-de `demande` resserrée par un script 04 à 11. La base vivante n'a pas pu être
-lue (le connecteur Supabase refuse), on ne sait donc pas laquelle des deux
-joue. Le 36 donne désormais au terrain ses propres droits sur ses demandes,
-et les vérifications de 36, 37, 38 et 40 n'essaient plus que des comptes
-rattachés à une seule entreprise. Si le 36 échoue encore, son message
-donne les politiques que la base porte sur `demande`. **À relancer d'un
-coup.**
+Premier essai du paquet 34 → 38 + 40, le 3 novembre : arrêté par la
+vérification du 36 (« new row violates row-level security policy for table
+demande »), et tout a été annulé, 34 et 35 compris. **La cause, lue dans la
+base le 4 novembre** : le technicien et le chef de chantier y sont des
+fiches sans compte (`membre.user_id` vide — la colonne accepte le vide sur
+Supabase, alors que le SQL 01 l'interdit). La vérification simulait la
+session du technicien : une session vide, que la RLS refuse à juste titre. Ni
+compte inscrit deux fois, ni politique resserrée : la politique de `demande`
+est celle du SQL 01. Les vérifications de 35 à 38 et 40 n'essaient plus que
+des membres qui ont un compte ; reproduit puis corrigé sur une copie locale
+dans le même état (32 et 33 compris).
 
 Depuis le 13 octobre, `sql/` contient 01 à 03 et 12 à 40, plus
 `essai_achats.sql` : les scripts 12 à 31 ont été reconstitués depuis la
@@ -700,10 +699,11 @@ Relevés le 13 octobre dans le code du lot 37, à traiter :
   l'entreprise. Un sous-traitant qui travaille pour deux clients de Batinium
   tomberait dans l'une ou l'autre. Il faut une entreprise courante choisie
   par la personne, et des fonctions qui la lisent, avant la revente.
-- **Les droits réels de la base vivante sont inconnus** tant que les
-  scripts 04 à 11 n'ont pas été relus : `npx supabase db dump --schema public`
-  les rend, politiques comprises. Le premier essai du 36 laisse penser que
-  `demande` y a été resserrée ou qu'un compte y est inscrit deux fois.
+- **Le schéma vivant s'écarte du dépôt** : `membre.user_id` y accepte le
+  vide (des fiches de salariés sans compte), 32 et 33 y sont passés. Les
+  scripts 04 à 11 restent à relire : `npx supabase db dump --schema public`
+  les rend, politiques comprises. Une fiche sans compte n'a aucun droit : tant
+  que le technicien n'a pas de compte, il ne peut pas se servir de Ma journée.
 
 ---
 

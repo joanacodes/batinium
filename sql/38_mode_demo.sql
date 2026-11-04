@@ -106,22 +106,22 @@ declare
   v_direction membre; v_poseur membre; v_n integer; v_refus boolean;
   v_echecs text[] := '{}';
 begin
-  -- Des comptes qui n'appartiennent qu'à une entreprise : la session d'un
-  -- compte inscrit dans deux entreprises n'en retient qu'une, pas forcément
-  -- celle de la ligne choisie, et l'essai échouerait pour une raison étrangère
-  -- à ce script.
+  -- Des membres qui ont un compte, rattachés à une seule entreprise : une
+  -- fiche sans compte ne donne aucune session, et la session d'un compte
+  -- inscrit dans deux entreprises n'en retient qu'une, pas forcément celle de
+  -- la ligne choisie. L'essai échouerait pour une raison étrangère à ce script.
   select m.* into v_direction from membre m
-   where m.actif and m.role = 'direction'
+   where m.actif and m.role = 'direction' and m.user_id is not null
      and not exists (select 1 from membre x
                       where x.user_id = m.user_id and x.actif and x.id <> m.id)
    order by m.created_at limit 1;
   if v_direction.id is null then
-    raise notice 'Aucun membre de direction rattaché à une seule entreprise : vérification sautée.';
+    raise notice 'Aucun membre de direction avec un compte, rattaché à une seule entreprise : vérification sautée.';
     return;
   end if;
   select m.* into v_poseur from membre m
    where m.actif and m.entreprise_id = v_direction.entreprise_id
-     and m.role in ('technicien', 'sous_traitant')
+     and m.role in ('technicien', 'sous_traitant') and m.user_id is not null
      and not exists (select 1 from membre x
                       where x.user_id = m.user_id and x.actif and x.id <> m.id)
    order by m.created_at limit 1;

@@ -207,11 +207,13 @@ begin
     return;
   end if;
   v_ent := v_direction.entreprise_id;
-  -- Un technicien qui n'appartient qu'à cette entreprise : la session d'un
-  -- compte inscrit dans deux entreprises n'en retient qu'une, pas forcément
-  -- celle-ci, et l'essai échouerait pour une raison étrangère à ce script.
+  -- Un technicien qui a un compte, rattaché à cette seule entreprise : une
+  -- fiche sans compte ne donne aucune session, et la session d'un compte
+  -- inscrit dans deux entreprises n'en retient qu'une, pas forcément
+  -- celle-ci. L'essai échouerait pour une raison étrangère à ce script.
   select m.* into v_poseur from membre m
    where m.actif and m.entreprise_id = v_ent and m.role in ('technicien', 'sous_traitant')
+     and m.user_id is not null
      and not exists (select 1 from membre x
                       where x.user_id = m.user_id and x.actif and x.id <> m.id)
    order by m.created_at limit 1;
