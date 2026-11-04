@@ -325,6 +325,14 @@ octet à celui de la fin du lot 37 ; `.env.local` n'y est pas et ne doit pas y
 
 ## 5. Où le travail s'est arrêté
 
+**Tout ce qui reste, en une liste à cocher** (4 novembre) :
+https://claude.ai/artifact/5oJ6mkzd1V8njwEEFtZ4kb — 126 lignes en neuf
+groupes (base Supabase, comptes, phase 1, décisions, questions pour Fabrice,
+connexions, sécurité et dette, plan, interface), dont 27 à faire avant
+l'interface. Chaque ligne a sa référence (A1, C7…) et dit qui s'en charge.
+Elle vit dans la base de la page (collection `taches`) : une ligne terminée
+s'y coche, par la page ou par Claude.
+
 ### Demandes de Fabrice du 13 octobre — codées, SQL à exécuter
 
 Quatre demandes du client, plus un mode démonstration :
