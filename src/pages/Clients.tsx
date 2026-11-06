@@ -6,6 +6,7 @@ import {
 } from '../lib/db';
 import type { Doublon, Site, Tiers } from '../lib/types';
 import ChampAdresse from '../components/ChampAdresse';
+import { useCreation } from '../lib/creation';
 
 const CATEGORIES: Record<Tiers['categorie'], string> = {
   prospect: 'Prospect', client: 'Client', fournisseur: 'Fournisseur', sous_traitant: 'Sous-traitant',
@@ -15,7 +16,7 @@ export default function PageClients() {
   const [clients, setClients] = useState<Tiers[]>([]);
   const [sites, setSites] = useState<Site[]>([]);
   const [erreur, setErreur] = useState<string | null>(null);
-  const [nouveau, setNouveau] = useState(false);
+  const [nouveau, setNouveau] = useCreation('client');
   const [filtre, setFiltre] = useState('');
   const [doublons, setDoublons] = useState<Doublon[]>([]);
   // Les devis et chantiers sont chargés ici plutôt que déduits ailleurs :
@@ -59,7 +60,7 @@ export default function PageClients() {
       {erreur && <div className="erreur">{erreur}</div>}
 
       {doublons.length > 0 && (
-        <div className="panneau" style={{ display: 'block', borderLeft: '3px solid #b8860b' }}>
+        <div className="panneau" style={{ display: 'block', borderLeft: '3px solid var(--attention)' }}>
           <h3 style={{ marginBottom: 6 }}>
             {doublons.length} doublon{doublons.length > 1 ? 's' : ''} probable{doublons.length > 1 ? 's' : ''}
           </h3>

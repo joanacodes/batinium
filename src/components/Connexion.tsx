@@ -107,7 +107,7 @@ export default function Connexion() {
 
         {erreur && <div className="erreur">{erreur}</div>}
         {message && (
-          <div className="erreur" style={{ borderColor: 'var(--vert)', color: 'var(--vert)', background: '#f1f7f3' }}>
+          <div className="erreur" style={{ borderColor: 'var(--vert)', color: 'var(--vert)', background: 'var(--ok-pale)' }}>
             {message}
           </div>
         )}

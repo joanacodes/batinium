@@ -134,7 +134,7 @@ export function MachinesChantier({ chantierId, siteId, onErreur }: {
                       {incoherente && (
                         <div style={{ marginTop: 4 }}>
                           <Bulle texte="Aucune facture fournisseur rapprochée ne porte ce produit sur ce chantier. Ce n’est pas bloquant : la plaque fait foi. Mais si l’appareil posé n’est pas celui du devis, c’est le moment de le voir.">
-                            <span className="jeton" style={{ color: '#b8860b', borderColor: '#b8860b' }}>
+                            <span className="jeton" style={{ color: 'var(--attention)', borderColor: 'var(--attention)' }}>
                               facture ≠ devis
                             </span>
                           </Bulle>
@@ -309,7 +309,7 @@ export function FormulaireMachine({ machine, cible, onFait, onErreur }: {
             {lecture === 'en_cours' ? 'Lecture…' : 'Lire la plaque'}
           </button>
           {lecture === 'faite' && (
-            <span className="statut" style={{ marginLeft: 8, color: '#b8860b' }}>
+            <span className="statut" style={{ marginLeft: 8, color: 'var(--attention)' }}>
               Proposé par l’IA, à relire avant d’enregistrer.
             </span>
           )}
@@ -392,7 +392,7 @@ export function FormulaireMachine({ machine, cible, onFait, onErreur }: {
         </div>
       </div>
 
-      {message && <p className="statut" style={{ color: '#b8860b' }}>{message}</p>}
+      {message && <p className="statut" style={{ color: 'var(--attention)' }}>{message}</p>}
 
       <div style={{ display: 'flex', gap: 8 }}>
         <button className="action" disabled={travail} onClick={() => void enregistrer()}>

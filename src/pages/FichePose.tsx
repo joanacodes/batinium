@@ -109,7 +109,7 @@ export default function PageFichePose({ chantierId }: { chantierId: string }) {
         </div>
 
         {site?.contraintes_acces && (
-          <div style={{ marginTop: 12, borderLeft: '3px solid #b8860b', paddingLeft: 10 }}>
+          <div style={{ marginTop: 12, borderLeft: '3px solid var(--attention)', paddingLeft: 10 }}>
             <span className="statut">Accès</span>
             <div>{site.contraintes_acces}</div>
           </div>
@@ -164,7 +164,7 @@ export default function PageFichePose({ chantierId }: { chantierId: string }) {
                             {l.designation}
                             {l.description && <div className="fiche">{l.description}</div>}
                             {l.consigne_pose && (
-                              <div style={{ marginTop: 4, borderLeft: '3px solid #b8860b',
+                              <div style={{ marginTop: 4, borderLeft: '3px solid var(--attention)',
                                             paddingLeft: 8, fontSize: 12 }}>
                                 <strong>Consigne de pose.</strong> {l.consigne_pose}
                               </div>

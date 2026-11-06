@@ -465,7 +465,7 @@ export default function PageAnalytique() {
                   const attendu = !!e.recu_le && e.recu_le > aujourdhui;
                   const retard = !e.recu_le && e.du_le && e.du_le < aujourdhui;
                   return (
-                    <tr key={e.id} style={retard ? { background: '#fdf3f2' } : undefined}>
+                    <tr key={e.id} style={retard ? { background: 'var(--alerte-pale)' } : undefined}>
                       <td>
                         {e.libelle}
                         {e.pourcentage != null && <span className="statut"> · {e.pourcentage} %</span>}

@@ -158,7 +158,7 @@ export default function SelecteurProduit({
                     <>
                       <tr key={p.id} className="cliquable"
                           style={
-                            dernier === p.id ? { background: '#eaf6ee' }
+                            dernier === p.id ? { background: 'var(--ok-pale)' }
                               : i === index ? { background: 'var(--bleu-pale)' } : undefined
                           }
                           onMouseEnter={() => setIndex(i)}
@@ -199,7 +199,7 @@ export default function SelecteurProduit({
                       {ouvert && v.map((x) => (
                         <tr key={x.id} className="cliquable"
                             style={{ background: dernier === `${p.id}:${x.id}`
-                              ? '#eaf6ee' : 'var(--papier)' }}
+                              ? 'var(--ok-pale)' : 'var(--papier)' }}
                             onClick={() => retenir(p, quantite, x)}>
                           <td />
                           <td className="ref">{x.reference ?? ''}</td>

@@ -1,62 +1,518 @@
-/* Batinium — bordereau technique.
-   Principe : les chiffres s'alignent, tout le reste s'efface.
-   Palette tirée du logo Pilotech : bleu technique sur papier froid. */
+/* Batinium — apparence.
+
+   Trois thèmes, choisis par la direction pour toute l'équipe : graphite et
+   citron (par défaut), cobalt, minuit. Chacun en clair et en sombre, au choix
+   de chaque personne. src/lib/apparence.ts pose les deux sur <html> :
+   data-theme="citron|cobalt|minuit" et data-ton="clair|sombre" — le mode
+   automatique y est déjà résolu d'après le téléphone ou l'ordinateur.
+
+   Une seule couleur par thème, la même sur tous les écrans. Elle dit « ceci
+   est choisi » ou « ceci attend », jamais une catégorie : les états se lisent
+   à la forme (plein, contour, gras, icône), pas à une deuxième couleur.
+
+   Les pages écrivent encore des couleurs en style en ligne avec les anciens
+   noms (--bleu, --vert, --alerte, --papier). Ils restent, rebranchés sur les
+   jetons du thème, plutôt que de réécrire trente pages pour un nom de
+   variable — et une page oubliée suit quand même le thème.
+
+   Le verre (flou d'arrière-plan) est réservé à ce qui flotte au-dessus du
+   contenu : barre du haut, barre d'onglets du téléphone, menus, volets,
+   modales, tuiles du bandeau. Sans flou derrière, une surface translucide
+   n'est qu'une surface délavée ; un navigateur qui ne sait pas flouter, ou une
+   personne qui a demandé moins de transparence, garde des surfaces pleines. */
+
+
+/* ===========================================================================
+   POLICES
+
+   Servies par Batinium, pas par Google : une police chargée depuis Google
+   Fonts transmet l'adresse IP de chaque visiteur à Google, ce que la CNIL et
+   les tribunaux européens reprochent aux sites qui le font sans
+   consentement. Fichiers et licences OFL dans public/polices. Le navigateur
+   ne télécharge que la police du thème affiché, et la tranche « latin-ext »
+   seulement si une page contient un caractère qui en a besoin.
+   =========================================================================== */
+
+@font-face {
+  font-family: 'Bricolage Grotesque'; font-style: normal; font-display: swap; font-weight: 200 800;
+  src: url('/polices/bricolage-grotesque-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Bricolage Grotesque'; font-style: normal; font-display: swap; font-weight: 200 800;
+  src: url('/polices/bricolage-grotesque-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Sora'; font-style: normal; font-display: swap; font-weight: 100 800;
+  src: url('/polices/sora-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Sora'; font-style: normal; font-display: swap; font-weight: 100 800;
+  src: url('/polices/sora-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Geist'; font-style: normal; font-display: swap; font-weight: 100 900;
+  src: url('/polices/geist-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Geist'; font-style: normal; font-display: swap; font-weight: 100 900;
+  src: url('/polices/geist-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Geist Mono'; font-style: normal; font-display: swap; font-weight: 100 900;
+  src: url('/polices/geist-mono-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Geist Mono'; font-style: normal; font-display: swap; font-weight: 100 900;
+  src: url('/polices/geist-mono-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+
+/* ===========================================================================
+   JETONS
+
+   Les sélecteurs portent sur [data-theme] et pas seulement sur :root : un
+   aperçu de thème (page Entreprise, section Apparence) pose data-theme sur
+   sa propre carte et se dessine avec les vrais jetons de l'autre thème, au
+   lieu d'une copie de ses couleurs qui finirait par diverger.
+
+   Chaque bloc sombre redéfinit toutes les couleurs : le bloc sombre du
+   citron, le plus général, s'applique aussi sous les deux autres thèmes, et
+   c'est leur propre bloc sombre, plus précis, qui doit tout recouvrir.
+   =========================================================================== */
 
 :root {
-  --encre:      #16202b;
-  --encre-pale: #5c6b7a;
-  --papier:     #f6f8fa;
-  --surface:    #ffffff;
-  --filet:      #dde3ea;
-  --bleu:       #1b6aa8;
-  --bleu-pale:  #eaf2f8;
-  --alerte:     #b4443a;
-  --vert:       #2f6f4f;
-
-  /* Le rail est le seul aplat foncé de l'application : il porte la marque et
-     sépare la navigation du travail. Tout ce qui s'y lit est donc clair sur
-     foncé. Le bleu du rail est celui de la palette assombri, parce que le bleu
-     de la palette sous du texte blanc tombait sous le contraste AA ; et
-     l'accent de l'entrée active est un bleu ciel, parce que --bleu posé sur
-     ce fond ne se verrait pas. */
-  --rail-fond:    #164e7e;
-  --rail-texte:   rgba(255, 255, 255, .85);
-  --rail-pale:    rgba(255, 255, 255, .66);
-  --rail-survol:  rgba(255, 255, 255, .08);
-  --rail-actif:   rgba(255, 255, 255, .15);
-  --rail-filet:   rgba(255, 255, 255, .16);
-  --rail-accent:  #8fc3ee;
-
   --pas: 8px;
-  --texte: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --rayon-xs: 6px;
+  --rayon-s: 10px;
+  --rayon-m: 14px;
+  --rayon-l: 20px;
+  --rayon-xl: 28px;
+  --flou: saturate(170%) blur(18px);
 }
+
+/* Graphite et citron, clair — aussi les valeurs d'avant le script : l'écran
+   de connexion s'affiche avant que le thème de l'entreprise soit connu. */
+:root, [data-theme='citron'] {
+  --texte: 'Bricolage Grotesque', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --chiffres: 'Bricolage Grotesque', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --taille: 15px;
+  --graisse-titre: 700;
+  --rayon-bouton: 14px;
+
+  --fond: #EEEFEC;
+  --surface: #FFFFFF;
+  --surface-2: #F5F6F3;
+  --encre: #161718;
+  --encre-2: #3D3F41;
+  --encre-pale: #5F6266;
+  --filet: #E1E2DE;
+  --filet-fort: #C5C8C1;
+
+  /* Le citron ne se lit pas sur du blanc (1,3:1) : il n'y est jamais écrit.
+     Sur les surfaces claires, c'est un olive tiré de lui qui porte les liens
+     et ce qui attend, et les boutons principaux sont graphite. */
+  --accent: #D6F24B;
+  --sur-accent: #161718;
+  --accent-texte: #4B5A08;
+  --accent-pale: #F2F7D6;
+  --action: #1A1B1D;
+  --sur-action: #FFFFFF;
+  --action-survol: #303235;
+
+  --bandeau: #1A1B1D;
+  --sur-bandeau: #FFFFFF;
+  --bandeau-pale: #A9ACAF;
+  --bandeau-tuile: rgba(255, 255, 255, .07);
+  --bandeau-filet: rgba(255, 255, 255, .12);
+  --bandeau-accent: #D6F24B;
+  --tuile-forte: #D6F24B;
+  --sur-tuile-forte: #161718;
+  --chiffre-tuile-forte: #161718;
+  --lueur: rgba(214, 242, 75, .24);
+
+  --rail-fond: #1A1B1D;
+  --rail-texte: #C4C6C8;
+  --rail-pale: #8E9194;
+  --rail-fort: #FFFFFF;
+  --rail-accent: #D6F24B;
+  --rail-actif: rgba(255, 255, 255, .09);
+  --rail-survol: rgba(255, 255, 255, .05);
+  --rail-filet: rgba(255, 255, 255, .08);
+
+  --onglets-fond: rgba(26, 27, 29, .86);
+  --onglets-plein: #1A1B1D;
+  --onglets-texte: #B4B7BA;
+  --onglets-actif: #D6F24B;
+  --onglets-filet: rgba(255, 255, 255, .08);
+
+  --attention-pale: #F2F3EF;
+  --ok-pale: #F2F3EF;
+
+  --verre: rgba(255, 255, 255, .72);
+  --verre-fort: rgba(255, 255, 255, .9);
+  --verre-bord: rgba(255, 255, 255, .7);
+  --ombre: 0 12px 36px rgba(22, 23, 24, .10), 0 2px 6px rgba(22, 23, 24, .05);
+  --ombre-forte: 0 28px 70px rgba(22, 23, 24, .22);
+  --voile: rgba(14, 15, 16, .34);
+}
+
+/* Graphite et citron, sombre. Sur fond sombre le citron se lit enfin : il
+   devient la couleur des liens et des boutons principaux. */
+[data-ton='sombre'], [data-theme='citron'][data-ton='sombre'] {
+  --fond: #0E0F10;
+  --surface: #17181A;
+  --surface-2: #1F2123;
+  --encre: #EDEEEA;
+  --encre-2: #C2C5BF;
+  --encre-pale: #8F938C;
+  --filet: #2A2C2E;
+  --filet-fort: #3E4144;
+
+  --accent: #D6F24B;
+  --sur-accent: #161718;
+  --accent-texte: #D6F24B;
+  --accent-pale: rgba(214, 242, 75, .12);
+  --action: #D6F24B;
+  --sur-action: #161718;
+  --action-survol: #E3F77D;
+
+  --bandeau: #1E1F22;
+  --sur-bandeau: #FFFFFF;
+  --bandeau-pale: #A9ACAF;
+  --bandeau-tuile: rgba(255, 255, 255, .05);
+  --bandeau-filet: rgba(255, 255, 255, .09);
+  --bandeau-accent: #D6F24B;
+  --tuile-forte: #D6F24B;
+  --sur-tuile-forte: #161718;
+  --chiffre-tuile-forte: #161718;
+  --lueur: rgba(214, 242, 75, .16);
+
+  --rail-fond: #121315;
+  --rail-texte: #BFC2BC;
+  --rail-pale: #8A8E88;
+  --rail-fort: #FFFFFF;
+  --rail-accent: #D6F24B;
+  --rail-actif: rgba(255, 255, 255, .07);
+  --rail-survol: rgba(255, 255, 255, .04);
+  --rail-filet: #232527;
+
+  --onglets-fond: rgba(23, 24, 26, .84);
+  --onglets-plein: #17181A;
+  --onglets-texte: #A9ACAF;
+  --onglets-actif: #D6F24B;
+  --onglets-filet: rgba(255, 255, 255, .08);
+
+  --attention-pale: #1F2123;
+  --ok-pale: #1F2123;
+
+  --verre: rgba(23, 24, 26, .66);
+  --verre-fort: rgba(23, 24, 26, .88);
+  --verre-bord: rgba(255, 255, 255, .08);
+  --ombre: 0 12px 36px rgba(0, 0, 0, .42);
+  --ombre-forte: 0 28px 70px rgba(0, 0, 0, .58);
+  --voile: rgba(0, 0, 0, .52);
+}
+
+/* Cobalt, clair. Le bandeau est l'accent lui-même : la tuile choisie y est
+   blanche, comme sur la maquette, puisqu'un bleu sur ce bleu ne se verrait pas. */
+[data-theme='cobalt'] {
+  --texte: 'Sora', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --chiffres: 'Sora', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --taille: 14.5px;
+  --graisse-titre: 600;
+  --rayon-bouton: 999px;
+
+  --fond: #F5F6FA;
+  --surface: #FFFFFF;
+  --surface-2: #F0F2F8;
+  --encre: #0D1026;
+  --encre-2: #3B3F57;
+  --encre-pale: #5F6480;
+  --filet: #E4E6EF;
+  --filet-fort: #C7CBDB;
+
+  --accent: #2B3FE0;
+  --sur-accent: #FFFFFF;
+  --accent-texte: #2B3FE0;
+  --accent-pale: #EEF0FD;
+  --action: #2B3FE0;
+  --sur-action: #FFFFFF;
+  --action-survol: #2335C4;
+
+  --bandeau: #2B3FE0;
+  --sur-bandeau: #FFFFFF;
+  --bandeau-pale: #D3D8FB;
+  --bandeau-tuile: rgba(255, 255, 255, .1);
+  --bandeau-filet: rgba(255, 255, 255, .32);
+  --bandeau-accent: #FFFFFF;
+  --tuile-forte: #FFFFFF;
+  --sur-tuile-forte: #0D1026;
+  --chiffre-tuile-forte: #2B3FE0;
+  --lueur: rgba(255, 255, 255, .2);
+
+  --rail-fond: #FFFFFF;
+  --rail-texte: #3B3F57;
+  --rail-pale: #5F6480;
+  --rail-fort: #0D1026;
+  --rail-accent: #2B3FE0;
+  --rail-actif: #EEF0FD;
+  --rail-survol: #F3F4F9;
+  --rail-filet: #E4E6EF;
+
+  --onglets-fond: rgba(255, 255, 255, .8);
+  --onglets-plein: #FFFFFF;
+  --onglets-texte: #5F6480;
+  --onglets-actif: #2B3FE0;
+  --onglets-filet: rgba(13, 16, 38, .08);
+
+  --attention-pale: #F0F2F8;
+  --ok-pale: #F0F2F8;
+
+  --verre: rgba(255, 255, 255, .72);
+  --verre-fort: rgba(255, 255, 255, .9);
+  --verre-bord: rgba(255, 255, 255, .7);
+  --ombre: 0 12px 36px rgba(13, 16, 38, .10), 0 2px 6px rgba(13, 16, 38, .05);
+  --ombre-forte: 0 28px 70px rgba(13, 16, 38, .22);
+  --voile: rgba(10, 12, 24, .34);
+}
+
+[data-theme='cobalt'][data-ton='sombre'] {
+  --fond: #0A0C18;
+  --surface: #131629;
+  --surface-2: #1A1E35;
+  --encre: #ECEEF8;
+  --encre-2: #BCC0D6;
+  --encre-pale: #8E93AD;
+  --filet: #252A44;
+  --filet-fort: #363C5C;
+
+  --accent: #3347F0;
+  --sur-accent: #FFFFFF;
+  --accent-texte: #9AA5FF;
+  --accent-pale: rgba(51, 71, 240, .2);
+  --action: #3347F0;
+  --sur-action: #FFFFFF;
+  --action-survol: #4558F5;
+
+  --bandeau: #2234C7;
+  --sur-bandeau: #FFFFFF;
+  --bandeau-pale: #CDD3FA;
+  --bandeau-tuile: rgba(255, 255, 255, .09);
+  --bandeau-filet: rgba(255, 255, 255, .22);
+  --bandeau-accent: #FFFFFF;
+  --tuile-forte: #FFFFFF;
+  --sur-tuile-forte: #0D1026;
+  --chiffre-tuile-forte: #2B3FE0;
+  --lueur: rgba(154, 165, 255, .2);
+
+  --rail-fond: #0F1222;
+  --rail-texte: #BCC0D6;
+  --rail-pale: #8E93AD;
+  --rail-fort: #FFFFFF;
+  --rail-accent: #9AA5FF;
+  --rail-actif: rgba(51, 71, 240, .22);
+  --rail-survol: rgba(255, 255, 255, .04);
+  --rail-filet: #252A44;
+
+  --onglets-fond: rgba(19, 22, 41, .82);
+  --onglets-plein: #131629;
+  --onglets-texte: #8E93AD;
+  --onglets-actif: #9AA5FF;
+  --onglets-filet: rgba(255, 255, 255, .08);
+
+  --attention-pale: #1A1E35;
+  --ok-pale: #1A1E35;
+
+  --verre: rgba(19, 22, 41, .66);
+  --verre-fort: rgba(19, 22, 41, .88);
+  --verre-bord: rgba(255, 255, 255, .08);
+  --ombre: 0 12px 36px rgba(0, 0, 0, .45);
+  --ombre-forte: 0 28px 70px rgba(0, 0, 0, .6);
+  --voile: rgba(0, 0, 0, .55);
+}
+
+/* Minuit, clair. Le bleu nuit est presque l'encre : écrit, il ne se
+   distinguerait pas du texte. Les liens et ce qui attend prennent donc un
+   bleu plus clair, tiré de lui. */
+[data-theme='minuit'] {
+  --texte: 'Geist', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --chiffres: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --taille: 15px;
+  --graisse-titre: 600;
+  --rayon-bouton: 12px;
+
+  --fond: #F3F4F6;
+  --surface: #FFFFFF;
+  --surface-2: #F1F3F6;
+  --encre: #0B1220;
+  --encre-2: #3A4253;
+  --encre-pale: #5E6675;
+  --filet: #E3E6EB;
+  --filet-fort: #C9CFD8;
+
+  --accent: #14213D;
+  --sur-accent: #FFFFFF;
+  --accent-texte: #2C4A8A;
+  --accent-pale: #EBEFF6;
+  --action: #14213D;
+  --sur-action: #FFFFFF;
+  --action-survol: #22335A;
+
+  --bandeau: #14213D;
+  --sur-bandeau: #FFFFFF;
+  --bandeau-pale: #B9C2D3;
+  --bandeau-tuile: rgba(255, 255, 255, .07);
+  --bandeau-filet: rgba(255, 255, 255, .12);
+  --bandeau-accent: #FFFFFF;
+  --tuile-forte: #FFFFFF;
+  --sur-tuile-forte: #0B1220;
+  --chiffre-tuile-forte: #14213D;
+  --lueur: rgba(157, 180, 230, .22);
+
+  --rail-fond: #14213D;
+  --rail-texte: #C3CCDD;
+  --rail-pale: #8C99B3;
+  --rail-fort: #FFFFFF;
+  --rail-accent: #9DB4E6;
+  --rail-actif: rgba(255, 255, 255, .1);
+  --rail-survol: rgba(255, 255, 255, .05);
+  --rail-filet: rgba(255, 255, 255, .1);
+
+  --onglets-fond: rgba(255, 255, 255, .8);
+  --onglets-plein: #FFFFFF;
+  --onglets-texte: #5E6675;
+  --onglets-actif: #14213D;
+  --onglets-filet: rgba(11, 18, 32, .08);
+
+  --attention-pale: #F1F3F6;
+  --ok-pale: #F1F3F6;
+
+  --verre: rgba(255, 255, 255, .72);
+  --verre-fort: rgba(255, 255, 255, .9);
+  --verre-bord: rgba(255, 255, 255, .7);
+  --ombre: 0 12px 36px rgba(11, 18, 32, .10), 0 2px 6px rgba(11, 18, 32, .05);
+  --ombre-forte: 0 28px 70px rgba(11, 18, 32, .22);
+  --voile: rgba(7, 11, 20, .36);
+}
+
+/* Minuit, sombre. Un bouton bleu nuit disparaîtrait sur ce fond : l'accent
+   s'éclaircit en blanc bleuté, et l'encre passe dessus. */
+[data-theme='minuit'][data-ton='sombre'] {
+  --fond: #070B14;
+  --surface: #0F1626;
+  --surface-2: #162036;
+  --encre: #E8EDF7;
+  --encre-2: #B5BFD3;
+  --encre-pale: #8893AB;
+  --filet: #1E2A42;
+  --filet-fort: #2E3B57;
+
+  --accent: #DCE5F7;
+  --sur-accent: #0B1220;
+  --accent-texte: #9DB4E6;
+  --accent-pale: rgba(157, 180, 230, .13);
+  --action: #DCE5F7;
+  --sur-action: #0B1220;
+  --action-survol: #FFFFFF;
+
+  --bandeau: #14213D;
+  --sur-bandeau: #FFFFFF;
+  --bandeau-pale: #B9C2D3;
+  --bandeau-tuile: rgba(255, 255, 255, .06);
+  --bandeau-filet: rgba(255, 255, 255, .1);
+  --bandeau-accent: #9DB4E6;
+  --tuile-forte: #DCE5F7;
+  --sur-tuile-forte: #0B1220;
+  --chiffre-tuile-forte: #14213D;
+  --lueur: rgba(157, 180, 230, .16);
+
+  --rail-fond: #0B1222;
+  --rail-texte: #B5BFD3;
+  --rail-pale: #8893AB;
+  --rail-fort: #FFFFFF;
+  --rail-accent: #9DB4E6;
+  --rail-actif: rgba(157, 180, 230, .12);
+  --rail-survol: rgba(255, 255, 255, .04);
+  --rail-filet: #1E2A42;
+
+  --onglets-fond: rgba(15, 22, 38, .82);
+  --onglets-plein: #0F1626;
+  --onglets-texte: #8893AB;
+  --onglets-actif: #9DB4E6;
+  --onglets-filet: rgba(255, 255, 255, .08);
+
+  --attention-pale: #162036;
+  --ok-pale: #162036;
+
+  --verre: rgba(15, 22, 38, .66);
+  --verre-fort: rgba(15, 22, 38, .88);
+  --verre-bord: rgba(255, 255, 255, .08);
+  --ombre: 0 12px 36px rgba(0, 0, 0, .45);
+  --ombre-forte: 0 28px 70px rgba(0, 0, 0, .6);
+  --voile: rgba(0, 0, 0, .55);
+}
+
+/* Les anciens noms, rebranchés. Redéclarés partout où un thème est posé : une
+   variable qui en cite une autre se calcule là où elle est déclarée, et un
+   aperçu de thème doit les recalculer avec ses propres jetons. */
+:root, [data-theme] {
+  --papier: var(--fond);
+  --bleu: var(--accent-texte);
+  --bleu-pale: var(--accent-pale);
+  --vert: var(--encre);
+  --alerte: var(--accent-texte);
+  --alerte-pale: var(--accent-pale);
+  --attention: var(--accent-texte);
+}
+
+
+/* ===========================================================================
+   SOCLE
+   =========================================================================== */
 
 * { box-sizing: border-box; }
 
 html, body, #root { height: 100%; }
 
+html { background: var(--fond); color-scheme: light; }
+html[data-ton='sombre'] { color-scheme: dark; }
+
 body {
   margin: 0;
   font-family: var(--texte);
-  font-size: 14px;
+  font-size: var(--taille);
   line-height: 1.5;
   color: var(--encre);
-  background: var(--papier);
+  background: var(--fond);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
+
+::selection { background: var(--accent); color: var(--sur-accent); }
 
 /* Tous les chiffres s'alignent en colonne. C'est la règle du projet. */
 .num, td.num, th.num, input[type='number'] {
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
+.num { font-family: var(--chiffres); }
 
-h1, h2, h3 { font-weight: 600; letter-spacing: -0.01em; margin: 0; }
-h1 { font-size: 20px; }
-h2 { font-size: 16px; }
-h3 { font-size: 14px; }
+h1, h2, h3 { font-weight: var(--graisse-titre); letter-spacing: -0.02em; margin: 0; line-height: 1.2; }
+h1 { font-size: 26px; letter-spacing: -0.03em; }
+h2 { font-size: 18px; }
+h3 { font-size: 15px; }
 
-a { color: var(--bleu); }
+a { color: var(--accent-texte); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+
 
 /* --- Ossature ------------------------------------------------------------- */
 
@@ -64,18 +520,19 @@ a { color: var(--bleu); }
 
 .barre {
   display: flex;
-  align-items: baseline;
-  gap: calc(var(--pas) * 3);
-  padding: calc(var(--pas) * 1.5) calc(var(--pas) * 3);
+  align-items: center;
+  gap: 12px;
+  min-height: 60px;
+  padding: 10px 24px;
   background: var(--surface);
   border-bottom: 1px solid var(--filet);
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 20;
 }
 
-.marque { font-weight: 600; font-size: 16px; letter-spacing: -0.02em; }
-.marque em { font-style: normal; color: var(--bleu); }
+.marque { font-weight: 700; font-size: 17px; letter-spacing: -0.03em; color: var(--encre); }
+.marque em { font-style: normal; color: var(--accent-texte); }
 
 .barre nav { display: flex; gap: calc(var(--pas) * 2); }
 .barre nav button {
@@ -83,123 +540,184 @@ a { color: var(--bleu); }
   font: inherit; color: var(--encre-pale);
   border-bottom: 2px solid transparent; padding-bottom: 2px;
 }
-.barre nav button[aria-current='true'] { color: var(--encre); border-bottom-color: var(--bleu); }
+.barre nav button[aria-current='true'] { color: var(--encre); border-bottom-color: var(--accent-texte); }
 .barre .pousse { margin-left: auto; }
 
-main { padding: calc(var(--pas) * 3); max-width: 1180px; width: 100%; margin: 0 auto; }
+main { padding: 28px 32px 48px; max-width: 1240px; width: 100%; margin: 0 auto; }
 
 .entete {
-  display: flex; align-items: baseline; justify-content: space-between;
-  margin-bottom: calc(var(--pas) * 2);
+  display: flex; align-items: baseline; justify-content: space-between; gap: 16px;
+  margin-bottom: 20px;
 }
 
 /* --- Tables --------------------------------------------------------------- */
 
-table { width: 100%; border-collapse: collapse; background: var(--surface); }
+/* Des bords arrondis sur un tableau demandent `separate` : en `collapse`, la
+   bordure appartient aux cellules et le coin reste carré. */
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: var(--surface);
+  border: 1px solid var(--filet);
+  border-radius: var(--rayon-l);
+}
 
 thead th {
   text-align: left;
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 600;
   color: var(--encre-pale);
-  padding: var(--pas) calc(var(--pas) * 1.5);
+  padding: 12px 14px;
   border-bottom: 1px solid var(--filet);
   white-space: nowrap;
 }
 
 tbody td {
-  padding: var(--pas) calc(var(--pas) * 1.5);
+  padding: 12px 14px;
   border-bottom: 1px solid var(--filet);
   vertical-align: top;
 }
+tbody tr:last-child td { border-bottom: 0; }
 
-tbody tr:hover { background: var(--bleu-pale); }
+/* Les coins de la première et de la dernière ligne suivent ceux du tableau :
+   sinon le survol d'une ligne dessine un angle droit dans un cadre arrondi. */
+thead tr:first-child th:first-child, table > tbody:first-child tr:first-child td:first-child { border-top-left-radius: calc(var(--rayon-l) - 1px); }
+thead tr:first-child th:last-child, table > tbody:first-child tr:first-child td:last-child { border-top-right-radius: calc(var(--rayon-l) - 1px); }
+tbody tr:last-child td:first-child { border-bottom-left-radius: calc(var(--rayon-l) - 1px); }
+tbody tr:last-child td:last-child { border-bottom-right-radius: calc(var(--rayon-l) - 1px); }
+
+tbody tr:hover { background: var(--surface-2); }
 tbody tr.cliquable { cursor: pointer; }
 
-.ref { font-size: 12px; color: var(--encre-pale); }
-.fiche { font-size: 12px; color: var(--encre-pale); white-space: pre-line; margin-top: 2px; }
+.ref { font-size: 12.5px; color: var(--encre-pale); }
+.fiche { font-size: 12.5px; color: var(--encre-pale); white-space: pre-line; margin-top: 2px; }
 
 /* --- Étiquettes de taux --------------------------------------------------- */
 
+/* Un taux de TVA est une catégorie, pas un état : il se distingue au fond et
+   au trait, pas à la couleur. Une panne, elle, attend : elle prend l'accent. */
 .taux {
   display: inline-block;
-  padding: 1px 6px;
-  border-radius: 2px;
+  padding: 1px 9px;
+  border-radius: 999px;
   font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
   font-variant-numeric: tabular-nums;
-  border: 1px solid var(--filet);
-  color: var(--encre-pale);
+  border: 1px solid var(--filet-fort);
+  color: var(--encre-2);
 }
-.taux[data-t='5.5'] { color: var(--vert); border-color: var(--vert); }
-.taux[data-t='10']  { color: var(--bleu); border-color: var(--bleu); }
+.taux[data-t='5.5'] { background: var(--surface-2); border-color: transparent; }
+.taux[data-t='10']  { border-color: var(--encre-2); color: var(--encre); }
 
 /* --- Contrôles ------------------------------------------------------------ */
 
 button.action {
   font: inherit;
-  padding: 6px 14px;
-  border: 1px solid var(--bleu);
-  background: var(--bleu);
-  color: #fff;
-  border-radius: 3px;
+  font-weight: 600;
+  line-height: 1.25;
+  min-height: 40px;
+  padding: 9px 18px;
+  border: 1px solid transparent;
+  background: var(--action);
+  color: var(--sur-action);
+  border-radius: var(--rayon-bouton);
   cursor: pointer;
+  transition: background-color .15s ease, border-color .15s ease, transform .08s ease;
 }
-button.action.discret { background: var(--surface); color: var(--bleu); }
-button.action:hover { filter: brightness(1.08); }
-button.action:disabled { opacity: 0.5; cursor: default; }
+button.action:hover { background: var(--action-survol); }
+button.action:active { transform: translateY(1px); }
+button.action.discret { background: var(--surface); color: var(--encre); border-color: var(--filet-fort); }
+button.action.discret:hover { background: var(--surface-2); border-color: var(--encre-pale); }
+button.action:disabled { opacity: .45; cursor: default; transform: none; }
 
 input, select, textarea {
   font: inherit;
-  padding: 6px 8px;
-  border: 1px solid var(--filet);
-  border-radius: 3px;
+  padding: 9px 12px;
+  border: 1px solid var(--filet-fort);
+  border-radius: var(--rayon-s);
   background: var(--surface);
   color: var(--encre);
   width: 100%;
+  transition: border-color .15s ease;
 }
+input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']):not([type='color']),
+select { min-height: 42px; }
+input:hover, select:hover, textarea:hover { border-color: var(--encre-pale); }
+input::placeholder, textarea::placeholder { color: var(--encre-pale); opacity: 1; }
+input[type='checkbox'], input[type='radio'] { accent-color: var(--accent-texte); }
 input:focus, select:focus, textarea:focus, button:focus-visible {
-  outline: 2px solid var(--bleu);
+  outline: 2px solid var(--accent-texte);
   outline-offset: 1px;
 }
+input:focus, select:focus, textarea:focus { border-color: var(--accent-texte); }
 
-label { display: block; font-size: 12px; color: var(--encre-pale); margin-bottom: 3px; }
+label { display: block; font-size: 12.5px; font-weight: 600; color: var(--encre-2); margin-bottom: 4px; }
 
 /* --- États ---------------------------------------------------------------- */
 
 .vide {
-  padding: calc(var(--pas) * 6) calc(var(--pas) * 3);
+  padding: 40px 24px;
   text-align: center;
   color: var(--encre-pale);
   background: var(--surface);
-  border: 1px dashed var(--filet);
+  border: 1px dashed var(--filet-fort);
+  border-radius: var(--rayon-l);
 }
 
+/* Le trait de gauche reste une bordure et non une ombre : des pages en
+   changent la couleur en style en ligne (un message de réussite, un
+   avertissement), et seule une bordure suit `borderColor`. */
 .erreur {
-  padding: var(--pas) calc(var(--pas) * 1.5);
-  border-left: 3px solid var(--alerte);
-  background: #fdf3f2;
-  color: var(--alerte);
-  margin-bottom: calc(var(--pas) * 2);
+  padding: 12px 16px;
+  border: 1px solid var(--filet);
+  border-left: 4px solid var(--alerte);
+  border-radius: var(--rayon-m);
+  background: var(--alerte-pale);
+  color: var(--encre);
+  margin-bottom: 16px;
 }
 
-.statut { font-size: 12px; color: var(--encre-pale); }
+.statut { font-size: 12.5px; color: var(--encre-pale); }
 
 /* --- Connexion ------------------------------------------------------------ */
 
+/* Le premier écran qu'on voit : le bandeau du thème, et la carte posée
+   dessus en verre. */
 .connexion {
+  position: relative;
   min-height: 100vh;
+  min-height: 100dvh;
   display: grid;
   place-items: center;
-  padding: calc(var(--pas) * 3);
+  padding: 24px;
+  background: var(--bandeau);
+  overflow: hidden;
+  isolation: isolate;
 }
-.connexion form {
-  width: 100%; max-width: 320px;
+.connexion::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  width: min(720px, 120vw);
+  aspect-ratio: 1;
+  right: -18%;
+  top: -22%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--lueur), transparent);
+}
+.connexion > form, .connexion > div {
+  width: 100%; max-width: 400px;
   background: var(--surface);
-  border: 1px solid var(--filet);
-  padding: calc(var(--pas) * 4);
+  border: 1px solid var(--verre-bord);
+  border-radius: var(--rayon-xl);
+  box-shadow: var(--ombre-forte);
+  padding: 32px;
   display: grid;
-  gap: calc(var(--pas) * 2);
+  gap: 16px;
 }
+.connexion .marque { font-size: 24px; }
 
 /* --- Impression : c'est le PDF ------------------------------------------- */
 
@@ -223,59 +741,97 @@ label { display: block; font-size: 12px; color: var(--encre-pale); margin-bottom
 .panneau {
   background: var(--surface);
   border: 1px solid var(--filet);
-  padding: 14px;
-  margin-bottom: 14px;
+  border-radius: var(--rayon-l);
+  padding: 18px;
+  margin-bottom: 16px;
   display: grid;
-  gap: 10px;
+  gap: 12px;
   align-items: end;
 }
 
 .pastille {
   display: inline-block;
   margin-left: 6px;
-  min-width: 17px;
-  padding: 0 5px;
-  border-radius: 9px;
-  background: var(--alerte);
-  color: #fff;
+  min-width: 19px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: var(--accent);
+  color: var(--sur-accent);
   font-size: 11px;
-  line-height: 17px;
+  font-weight: 700;
+  line-height: 19px;
   text-align: center;
   font-variant-numeric: tabular-nums;
 }
 
-.taux[data-u='panne']  { color: var(--alerte); border-color: var(--alerte); }
-.taux[data-u='saison'] { color: var(--bleu); border-color: var(--bleu); }
+.taux[data-u='panne']  { background: var(--accent); color: var(--sur-accent); border-color: transparent; }
+.taux[data-u='saison'] { border-color: var(--accent-texte); color: var(--accent-texte); }
 
-details.fiche summary { color: var(--bleu); }
+details.fiche summary { color: var(--accent-texte); }
 
-/* --- Devis imprimable ----------------------------------------------------- */
+/* --- Devis imprimable -----------------------------------------------------
+   Un document émis est du papier, quel que soit le thème : il se lit en
+   noir sur blanc à l'écran comme à l'impression, en mode sombre compris. Ses
+   jetons sont donc fixés ici, pour lui et tout ce qu'il contient. */
 
 .document {
+  --fond: #FFFFFF;
+  --surface: #FFFFFF;
+  --surface-2: #F4F5F2;
+  --encre: #161718;
+  --encre-2: #3D3F41;
+  --encre-pale: #5F6266;
+  --filet: #DCDDD9;
+  --filet-fort: #B9BBB5;
+  --papier: #F4F5F2;
+  --bleu: #161718;
+  --bleu-pale: #F4F5F2;
+  --vert: #161718;
+  --alerte: #161718;
+  --alerte-pale: #F4F5F2;
+  --attention: #161718;
+  --attention-pale: #F4F5F2;
+  color-scheme: light;
   max-width: 800px;
   margin: 0 auto;
   padding: 0 0 40px;
   color: var(--encre);
+  background: var(--surface);
+}
+.document table { border: 0; border-radius: 0; background: transparent; }
+.document thead th, .document tbody td { border-radius: 0 !important; }
+
+@media screen {
+  .document {
+    padding: 40px 44px 48px;
+    border: 1px solid var(--filet);
+    border-radius: 8px;
+    box-shadow: var(--ombre);
+    margin-bottom: 24px;
+  }
 }
 
 .doc-entete { display: flex; justify-content: space-between; gap: 30px; margin-bottom: 26px; }
 .doc-petit  { font-size: 12px; color: var(--encre-pale); line-height: 1.45; }
-.doc-client { background: var(--papier); border: 1px solid var(--filet); padding: 14px; min-width: 250px; }
+.doc-client { background: var(--papier); border: 1px solid var(--filet); padding: 14px; min-width: 250px; border-radius: 4px; }
 .doc-titre  { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
-.doc-encadre{ background: var(--papier); border: 1px solid var(--filet); padding: 10px 14px; font-size: 13px; }
+.doc-encadre{ background: var(--papier); border: 1px solid var(--filet); padding: 10px 14px; font-size: 13px; border-radius: 4px; }
 
-.doc-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+.doc-table { width: 100%; border-collapse: collapse; margin-top: 8px; border: 0; border-radius: 0; background: transparent; }
 .doc-table th {
   font-size: 11px; text-align: left; padding: 6px 8px;
   border-bottom: 1.5px solid var(--encre); color: var(--encre);
 }
 .doc-table td { padding: 6px 8px; border-bottom: 1px solid var(--filet); vertical-align: top; font-size: 12.5px; }
+.doc-table tbody tr:last-child td { border-bottom: 1px solid var(--filet); }
+.doc-table tr:hover { background: transparent; }
 .doc-table tr.doc-lot td     { background: var(--papier); font-weight: 600; font-size: 14px; }
-.doc-table tr.doc-souslot td { background: #fbfcfd; font-weight: 600; }
+.doc-table tr.doc-souslot td { background: #FAFAF8; font-weight: 600; }
 .doc-fiche { font-size: 11px; color: var(--encre-pale); white-space: pre-line; margin-top: 3px; }
 
-.doc-totaux { margin: 16px 0 0 auto; width: 330px; max-width: 100%; border-collapse: collapse; }
-.doc-totaux td { padding: 4px 8px; }
+.doc-totaux { margin: 16px 0 0 auto; width: 330px; max-width: 100%; border-collapse: collapse; border: 0; border-radius: 0; background: transparent; }
+.doc-totaux td { padding: 4px 8px; border-bottom: 0; }
+.doc-totaux tr:hover { background: transparent; }
 .doc-totaux tr.fort td { font-weight: 600; border-top: 1px solid var(--filet); }
 .doc-totaux tr.grand td { font-size: 16px; border-top: 2px solid var(--encre); }
 
@@ -301,13 +857,14 @@ details.fiche summary { color: var(--bleu); }
    l'écran. On empile, à l'écran seulement — sur papier, la largeur d'une A4
    peut tomber sous 720 px, et la mise en page imprimée doit rester celle-ci. */
 @media screen and (max-width: 720px) {
+  .document { padding: 20px 16px 28px; border-radius: 6px; }
   .doc-entete, .doc-signature { flex-direction: column; gap: 14px; }
   .doc-client { min-width: 0; }
   .doc-titre { flex-wrap: wrap; gap: 4px 14px; }
 }
 
 @media print {
-  .document { max-width: none; padding: 0; }
+  .document { max-width: none; padding: 0; border: 0; border-radius: 0; box-shadow: none; }
   .doc-table tr, .doc-signature { page-break-inside: avoid; }
   a { color: inherit; text-decoration: none; }
 }
@@ -324,46 +881,54 @@ details.fiche summary { color: var(--bleu); }
 
 .cloche {
   position: relative;
-  background: none;
+  display: inline-grid;
+  place-items: center;
+  width: 40px; height: 40px;
   border: 0;
-  padding: 5px;
+  border-radius: 50%;
+  background: none;
   cursor: pointer;
-  color: var(--encre-pale);
+  color: var(--encre-2);
   line-height: 0;
 }
-.cloche:hover { color: var(--encre); }
+.cloche:hover { background: var(--surface-2); color: var(--encre); }
 
 .cloche .pastille {
   position: absolute;
-  top: -1px; right: -3px;
+  top: 2px; right: 0;
   margin: 0;
   background: var(--encre-pale);
+  color: var(--surface);
 }
-.cloche .pastille[data-urgent='oui'] { background: var(--alerte); }
+.cloche .pastille[data-urgent='oui'] { background: var(--accent); color: var(--sur-accent); }
 
 .volet {
   position: absolute;
-  right: 0; top: calc(100% + 8px);
+  right: 0; top: calc(100% + 10px);
   width: min(420px, 88vw);
   background: var(--surface);
   border: 1px solid var(--filet);
-  box-shadow: 0 10px 34px rgba(22, 32, 43, .16);
+  border-radius: 18px;
+  box-shadow: var(--ombre-forte);
   z-index: 40;
+  overflow: hidden;
 }
 .volet-entete {
   display: flex; justify-content: space-between; align-items: baseline;
-  padding: 10px 14px; border-bottom: 1px solid var(--filet);
+  padding: 12px 16px; border-bottom: 1px solid var(--filet);
 }
 
+/* La gravité se lit au trait : plein et accent pour l'urgent, encre pour ce
+   qui demande un œil, filet pour l'information. */
 .alerte {
   display: flex; gap: 10px; align-items: start;
-  padding: 9px 12px 9px 14px;
+  padding: 10px 14px 10px 16px;
   border-bottom: 1px solid var(--filet);
   border-left: 3px solid var(--filet);
 }
-.alerte[data-gravite='urgent']     { border-left-color: var(--alerte); }
-.alerte[data-gravite='attention']  { border-left-color: #b8860b; }
-.alerte[data-gravite='information']{ border-left-color: var(--bleu); }
+.alerte[data-gravite='urgent']     { border-left-color: var(--accent-texte); }
+.alerte[data-gravite='attention']  { border-left-color: var(--encre-2); }
+.alerte[data-gravite='information']{ border-left-color: var(--filet-fort); }
 .alerte:last-child { border-bottom: 0; }
 
 /* --- Calendrier ----------------------------------------------------------- */
@@ -374,35 +939,39 @@ details.fiche summary { color: var(--bleu); }
   gap: 1px;
   background: var(--filet);
   border: 1px solid var(--filet);
+  border-radius: var(--rayon-l);
+  overflow: hidden;
 }
 
 .cal-jour-nom {
-  background: var(--papier);
-  padding: 6px 8px;
+  background: var(--surface-2);
+  padding: 8px 10px;
   font-size: 12px;
+  font-weight: 600;
   color: var(--encre-pale);
 }
 
 .cal-case {
   background: var(--surface);
   min-height: 104px;
-  padding: 5px 6px;
+  padding: 6px 7px;
   cursor: pointer;
   overflow: hidden;
 }
-.cal-case:hover { background: var(--bleu-pale); }
-.cal-case[data-hors='oui'] { background: var(--papier); color: var(--encre-pale); }
-.cal-case[data-aujourdhui='oui'] { box-shadow: inset 0 0 0 2px var(--bleu); }
+.cal-case:hover { background: var(--surface-2); }
+.cal-case[data-hors='oui'] { background: var(--fond); color: var(--encre-pale); }
+.cal-case[data-aujourdhui='oui'] { box-shadow: inset 0 0 0 2px var(--accent-texte); }
 
-.cal-numero { font-variant-numeric: tabular-nums; font-size: 12px; margin-bottom: 3px; }
+.cal-numero { font-variant-numeric: tabular-nums; font-size: 12px; font-weight: 600; margin-bottom: 4px; }
 
 .cal-evt {
   font-size: 11px;
   line-height: 1.35;
-  padding: 1px 4px;
-  margin-bottom: 2px;
+  padding: 2px 6px;
+  margin-bottom: 3px;
   border-left: 3px solid var(--filet);
-  background: var(--papier);
+  border-radius: 4px;
+  background: var(--surface-2);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -411,8 +980,9 @@ details.fiche summary { color: var(--bleu); }
 /* --- Divers --------------------------------------------------------------- */
 
 .bloc-code {
-  background: var(--papier);
+  background: var(--surface-2);
   border: 1px solid var(--filet);
+  border-radius: var(--rayon-s);
   padding: 10px 12px;
   font-size: 12px;
   white-space: pre-wrap;
@@ -424,7 +994,8 @@ details.fiche summary { color: var(--bleu); }
   width: 46px; height: 46px;
   object-fit: cover;
   border: 1px solid var(--filet);
-  background: var(--papier);
+  border-radius: 8px;
+  background: var(--surface-2);
 }
 
 @media (max-width: 720px) {
@@ -440,42 +1011,45 @@ details.fiche summary { color: var(--bleu); }
   cursor: pointer;
   font-size: 17px;
   line-height: 1;
-  padding: 2px 6px;
+  padding: 4px 8px;
   color: var(--encre-pale);
-  border-radius: 3px;
+  border-radius: 10px;
 }
-.points:hover, .poignee:hover { background: var(--filet); color: var(--encre); }
+.points:hover, .poignee:hover { background: var(--surface-2); color: var(--encre); }
 .poignee { cursor: grab; }
 
 .menu-liste {
   position: absolute;
-  right: 0; top: calc(100% + 3px);
+  right: 0; top: calc(100% + 4px);
   z-index: 30;
-  min-width: 178px;
+  min-width: 190px;
+  padding: 6px;
   background: var(--surface);
   border: 1px solid var(--filet);
-  box-shadow: 0 8px 24px rgba(22, 32, 43, .15);
+  border-radius: var(--rayon-m);
+  box-shadow: var(--ombre-forte);
   display: block;
 }
 .menu-liste button {
   display: block;
   width: 100%;
   text-align: left;
-  padding: 8px 13px;
+  padding: 9px 12px;
   border: 0;
+  border-radius: 10px;
   background: none;
   font: inherit;
   cursor: pointer;
   color: var(--encre);
 }
-.menu-liste button:hover { background: var(--bleu-pale); }
+.menu-liste button:hover { background: var(--surface-2); }
 
 /* --- Modale --------------------------------------------------------------- */
 
 .voile {
   position: fixed;
   inset: 0;
-  background: rgba(22, 32, 43, .38);
+  background: var(--voile);
   display: grid;
   place-items: start center;
   padding: 6vh 16px 24px;
@@ -486,22 +1060,25 @@ details.fiche summary { color: var(--bleu); }
 .modale {
   background: var(--surface);
   border: 1px solid var(--filet);
-  box-shadow: 0 18px 52px rgba(22, 32, 43, .24);
+  border-radius: 24px;
+  box-shadow: var(--ombre-forte);
 }
 
 .modale-entete {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
   gap: 16px;
-  padding: 14px 18px;
+  padding: 16px 20px;
   border-bottom: 1px solid var(--filet);
+  border-radius: 24px 24px 0 0;
   position: sticky;
   top: 0;
+  z-index: 2;
   background: var(--surface);
 }
 
-.modale-corps { padding: 18px; }
+.modale-corps { padding: 20px; }
 
 /* --- Bulle d'aide --------------------------------------------------------- */
 
@@ -514,11 +1091,11 @@ details.fiche summary { color: var(--bleu); }
   transform: translateX(-50%);
   z-index: 70;
   background: var(--encre);
-  color: #fff;
+  color: var(--fond);
   font-size: 12px;
   line-height: 1.4;
-  padding: 6px 10px;
-  border-radius: 3px;
+  padding: 7px 11px;
+  border-radius: 9px;
   width: max-content;
   max-width: 230px;
   pointer-events: none;
@@ -531,13 +1108,13 @@ details.fiche summary { color: var(--bleu); }
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
-  font-size: 12px;
+  font-size: 12.5px;
   color: var(--encre-pale);
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 .ariane button {
   border: 0; background: none; padding: 0; font: inherit;
-  color: var(--bleu); cursor: pointer;
+  color: var(--accent-texte); cursor: pointer;
 }
 .ariane-sep { margin: 0 4px; }
 
@@ -545,44 +1122,50 @@ details.fiche summary { color: var(--bleu); }
 
 .onglets {
   display: flex;
-  gap: calc(var(--pas) * 2);
+  gap: 4px 22px;
   border-bottom: 1px solid var(--filet);
-  margin-bottom: calc(var(--pas) * 2);
+  margin-bottom: 18px;
 }
 .onglets button {
-  border: 0; background: none; font: inherit; cursor: pointer;
-  padding: 7px 0; margin-bottom: -1px;
+  border: 0; background: none; font: inherit; font-weight: 600; cursor: pointer;
+  padding: 10px 0; margin-bottom: -1px;
   color: var(--encre-pale);
   border-bottom: 2px solid transparent;
 }
-.onglets button[aria-current='true'] { color: var(--encre); border-bottom-color: var(--bleu); }
+.onglets button:hover { color: var(--encre); }
+.onglets button[aria-current='true'] { color: var(--encre); border-bottom-color: var(--accent-texte); }
 
 /* --- Pastilles de rôle ---------------------------------------------------- */
 
+/* Un rôle est une catégorie : fond ou trait, jamais une couleur à lui. Un
+   retard attend : plein, à l'accent. */
 .jeton {
   display: inline-block;
-  padding: 1px 7px;
-  border-radius: 2px;
-  font-size: 11px;
-  border: 1px solid var(--filet);
-  color: var(--encre-pale);
+  padding: 1px 9px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.5;
+  border: 1px solid var(--filet-fort);
+  color: var(--encre-2);
   white-space: nowrap;
 }
-.jeton[data-r='salarie']       { color: var(--bleu);   border-color: var(--bleu); }
-.jeton[data-r='sous_traitant'] { color: #7a5ea8;       border-color: #7a5ea8; }
-.jeton[data-r='client']        { color: var(--vert);   border-color: var(--vert); }
-.jeton[data-r='retard']        { color: var(--alerte); border-color: var(--alerte); }
-.jeton[data-r='recu']          { color: var(--vert);   border-color: var(--vert); }
+.jeton[data-r='salarie']       { background: var(--surface-2); border-color: transparent; color: var(--encre); }
+.jeton[data-r='sous_traitant'] { border-style: dashed; }
+.jeton[data-r='client']        { border-color: var(--encre-2); }
+.jeton[data-r='retard']        { background: var(--accent); color: var(--sur-accent); border-color: transparent; }
+.jeton[data-r='recu']          { background: var(--surface-2); color: var(--encre); border-color: transparent; }
 
 /* --- Barre de proportion -------------------------------------------------- */
 
-.jauge { height: 7px; background: var(--filet); overflow: hidden; }
-.jauge > i { display: block; height: 100%; background: var(--bleu); }
-.jauge[data-alerte='oui'] > i { background: var(--alerte); }
+.jauge { height: 8px; background: var(--surface-2); border-radius: 999px; overflow: hidden; }
+.jauge > i { display: block; height: 100%; border-radius: inherit; background: var(--encre-2); }
+.jauge[data-alerte='oui'] > i { background: var(--accent-texte); }
 
 
-
-/* --- Barre latérale gauche, repliable ------------------------------------- */
+/* ===========================================================================
+   BARRE LATÉRALE, REPLIABLE
+   =========================================================================== */
 
 .app {
   display: flex;
@@ -595,16 +1178,18 @@ details.fiche summary { color: var(--bleu); }
 }
 
 .colonne { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.colonne > main { flex: 1; max-width: none; margin: 0; width: 100%; }
+/* Au-delà de 1320 px, une ligne de tableau ne se lit plus d'un regard : le
+   contenu se centre plutôt que de s'étirer sur tout un écran large. */
+.colonne > main { flex: 1; max-width: 1320px; margin: 0 auto; width: 100%; }
 
 .rail {
   order: 0;
-  width: 214px;
-  flex: 0 0 214px;
+  width: 232px;
+  flex: 0 0 232px;
   display: flex;
   flex-direction: column;
   background: var(--rail-fond);
-  border-right: 1px solid var(--rail-fond);
+  border-right: 1px solid var(--rail-filet);
   color: var(--rail-texte);
   position: sticky;
   top: 0;
@@ -612,53 +1197,56 @@ details.fiche summary { color: var(--bleu); }
   transition: width .16s ease, flex-basis .16s ease;
 }
 
-.app[data-replie='oui'] .rail { width: 54px; flex-basis: 54px; }
+.app[data-replie='oui'] .rail { width: 72px; flex-basis: 72px; }
 
 .rail-tete {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 11px 12px;
-  border-bottom: 1px solid var(--rail-filet);
-  min-height: 52px;
+  padding: 14px 14px 12px 20px;
+  min-height: 60px;
 }
-.rail .marque { color: #fff; }
+.rail .marque { color: var(--rail-fort); font-size: 18px; }
 .rail .marque em { color: var(--rail-accent); }
 
 .rail-bascule {
-  border: 0; background: none; cursor: pointer; padding: 4px;
-  color: var(--rail-texte); line-height: 0; border-radius: 3px;
+  border: 0; background: none; cursor: pointer; padding: 8px;
+  color: var(--rail-texte); line-height: 0; border-radius: 10px;
 }
-.rail-bascule:hover { background: var(--rail-survol); color: #fff; }
+.rail-bascule:hover { background: var(--rail-survol); color: var(--rail-fort); }
 
-.rail-corps { flex: 1; overflow-y: auto; padding: 6px 0 14px; }
+.rail-corps { flex: 1; overflow-y: auto; padding: 4px 0 14px; }
 
 .rail-groupe {
   font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
   color: var(--rail-pale);
-  padding: 12px 14px 4px;
+  padding: 16px 22px 6px;
 }
 
-.rail-trait { height: 1px; background: var(--rail-filet); margin: 7px 10px; }
+.rail-trait { height: 1px; background: var(--rail-filet); margin: 8px 14px; }
 
+/* Une pastille arrondie plutôt qu'un trait au bord : la ligne active se
+   voit d'un coup d'œil, et l'icône y prend l'accent. */
 .rail-ligne {
   display: flex;
   align-items: stretch;
-  border-left: 3px solid transparent;
+  margin: 1px 10px;
+  border-radius: 12px;
 }
 .rail-ligne:hover { background: var(--rail-survol); }
-.rail-ligne:hover .rail-lien { color: #fff; }
-.rail-ligne[data-actif='oui'] {
-  border-left-color: var(--rail-accent);
-  background: var(--rail-actif);
-}
-.rail-ligne[data-actif='oui'] .rail-lien { color: #fff; }
+.rail-ligne:hover .rail-lien { color: var(--rail-fort); }
+.rail-ligne[data-actif='oui'] { background: var(--rail-actif); }
+.rail-ligne[data-actif='oui'] .rail-lien { color: var(--rail-fort); font-weight: 600; }
+.rail-ligne[data-actif='oui'] .rail-lien svg { color: var(--rail-accent); }
 
 .rail-lien {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   flex: 1;
   min-width: 0;
   border: 0;
@@ -666,7 +1254,8 @@ details.fiche summary { color: var(--bleu); }
   font: inherit;
   text-align: left;
   color: var(--rail-texte);
-  padding: 8px 12px;
+  padding: 9px 12px;
+  border-radius: 12px;
   cursor: pointer;
 }
 
@@ -674,49 +1263,51 @@ details.fiche summary { color: var(--bleu); }
 
 .rail-chevron {
   border: 0; background: none; cursor: pointer;
-  color: var(--rail-texte); padding: 0 10px; line-height: 0;
+  color: var(--rail-texte); padding: 0 10px; line-height: 0; border-radius: 10px;
 }
-.rail-chevron:hover { color: #fff; }
+.rail-chevron:hover { color: var(--rail-fort); }
 
 .rail-enfants { padding: 2px 0 6px; }
 .rail-enfants button {
   display: block;
-  width: 100%;
+  width: calc(100% - 20px);
+  margin: 1px 10px;
   text-align: left;
   border: 0;
+  border-radius: 10px;
   background: none;
   font: inherit;
   cursor: pointer;
-  padding: 5px 12px 5px 40px;
+  padding: 6px 12px 6px 40px;
   color: var(--rail-texte);
-  border-left: 3px solid transparent;
 }
-.rail-enfants button:hover { background: var(--rail-survol); color: #fff; }
-.rail-enfants button[data-actif='oui'] {
-  color: #fff; border-left-color: var(--rail-accent); background: var(--rail-actif);
-}
-.rail-num { display: block; font-size: 12px; font-variant-numeric: tabular-nums; }
+.rail-enfants button:hover { background: var(--rail-survol); color: var(--rail-fort); }
+.rail-enfants button[data-actif='oui'] { color: var(--rail-fort); background: var(--rail-actif); }
+.rail-num { display: block; font-size: 12.5px; font-variant-numeric: tabular-nums; }
 .rail-detail {
-  display: block; font-size: 11px; opacity: .75;
+  display: block; font-size: 11.5px; opacity: .78;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.rail-vide { padding: 5px 12px 5px 40px; font-size: 12px; color: var(--rail-pale); }
+.rail-vide { padding: 6px 12px 6px 50px; font-size: 12.5px; color: var(--rail-pale); }
 
-.rail-pied { border-top: 1px solid var(--rail-filet); padding: 10px 14px; }
+.rail-pied { border-top: 1px solid var(--rail-filet); padding: 12px 16px 14px; display: grid; gap: 8px; }
 .rail-pied .statut { color: var(--rail-pale); }
+.rail-pied .statut strong { display: block; color: var(--rail-fort); font-weight: 600; font-size: 13.5px; }
 /* Alignée sur le nom au-dessus, pas sur les liens du menu : la marge du pied
    tient déjà lieu de retrait. Les sélecteurs sont doublés pour passer devant
    les marges que le tiroir et le rail replié donnent à tous les liens. */
-.rail-pied .rail-sortie { width: 100%; padding: 8px 0; margin-top: 6px; border-radius: 3px; }
-.rail-pied .rail-sortie:hover { color: #fff; }
+.rail-pied .rail-sortie { width: 100%; padding: 8px 0; margin-top: 0; border-radius: 10px; }
+.rail-pied .rail-sortie:hover { color: var(--rail-fort); }
 .app[data-replie='oui'] .rail-pied .rail-sortie { margin-top: 0; padding-left: 0; padding-right: 0; }
-/* Le contour de focus général est --bleu : sur le fond du rail, il
-   disparaîtrait et la navigation au clavier perdrait sa position. */
+/* Le contour de focus général prend l'accent du contenu : sur le fond du
+   rail, il pourrait disparaître et la navigation au clavier perdrait sa
+   position. */
 .rail button:focus-visible { outline-color: var(--rail-accent); }
 
-.app[data-replie='oui'] .rail-lien { justify-content: center; padding: 10px 0; }
-.app[data-replie='oui'] .rail-pied { padding: 6px 0; }
-.app[data-replie='oui'] .rail-tete { justify-content: center; }
+.app[data-replie='oui'] .rail-lien { justify-content: center; padding: 11px 0; }
+.app[data-replie='oui'] .rail-pied { padding: 8px 6px; justify-items: center; }
+.app[data-replie='oui'] .rail-tete { justify-content: center; padding: 14px 0 12px; }
+.app[data-replie='oui'] .rail-ligne { margin: 2px 10px; }
 
 .barre { position: sticky; top: 0; z-index: 20; }
 
@@ -724,33 +1315,34 @@ details.fiche summary { color: var(--bleu); }
 
 .suggestions {
   position: absolute;
-  left: 0; right: 0; top: calc(100% + 2px);
+  left: 0; right: 0; top: calc(100% + 4px);
   z-index: 45;
   background: var(--surface);
   border: 1px solid var(--filet);
-  box-shadow: 0 10px 28px rgba(22, 32, 43, .16);
+  border-radius: var(--rayon-m);
+  box-shadow: var(--ombre-forte);
   max-height: 300px;
   overflow-y: auto;
+  padding: 4px;
 }
 .suggestions button {
   display: block;
   width: 100%;
   text-align: left;
   border: 0;
-  border-bottom: 1px solid var(--filet);
+  border-radius: 10px;
   background: none;
   font: inherit;
   cursor: pointer;
-  padding: 7px 12px;
+  padding: 8px 12px;
   color: var(--encre);
 }
-.suggestions button:hover, .suggestions button.actif { background: var(--bleu-pale); }
+.suggestions button:hover, .suggestions button.actif { background: var(--surface-2); }
 .suggestions button > span { display: block; }
 .suggestions-pied {
   padding: 6px 12px;
-  font-size: 11px;
+  font-size: 11.5px;
   color: var(--encre-pale);
-  background: var(--papier);
 }
 
 @media (max-width: 900px) {
@@ -763,8 +1355,6 @@ details.fiche summary { color: var(--bleu); }
   }
   .rail-corps { display: flex; flex-wrap: wrap; padding: 4px; }
   .rail-groupe, .rail-trait, .rail-pied, .rail-enfants { display: none; }
-  .rail-ligne { border-left: 0; border-bottom: 2px solid transparent; }
-  .rail-ligne[data-actif='oui'] { border-left: 0; border-bottom-color: var(--rail-accent); }
   .rail-chevron { display: none; }
 }
 
@@ -786,11 +1376,11 @@ details.fiche summary { color: var(--bleu); }
   height: 8px;
   border-radius: 50%;
   display: inline-block;
-  border: 1px solid var(--filet);
+  border: 1px solid var(--filet-fort);
   background: transparent;
 }
-.voyant[data-actif='oui'][data-quoi='devis']    { background: var(--bleu);  border-color: var(--bleu); }
-.voyant[data-actif='oui'][data-quoi='chantier'] { background: #7a5ea8;      border-color: #7a5ea8; }
+.voyant[data-actif='oui'][data-quoi='devis']    { background: var(--accent-texte); border-color: var(--accent-texte); }
+.voyant[data-actif='oui'][data-quoi='chantier'] { background: var(--encre-2);      border-color: var(--encre-2); }
 
 
 /* --- Gravité des alertes -------------------------------------------------- */
@@ -799,44 +1389,43 @@ details.fiche summary { color: var(--bleu); }
   display: flex;
   gap: 14px;
   flex-wrap: wrap;
-  padding: 8px 14px;
+  padding: 8px 16px;
   border-bottom: 1px solid var(--filet);
-  background: var(--papier);
-  font-size: 11px;
+  background: var(--surface-2);
+  font-size: 11.5px;
   color: var(--encre-pale);
 }
 .volet-legende span { display: inline-flex; align-items: center; gap: 5px; }
 
 .pastille-gravite {
-  width: 9px; height: 9px; border-radius: 2px; display: inline-block;
-  background: var(--filet);
+  width: 10px; height: 10px; border-radius: 3px; display: inline-block;
+  background: var(--filet-fort);
 }
-.pastille-gravite[data-gravite='urgent']      { background: var(--alerte); }
-.pastille-gravite[data-gravite='attention']   { background: #d98c00; }
-.pastille-gravite[data-gravite='information'] { background: var(--bleu); }
+.pastille-gravite[data-gravite='urgent']      { background: var(--accent-texte); }
+.pastille-gravite[data-gravite='attention']   { background: transparent; box-shadow: inset 0 0 0 2px var(--encre-2); }
+.pastille-gravite[data-gravite='information'] { background: var(--filet-fort); }
 
 .alerte-gravite {
-  font-size: 10px;
-  letter-spacing: .02em;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .03em;
   margin-bottom: 2px;
 }
-.alerte-gravite[data-gravite='urgent']      { color: var(--alerte); }
-.alerte-gravite[data-gravite='attention']   { color: #a86800; }
-.alerte-gravite[data-gravite='information'] { color: var(--bleu); }
-
-.alerte[data-gravite='attention'] { border-left-color: #d98c00; }
+.alerte-gravite[data-gravite='urgent']      { color: var(--accent-texte); }
+.alerte-gravite[data-gravite='attention']   { color: var(--encre-2); }
+.alerte-gravite[data-gravite='information'] { color: var(--encre-pale); font-weight: 600; }
 
 
 /* --- Squelettes de chargement --------------------------------------------- */
 
 .squelette {
   display: block;
-  border-radius: 2px;
+  border-radius: 6px;
   background: linear-gradient(
     100deg,
-    var(--filet) 20%,
-    #eef2f6 38%,
-    var(--filet) 56%
+    var(--surface-2) 20%,
+    var(--filet) 38%,
+    var(--surface-2) 56%
   );
   background-size: 260% 100%;
   animation: glisse 1.25s ease-in-out infinite;
@@ -863,7 +1452,8 @@ details.fiche summary { color: var(--bleu); }
   z-index: 45;
   background: var(--surface);
   border: 1px solid var(--filet);
-  box-shadow: 0 10px 30px rgba(22, 32, 43, .16);
+  border-radius: var(--rayon-m);
+  box-shadow: var(--ombre-forte);
   padding: 14px;
 }
 .survol-panneau[data-aligne='droite'] { right: 0; }
@@ -885,12 +1475,12 @@ details.fiche summary { color: var(--bleu); }
   align-items: center;
   gap: 5px;
   border: 1px solid transparent;
-  border-radius: 3px;
+  border-radius: 999px;
   background: none;
   font: inherit;
-  font-size: 11px;
+  font-size: 11.5px;
   color: var(--encre-pale);
-  padding: 2px 7px;
+  padding: 3px 9px;
   cursor: pointer;
 }
 .legende-bouton:hover { background: var(--surface); border-color: var(--filet); }
@@ -917,11 +1507,12 @@ details.fiche summary { color: var(--bleu); }
   min-height: 180px;
   overflow: auto;
   border: 1px solid var(--filet);
+  border-radius: var(--rayon-l);
   background: var(--surface);
   overscroll-behavior: contain;
 }
 
-.tableau-defilant table { border-collapse: separate; border-spacing: 0; }
+.tableau-defilant table { border-collapse: separate; border-spacing: 0; border: 0; border-radius: 0; }
 
 .tableau-defilant thead th {
   position: sticky;
@@ -954,15 +1545,16 @@ details.fiche summary { color: var(--bleu); }
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
-  padding: 10px 14px;
-  margin-bottom: 14px;
-  background: #fdf7ee;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  background: var(--attention-pale);
   border: 1px solid var(--filet);
-  border-left: 3px solid #d98c00;
+  border-left: 4px solid var(--attention);
+  border-radius: var(--rayon-m);
 }
 
-tr.brouillon td { background: #fffdf8; }
-tr.brouillon:hover td { background: #fdf7ee; }
+tr.brouillon td { background: var(--attention-pale); }
+tr.brouillon:hover td { background: var(--surface-2); }
 
 
 /* --- Pièces jointes --------------------------------------------------------
@@ -973,20 +1565,22 @@ tr.brouillon:hover td { background: #fdf7ee; }
 .depot {
   display: inline-block;
   margin: 0;
-  padding: 8px 16px;
-  border: 1px dashed var(--bleu);
-  border-radius: 3px;
-  color: var(--bleu);
-  font-size: 13px;
+  padding: 9px 16px;
+  border: 1px dashed var(--accent-texte);
+  border-radius: 12px;
+  color: var(--accent-texte);
+  font-size: 13.5px;
+  font-weight: 600;
   cursor: pointer;
   background: var(--surface);
 }
-.depot:hover { background: var(--bleu-pale); }
+.depot:hover { background: var(--accent-pale); }
 
 .lien-discret {
   border: 0; background: none; padding: 0;
-  font: inherit; font-size: 12px;
-  color: var(--bleu); cursor: pointer; text-decoration: underline;
+  font: inherit; font-size: 12.5px;
+  color: var(--accent-texte); cursor: pointer; text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 /* --- Galerie de chantier ---------------------------------------------------
@@ -1009,11 +1603,12 @@ tr.brouillon:hover td { background: #fdf7ee; }
   aspect-ratio: 1;
   padding: 0;
   border: 1px solid var(--filet);
-  background: var(--papier);
+  border-radius: var(--rayon-m);
+  background: var(--surface-2);
   cursor: pointer;
   overflow: hidden;
 }
-.galerie-vue:hover { border-color: var(--bleu); }
+.galerie-vue:hover { border-color: var(--accent-texte); }
 .galerie-vue img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
 .galerie-icone {
@@ -1027,6 +1622,7 @@ tr.brouillon:hover td { background: #fdf7ee; }
 .galerie-case figcaption { margin-top: 5px; }
 .galerie-case figcaption input {
   padding: 3px 5px;
+  min-height: 0;
   font-size: 12px;
   border-color: transparent;
   background: transparent;
@@ -1044,20 +1640,20 @@ tr.brouillon:hover td { background: #fdf7ee; }
   position: fixed;
   right: 22px; bottom: 22px;
   z-index: 80;
-  width: 52px; height: 52px;
+  width: 54px; height: 54px;
   display: grid; place-items: center;
   border: 0; border-radius: 50%;
-  background: var(--bleu);
-  color: #fff;
+  background: var(--accent);
+  color: var(--sur-accent);
   cursor: pointer;
-  box-shadow: 0 6px 20px rgba(22, 32, 43, .28);
+  box-shadow: var(--ombre-forte);
 }
-.assistant-bulle:hover { filter: brightness(1.08); }
-.assistant-bulle[data-ouvert='oui'] { background: var(--encre); }
+.assistant-bulle:hover { filter: brightness(1.06); }
+.assistant-bulle[data-ouvert='oui'] { background: var(--action); color: var(--sur-action); }
 
 .assistant-volet {
   position: fixed;
-  right: 22px; bottom: 86px;
+  right: 22px; bottom: 88px;
   z-index: 80;
   width: min(400px, calc(100vw - 32px));
   max-height: min(620px, calc(100vh - 130px));
@@ -1065,8 +1661,9 @@ tr.brouillon:hover td { background: #fdf7ee; }
   flex-direction: column;
   background: var(--surface);
   border: 1px solid var(--filet);
-  border-radius: 4px;
-  box-shadow: 0 18px 52px rgba(22, 32, 43, .26);
+  border-radius: 22px;
+  box-shadow: var(--ombre-forte);
+  overflow: hidden;
 }
 
 .assistant-tete {
@@ -1074,7 +1671,7 @@ tr.brouillon:hover td { background: #fdf7ee; }
   justify-content: space-between;
   align-items: start;
   gap: 12px;
-  padding: 12px 14px;
+  padding: 14px 16px;
   border-bottom: 1px solid var(--filet);
 }
 
@@ -1082,7 +1679,7 @@ tr.brouillon:hover td { background: #fdf7ee; }
   flex: 1;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 14px;
+  padding: 16px;
 }
 
 .assistant-question {
@@ -1091,8 +1688,9 @@ tr.brouillon:hover td { background: #fdf7ee; }
 }
 
 .assistant-reponse {
-  background: var(--papier);
-  border-left: 3px solid var(--bleu);
+  background: var(--surface-2);
+  border-left: 3px solid var(--accent-texte);
+  border-radius: 4px 12px 12px 4px;
   padding: 10px 12px;
 }
 
@@ -1102,7 +1700,6 @@ tr.brouillon:hover td { background: #fdf7ee; }
   align-items: center;
   padding: 10px 12px;
   border-top: 1px solid var(--filet);
-  background: var(--surface);
 }
 .assistant-pied input { flex: 1; }
 
@@ -1119,6 +1716,402 @@ tr.brouillon:hover td { background: #fdf7ee; }
 
 
 /* ===========================================================================
+   LE VERRE
+
+   Seulement pour ce qui flotte au-dessus du contenu, et seulement là où le
+   navigateur sait flouter : un verre sans flou derrière laisse lire le
+   texte du dessous à travers, ce qui est pire qu'une surface pleine.
+   =========================================================================== */
+
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .barre, .volet, .menu-liste, .suggestions, .survol-panneau, .choix-devis,
+  .assistant-volet, .modale-entete, .feuille {
+    -webkit-backdrop-filter: var(--flou);
+    backdrop-filter: var(--flou);
+  }
+  .barre { background: var(--verre); border-bottom-color: color-mix(in srgb, var(--filet) 70%, transparent); }
+  .volet, .menu-liste, .suggestions, .survol-panneau, .choix-devis, .assistant-volet, .feuille {
+    background: var(--verre-fort);
+    border-color: var(--verre-bord);
+  }
+  .modale-entete { background: var(--verre-fort); }
+  .voile, .voile-menu, .voile-feuille { -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+  .onglets-bas {
+    background: var(--onglets-fond);
+    -webkit-backdrop-filter: var(--flou);
+    backdrop-filter: var(--flou);
+  }
+  .tuile:not([data-fort='oui']) {
+    -webkit-backdrop-filter: blur(12px) saturate(150%);
+    backdrop-filter: blur(12px) saturate(150%);
+  }
+}
+
+/* Moins de transparence demandée par le système : on la donne. */
+@media (prefers-reduced-transparency: reduce) {
+  .barre, .modale-entete { background: var(--surface); }
+  .volet, .menu-liste, .suggestions, .survol-panneau, .choix-devis, .assistant-volet, .feuille {
+    background: var(--surface); border-color: var(--filet);
+  }
+  .onglets-bas { background: var(--onglets-plein); }
+  .barre, .volet, .menu-liste, .suggestions, .survol-panneau, .choix-devis, .assistant-volet,
+  .modale-entete, .feuille, .onglets-bas, .tuile, .voile, .voile-menu, .voile-feuille {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+
+/* ===========================================================================
+   LE BANDEAU DU JOUR
+
+   Le haut des écrans d'accueil (Aujourd'hui de la direction, Ma journée du
+   terrain) : la seule chose forte de l'écran. Il porte les chiffres du jour
+   en tuiles ; la tuile qui attend le plus prend l'accent, les autres sont en
+   verre sur la couleur du bandeau. Une lueur discrète derrière : c'est elle
+   que le verre floute, sans elle il n'y aurait rien à voir à travers.
+   =========================================================================== */
+
+.bandeau {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: grid;
+  gap: 18px;
+  margin-bottom: 22px;
+  padding: 24px 24px 22px;
+  border-radius: var(--rayon-xl);
+  background: var(--bandeau);
+  color: var(--sur-bandeau);
+}
+.bandeau::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  width: 520px;
+  aspect-ratio: 1;
+  right: -140px;
+  bottom: -300px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--lueur), transparent);
+  pointer-events: none;
+}
+
+.bandeau-tete {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px 20px;
+  flex-wrap: wrap;
+}
+.bandeau-date { margin: 0 0 6px; font-size: 13px; font-weight: 500; color: var(--bandeau-pale); }
+.bandeau h1 {
+  font-size: 34px;
+  line-height: 1.05;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  color: var(--sur-bandeau);
+}
+.bandeau-note { margin: 0; font-size: 14px; color: var(--bandeau-pale); max-width: 60ch; }
+.bandeau-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* Les boutons posés sur le bandeau : un bouton graphite sur un bandeau
+   graphite ne se verrait pas. */
+.bandeau button.action.discret {
+  background: var(--bandeau-tuile);
+  color: var(--sur-bandeau);
+  border-color: var(--bandeau-filet);
+}
+.bandeau button.action.discret:hover { background: color-mix(in srgb, var(--sur-bandeau) 14%, transparent); }
+.bandeau button.action:not(.discret) { background: var(--tuile-forte); color: var(--sur-tuile-forte); }
+.bandeau button:focus-visible { outline-color: var(--sur-bandeau); }
+
+.tuiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.tuile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 100px;
+  padding: 14px 16px;
+  border: 1px solid var(--bandeau-filet);
+  border-radius: 20px;
+  background: var(--bandeau-tuile);
+  color: var(--sur-bandeau);
+  font: inherit;
+  text-align: left;
+}
+button.tuile { cursor: pointer; transition: background-color .15s ease, transform .08s ease; }
+button.tuile:hover { background: color-mix(in srgb, var(--sur-bandeau) 12%, transparent); }
+button.tuile:active { transform: translateY(1px); }
+.tuile-chiffre {
+  font-family: var(--chiffres);
+  font-size: 38px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+.tuile-chiffre.petit { font-size: 24px; letter-spacing: -0.03em; }
+.tuile-libelle { font-size: 14px; font-weight: 600; color: var(--bandeau-pale); }
+.tuile[data-fort='oui'] { background: var(--tuile-forte); color: var(--sur-tuile-forte); border-color: transparent; }
+button.tuile[data-fort='oui']:hover { background: var(--tuile-forte); filter: brightness(1.04); }
+.tuile[data-fort='oui'] .tuile-libelle { color: var(--sur-tuile-forte); }
+.tuile[data-fort='oui'] .tuile-chiffre { color: var(--chiffre-tuile-forte); }
+/* Un point d'accent : « il y a quelque chose ici », sans repeindre la tuile. */
+.tuile[data-point='oui']::after {
+  content: '';
+  position: absolute;
+  top: 14px; right: 14px;
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: var(--bandeau-accent);
+}
+
+/* --- Carte de section ------------------------------------------------------ */
+
+.carte {
+  background: var(--surface);
+  border: 1px solid var(--filet);
+  border-radius: var(--rayon-l);
+  padding: 18px 18px 16px;
+  margin-bottom: 16px;
+}
+.carte > table, .carte .tableau-defilant { border-radius: var(--rayon-m); }
+.section-tete {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 26px 0 10px;
+}
+.section-tete:first-child { margin-top: 0; }
+.section-tete h2 { font-size: 18px; }
+
+
+/* ===========================================================================
+   APPARENCE : thème et mode
+   =========================================================================== */
+
+.segments {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--filet);
+}
+.segments button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 6px 13px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--encre-pale);
+  cursor: pointer;
+}
+.segments button:hover { color: var(--encre); }
+.segments button[aria-pressed='true'] {
+  background: var(--surface);
+  color: var(--encre);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .12), 0 0 0 1px var(--filet);
+}
+
+/* Dans le rail, le sélecteur prend les couleurs du rail. */
+.rail .segments { background: var(--rail-survol); border-color: var(--rail-filet); width: 100%; }
+.rail .segments button { flex: 1; color: var(--rail-pale); padding: 6px 8px; }
+.rail .segments button:hover { color: var(--rail-fort); }
+.rail .segments button[aria-pressed='true'] { background: var(--rail-actif); color: var(--rail-fort); box-shadow: none; }
+.ton-replie {
+  display: inline-grid; place-items: center;
+  width: 40px; height: 40px;
+  border: 0; border-radius: 12px;
+  background: none; color: var(--rail-texte); cursor: pointer;
+}
+.ton-replie:hover { background: var(--rail-survol); color: var(--rail-fort); }
+
+.themes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+.theme-choix {
+  display: grid;
+  gap: 10px;
+  padding: 10px 10px 14px;
+  border: 1px solid var(--filet);
+  border-radius: var(--rayon-l);
+  background: var(--surface);
+  color: var(--encre);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.theme-choix:hover { border-color: var(--encre-pale); }
+.theme-choix[aria-pressed='true'] { box-shadow: 0 0 0 2px var(--accent-texte); border-color: transparent; }
+.theme-choix:disabled { cursor: default; }
+.theme-choix strong { display: block; font-size: 15px; padding: 0 4px; }
+.theme-choix em { display: block; font-style: normal; font-size: 12.5px; color: var(--encre-pale); padding: 0 4px; }
+
+/* L'aperçu porte son propre data-theme : il se dessine avec les vrais
+   jetons de ce thème, police comprise. */
+.theme-apercu {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 14px;
+  background: var(--bandeau);
+  color: var(--sur-bandeau);
+  font-family: var(--texte);
+}
+.theme-apercu::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  width: 220px; aspect-ratio: 1;
+  right: -70px; bottom: -120px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--lueur), transparent);
+}
+.theme-apercu-titre { font-size: 19px; font-weight: 700; letter-spacing: -0.03em; }
+.theme-apercu-tuiles { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.theme-apercu-tuiles span {
+  display: grid; gap: 2px;
+  padding: 7px 9px;
+  border-radius: 10px;
+  border: 1px solid var(--bandeau-filet);
+  background: var(--bandeau-tuile);
+  font-size: 11px;
+  color: var(--bandeau-pale);
+}
+.theme-apercu-tuiles b { font-family: var(--chiffres); font-size: 18px; line-height: 1; color: var(--sur-bandeau); }
+.theme-apercu-tuiles span:first-child { background: var(--tuile-forte); border-color: transparent; color: var(--sur-tuile-forte); }
+.theme-apercu-tuiles span:first-child b { color: var(--chiffre-tuile-forte); }
+.theme-apercu-bouton {
+  justify-self: start;
+  padding: 6px 12px;
+  border-radius: var(--rayon-bouton);
+  background: var(--surface);
+  color: var(--encre);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+
+/* ===========================================================================
+   BARRE D'ONGLETS DU TÉLÉPHONE ET FEUILLE « CRÉER »
+
+   Sous 900 px, le menu complet est dans un tiroir : il faut deux gestes pour
+   aller n'importe où. Les quatre écrans qu'on ouvre vingt fois par jour sont
+   donc à un pouce, en bas, et « Plus » ouvre le tiroir pour le reste. Le
+   « + » du milieu ouvre les créations courantes sans passer par la liste.
+   =========================================================================== */
+
+.onglets-bas { display: none; }
+
+.onglet {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+  height: 58px;
+  padding: 0 2px;
+  border: 0;
+  border-radius: 18px;
+  background: none;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--onglets-texte);
+  cursor: pointer;
+}
+.onglet span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.onglet[aria-current='page'] { color: var(--onglets-actif); }
+.onglet .pastille { position: absolute; top: 4px; left: 50%; margin-left: 4px; }
+.onglet:focus-visible, .onglet-creer:focus-visible { outline-color: var(--onglets-actif); }
+
+.onglet-creer {
+  justify-self: center;
+  display: grid;
+  place-items: center;
+  width: 54px; height: 54px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--sur-accent);
+  cursor: pointer;
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--accent) 34%, transparent);
+}
+
+.voile-feuille { position: fixed; inset: 0; z-index: 95; border: 0; background: var(--voile); }
+
+.feuille {
+  position: fixed;
+  z-index: 96;
+  left: 8px; right: 8px;
+  bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  max-width: 520px;
+  margin: 0 auto;
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px 14px;
+  border: 1px solid var(--filet);
+  border-radius: 28px;
+  background: var(--surface);
+  box-shadow: var(--ombre-forte);
+}
+.feuille-poignee { width: 40px; height: 5px; border-radius: 3px; background: var(--filet-fort); margin: 2px auto 6px; }
+.feuille h2 { padding: 2px 8px 6px; font-size: 13px; font-weight: 600; color: var(--encre-pale); letter-spacing: 0; }
+.feuille-choix {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 62px;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 18px;
+  background: none;
+  font: inherit;
+  color: var(--encre);
+  text-align: left;
+  cursor: pointer;
+}
+.feuille-choix:hover { background: var(--surface-2); }
+.feuille-icone {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 44px; height: 44px;
+  border-radius: 14px;
+  background: var(--surface-2);
+  color: var(--encre);
+}
+.feuille-choix strong { display: block; font-weight: 650; }
+.feuille-choix em { display: block; font-style: normal; font-size: 13px; color: var(--encre-pale); }
+
+
+/* ===========================================================================
    TÉLÉPHONE ET TABLETTE
 
    Batinium a été dessiné pour un écran large. Le repli tenait jusqu'ici en
@@ -1129,7 +2122,8 @@ tr.brouillon:hover td { background: #fdf7ee; }
 
    1. Le menu devient un tiroir. Un rail replié en bandeau horizontal mangeait
       le haut de l'écran en permanence pour afficher des icônes sans libellé.
-      Un tiroir ne coûte rien tant qu'il est fermé.
+      Un tiroir ne coûte rien tant qu'il est fermé ; la barre d'onglets du bas
+      l'ouvre (« Plus ») et porte les quatre écrans les plus fréquents.
 
    2. Un tableau qui ne tient pas devient une liste de cartes. Il défilait de
       côté, avec une ombre à droite : dans les faits, il poussait toute la page
@@ -1156,60 +2150,82 @@ tr.brouillon:hover td { background: #fdf7ee; }
     position: fixed;
     top: 0; bottom: 0; left: 0;
     z-index: 90;
-    width: 264px !important;
-    flex-basis: 264px !important;
+    width: 284px !important;
+    flex-basis: 284px !important;
     height: 100dvh;
     transform: translateX(-100%);
     transition: transform .22s ease;
-    box-shadow: 0 0 40px rgba(22, 32, 43, .2);
-    border-right: 1px solid var(--rail-fond);
+    box-shadow: var(--ombre-forte);
+    border-right: 1px solid var(--rail-filet);
+    border-radius: 0 24px 24px 0;
   }
   .app[data-menu='ouvert'] .rail { transform: translateX(0); }
 
   /* Dans le tiroir, le menu reste vertical et lisible : on ne réduit pas des
      libellés qu'on vient d'ouvrir pour lire. */
-  .rail-corps { display: block; padding: 6px 0 24px; }
+  .rail-corps { display: block; padding: 10px 0 24px; }
   .rail-groupe, .rail-trait, .rail-pied, .rail-enfants { display: revert; }
-  .rail-ligne { border-left: 3px solid transparent; border-bottom: 0; }
-  /* La largeur aussi, pas seulement la couleur : le bandeau du bloc 900 px
-     plus haut a mis ce bord à 0, et sa règle est plus précise que celle qui
-     le rétablit juste au-dessus. */
-  .rail-ligne[data-actif='oui'] { border-left: 3px solid var(--rail-accent); border-bottom: 0; }
+  .rail-pied { display: grid; }
+  .rail-ligne { margin: 1px 10px; }
   .rail-lien { padding: 12px 14px; }
   .rail-chevron { display: revert; padding: 0 14px; }
   .app[data-replie='oui'] .rail-lien { justify-content: flex-start; padding: 12px 14px; }
-  .app[data-replie='oui'] .rail-pied { display: revert; }
+  .app[data-replie='oui'] .rail-pied { display: grid; padding: 12px 16px 14px; justify-items: stretch; }
 
   .voile-menu {
     position: fixed;
     inset: 0;
     z-index: 89;
-    background: rgba(22, 32, 43, .38);
+    background: var(--voile);
     border: 0;
   }
 
-  /* Le bouton d'ouverture remonte dans la barre du haut, seul endroit visible
-     une fois le rail sorti du flux. */
+  /* Le tiroir s'ouvre par « Plus », dans la barre d'onglets du bas. */
   .rail-tete { display: none; }
-  .barre { gap: 12px; padding: 10px 14px; }
+  .barre { gap: 12px; padding: 8px 14px; min-height: 56px; }
   .barre .marque { display: block !important; }
+  .menu-poignee { display: none; }
 
-  .menu-poignee {
-    display: inline-grid;
-    place-items: center;
-    width: 40px; height: 40px;
-    border: 1px solid var(--filet);
-    border-radius: 3px;
-    background: var(--surface);
-    color: var(--encre);
-    cursor: pointer;
+  .onglets-bas {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    align-items: center;
+    position: fixed;
+    left: 10px; right: 10px;
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    z-index: 85;
+    height: 70px;
+    padding: 0 6px;
+    border: 1px solid var(--onglets-filet);
+    border-radius: 26px;
+    background: var(--onglets-plein);
+    box-shadow: var(--ombre-forte);
   }
 
-  main { padding: 14px; }
+  main { padding: 14px 14px 120px; }
+
+  /* La bulle de l'assistant remonte au-dessus de la barre d'onglets. */
+  .assistant-bulle { right: 14px; bottom: calc(92px + env(safe-area-inset-bottom, 0px)); }
+  .assistant-volet {
+    right: 8px; left: 8px; width: auto;
+    bottom: calc(156px + env(safe-area-inset-bottom, 0px));
+    max-height: calc(100dvh - 230px);
+  }
+
+  /* Le bandeau du jour va d'un bord à l'autre et colle à la barre du haut :
+     c'est le haut de l'écran, pas une carte de plus. */
+  main > .bandeau {
+    margin-left: -14px;
+    margin-right: -14px;
+    border-radius: 0 0 var(--rayon-xl) var(--rayon-xl);
+    padding: 20px 16px 18px;
+  }
+  main > .bandeau:first-child { margin-top: -14px; }
 }
 
 @media (min-width: 901px) {
   .menu-poignee, .voile-menu { display: none; }
+  .app[data-replie='non'] .marque-barre { display: none; }
 }
 
 /* --- Téléphone : 720 px et moins ------------------------------------------- */
@@ -1229,12 +2245,14 @@ tr.brouillon:hover td { background: #fdf7ee; }
 
   /* 16 px sur les champs : en dessous, iOS zoome à chaque focus et on passe
      son temps à repincer l'écran pour revoir le formulaire. */
-  input, select, textarea { font-size: 16px; padding: 10px 10px; }
+  input, select, textarea { font-size: 16px; padding: 10px 12px; }
+  input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']):not([type='color']),
+  select { min-height: 46px; }
   label { font-size: 13px; }
 
   /* 44 px, la taille d'un pouce. En dessous, on rate. */
-  button.action { padding: 11px 16px; min-height: 44px; }
-  button.action.discret { min-height: 44px; }
+  button.action { padding: 12px 18px; min-height: 46px; }
+  button.action.discret { min-height: 46px; }
   input[type='checkbox'], input[type='radio'] { min-width: 22px; min-height: 22px; }
   .points, .poignee { min-width: 40px; min-height: 40px; }
 
@@ -1245,10 +2263,10 @@ tr.brouillon:hover td { background: #fdf7ee; }
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     background:
-      linear-gradient(to right, var(--surface) 30%, rgba(255,255,255,0)),
-      linear-gradient(to right, rgba(255,255,255,0), var(--surface) 70%) 100% 0,
-      radial-gradient(farthest-side at 0 50%, rgba(22,32,43,.14), transparent),
-      radial-gradient(farthest-side at 100% 50%, rgba(22,32,43,.14), transparent) 100% 0;
+      linear-gradient(to right, var(--surface) 30%, transparent),
+      linear-gradient(to right, transparent, var(--surface) 70%) 100% 0,
+      radial-gradient(farthest-side at 0 50%, rgba(0, 0, 0, .14), transparent),
+      radial-gradient(farthest-side at 100% 50%, rgba(0, 0, 0, .14), transparent) 100% 0;
     background-repeat: no-repeat;
     background-size: 40px 100%, 40px 100%, 14px 100%, 14px 100%;
     background-attachment: local, local, scroll, scroll;
@@ -1262,7 +2280,7 @@ tr.brouillon:hover td { background: #fdf7ee; }
     align-items: stretch;
     gap: 10px;
   }
-  .entete h1 { font-size: 19px; }
+  .entete h1 { font-size: 24px; }
   .entete > div:last-child:not(:only-child) { display: flex; flex-wrap: wrap; gap: 8px; }
   .entete > div:last-child:not(:only-child) > * { flex: 1 1 auto; }
 
@@ -1273,32 +2291,38 @@ tr.brouillon:hover td { background: #fdf7ee; }
     width: 100% !important;
     min-height: 100dvh;
     border: 0;
+    border-radius: 0;
   }
-  .modale-entete { padding: 12px 14px; }
+  .modale-entete { padding: 12px 14px; border-radius: 0; }
   .modale-corps { padding: 14px; }
 
   /* Les onglets passent à la ligne : un onglet coupé au bord de l'écran est
      un onglet qu'on ne voit pas. */
-  .onglets { gap: 4px 14px; flex-wrap: wrap; padding-bottom: 2px; }
+  .onglets { gap: 4px 16px; flex-wrap: wrap; padding-bottom: 2px; }
   .onglets button { padding: 10px 0; }
 
-  .panneau { padding: 12px; }
+  .panneau { padding: 14px; }
+  .carte { padding: 14px; }
   .galerie { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
-  .ariane { font-size: 11px; }
+  .ariane { font-size: 12px; }
 
   /* Le volet d'alertes déborde de l'écran s'il reste ancré à droite. */
   .volet { position: fixed; left: 8px; right: 8px; top: 62px; width: auto; }
 
-  /* La bulle de l'assistant ne doit pas recouvrir un bouton d'action en bas
-     de page : on rend la place qu'elle prend. */
-  main { padding-bottom: 84px; }
+  .bandeau h1 { font-size: 30px; }
+  .tuiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .tuile { min-height: 92px; padding: 12px 14px; }
+  .tuile-chiffre { font-size: 36px; }
 }
 
 /* --- Très petit : 380 px et moins ------------------------------------------ */
 
 @media (max-width: 380px) {
-  main { padding: 10px 10px 84px; }
-  .entete h1 { font-size: 18px; }
+  main { padding: 10px 10px 120px; }
+  main > .bandeau { margin-left: -10px; margin-right: -10px; }
+  main > .bandeau:first-child { margin-top: -10px; }
+  .entete h1 { font-size: 22px; }
+  .bandeau h1 { font-size: 27px; }
   .barre .marque { font-size: 15px; }
 }
 
@@ -1309,7 +2333,7 @@ tr.brouillon:hover td { background: #fdf7ee; }
 
 @media (hover: none) {
   .bulle { display: none; }
-  .survol-panneau { position: static; box-shadow: none; border: 0; padding: 0; }
+  .survol-panneau { position: static; box-shadow: none; border: 0; padding: 0; background: none; }
 }
 
 
@@ -1327,19 +2351,20 @@ tr.brouillon:hover td { background: #fdf7ee; }
   display: flex;
   gap: 14px;
   align-items: start;
-  padding: 16px;
+  padding: 18px;
   background: var(--surface);
   border: 1px solid var(--filet);
+  border-radius: var(--rayon-l);
 }
-.service:hover { border-color: var(--bleu); }
+.service:hover { border-color: var(--encre-pale); }
 
 .service-logo {
   display: grid;
   place-items: center;
   flex: 0 0 auto;
   width: 44px; height: 44px;
-  border-radius: 9px;
-  color: #fff;
+  border-radius: 13px;
+  color: var(--sur-accent);
 }
 
 @media (max-width: 720px) {
@@ -1362,10 +2387,12 @@ tr.brouillon:hover td { background: #fdf7ee; }
   display: flex;
   flex-direction: column;
   min-width: 240px;
-  margin-top: 2px;
+  margin-top: 4px;
+  padding: 6px;
   background: var(--surface);
   border: 1px solid var(--filet);
-  box-shadow: 0 8px 24px rgba(22, 32, 43, .16);
+  border-radius: var(--rayon-m);
+  box-shadow: var(--ombre-forte);
 }
 
 .choix-devis button {
@@ -1373,6 +2400,7 @@ tr.brouillon:hover td { background: #fdf7ee; }
   width: 100%;
   padding: 10px 12px;
   border: 0;
+  border-radius: 10px;
   background: none;
   font: inherit;
   font-weight: 600;
@@ -1380,8 +2408,8 @@ tr.brouillon:hover td { background: #fdf7ee; }
   color: var(--encre);
   cursor: pointer;
 }
-.choix-devis button + button { border-top: 1px solid var(--filet); }
-.choix-devis button:hover { background: var(--bleu-pale); }
+.choix-devis button + button { margin-top: 2px; }
+.choix-devis button:hover { background: var(--surface-2); }
 
 .choix-devis em {
   display: block;
@@ -1398,20 +2426,22 @@ tr.brouillon:hover td { background: #fdf7ee; }
 }
 
 /* --- Mode démonstration (SQL 38, temporaire) -------------------------------
-   Ambre, pas bleu : on doit savoir d'un coup d'œil qu'on n'est pas dans sa
+   À l'accent du thème : on doit savoir d'un coup d'œil qu'on n'est pas dans sa
    propre vue, sinon on finit par croire qu'un technicien voit ce qu'on voit. */
 
-.choix-vue { width: auto; font-size: 13px; padding: 4px 6px; }
+.choix-vue { width: auto; font-size: 13px; padding: 6px 10px; min-height: 38px !important; border-radius: 999px; }
 
 .bandeau-demo {
   display: flex;
   gap: 12px;
   align-items: center;
   flex-wrap: wrap;
-  padding: 10px 14px;
-  margin-bottom: 14px;
-  background: #fff4e0;
-  border-left: 3px solid #d98c00;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  background: var(--accent-pale);
+  border: 1px solid var(--filet);
+  border-left: 4px solid var(--accent-texte);
+  border-radius: var(--rayon-m);
 }
 .bandeau-demo span { flex: 1; min-width: 220px; }
 
@@ -1421,7 +2451,7 @@ tr.brouillon:hover td { background: #fdf7ee; }
   gap: 8px;
   align-items: center;
   flex-wrap: wrap;
-  padding: 10px 14px;
+  padding: 10px 16px;
   border-top: 1px solid var(--filet);
 }
 .volet-pied label { margin: 0; }
@@ -1445,7 +2475,7 @@ tr.brouillon:hover td { background: #fdf7ee; }
    Écran seulement : à l'impression, un tableau reste un tableau. */
 
 @media screen {
-  table[data-cartes] { display: block; background: none; width: 100% !important; }
+  table[data-cartes] { display: block; background: none; width: 100% !important; border: 0; border-radius: 0; }
   table[data-cartes] thead { display: none; }
   /* Une colonne de cartes sur téléphone, deux ou trois sur tablette : une
      carte de 740 px de large, c'est une ligne de tableau étirée, pas une carte. */
@@ -1461,14 +2491,16 @@ tr.brouillon:hover td { background: #fdf7ee; }
     display: block;
     background: var(--surface);
     border: 1px solid var(--filet);
-    padding: 2px 12px;
+    border-radius: 16px;
+    padding: 4px 14px;
   }
   table[data-cartes] tbody td, table[data-cartes] tfoot td {
     display: block;
     width: auto !important;
     max-width: none;
-    padding: 7px 0;
+    padding: 8px 0;
     border-bottom: 1px solid var(--filet);
+    border-radius: 0 !important;
     text-align: left !important;
     white-space: normal;
     overflow-wrap: anywhere;
@@ -1482,7 +2514,8 @@ tr.brouillon:hover td { background: #fdf7ee; }
   table[data-cartes] td::before {
     content: attr(data-libelle);
     display: block;
-    font-size: 11px;
+    font-size: 11.5px;
+    font-weight: 600;
     color: var(--encre-pale);
     margin-bottom: 3px;
   }
@@ -1569,4 +2602,30 @@ main [style*="display: grid"] > *, .panneau > * { min-width: 0; }
    permanence, sortie comprise. */
 @media (max-width: 900px), (hover: none) and (pointer: coarse) {
   .barre-quitter { display: none; }
+}
+
+
+/* --- Impression -------------------------------------------------------------
+   Le papier est blanc et l'encre noire, quel que soit le thème choisi à
+   l'écran : un devis imprimé en mode sombre sortirait en aplat noir. Les
+   jetons sont donc ramenés au clair, sur <html> lui-même, avec un sélecteur
+   aussi précis que ceux des thèmes sombres pour passer devant eux. */
+@media print {
+  :root, [data-theme], [data-ton='sombre'], [data-theme][data-ton='sombre'] {
+    --fond: #FFFFFF;
+    --surface: #FFFFFF;
+    --surface-2: #F4F5F2;
+    --encre: #161718;
+    --encre-2: #3D3F41;
+    --encre-pale: #5F6266;
+    --filet: #DCDDD9;
+    --filet-fort: #B9BBB5;
+    --accent-texte: #161718;
+    --accent-pale: #F4F5F2;
+    --attention-pale: #F4F5F2;
+    --ok-pale: #F4F5F2;
+    color-scheme: light;
+  }
+  .onglets-bas, .feuille, .voile-feuille, .assistant-bulle, .assistant-volet { display: none !important; }
+  .barre, .volet, .menu-liste, .modale-entete, .tuile { -webkit-backdrop-filter: none; backdrop-filter: none; }
 }

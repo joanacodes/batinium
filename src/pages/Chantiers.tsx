@@ -8,6 +8,7 @@ import {
 } from '../lib/db';
 import type { Chantier, Prealable, Site, StatutChantier, Tiers } from '../lib/types';
 import Modale from '../components/Modale';
+import { useCreation } from '../lib/creation';
 
 export const LIBELLE_STATUT: Record<StatutChantier, string> = {
   a_planifier: 'À planifier', bloque: 'Bloqué', planifie: 'Planifié', en_cours: 'En cours',
@@ -16,8 +17,8 @@ export const LIBELLE_STATUT: Record<StatutChantier, string> = {
 
 /** Couleur par statut : reconnaître l'état d'un chantier sans avoir à lire. */
 export const COULEUR_STATUT: Record<StatutChantier, string> = {
-  a_planifier: '#b8860b', bloque: 'var(--alerte)', planifie: 'var(--bleu)',
-  en_cours: 'var(--bleu)', a_receptionner: '#7a5ea8',
+  a_planifier: 'var(--attention)', bloque: 'var(--alerte)', planifie: 'var(--bleu)',
+  en_cours: 'var(--bleu)', a_receptionner: 'var(--encre-2)',
   receptionne: 'var(--vert)', sav: 'var(--alerte)',
 };
 
@@ -25,7 +26,7 @@ type Etape = 'tous' | 'a_commencer' | 'en_cours' | 'termines' | 'sav';
 
 const ETAPES: { cle: Etape; libelle: string; statuts: StatutChantier[]; couleur: string }[] = [
   { cle: 'tous', libelle: 'Tous', statuts: [], couleur: 'var(--encre-pale)' },
-  { cle: 'a_commencer', libelle: 'À commencer', couleur: '#b8860b',
+  { cle: 'a_commencer', libelle: 'À commencer', couleur: 'var(--attention)',
     statuts: ['a_planifier', 'bloque', 'planifie'] },
   { cle: 'en_cours', libelle: 'En cours', couleur: 'var(--bleu)',
     statuts: ['en_cours', 'a_receptionner'] },
@@ -37,7 +38,7 @@ export default function PageChantiers() {
   const [chantiers, setChantiers] = useState<ChantierAvecTiers[]>([]);
   const [erreur, setErreur] = useState<string | null>(null);
   const [charge, setCharge] = useState(false);
-  const [creation, setCreation] = useState(false);
+  const [creation, setCreation] = useCreation('chantier');
   const [recherche, setRecherche] = useState('');
   const [etape, setEtape] = useState<Etape>('tous');
   const [prealables, setPrealables] = useState<Prealable[]>([]);

@@ -7,6 +7,8 @@ import {
   roleReel, voitLesPrix,
 } from './lib/session';
 import { listerChantiers, listerDemandes, listerDevis } from './lib/db';
+import { chargerApparence } from './lib/apparence';
+import { demanderCreation, type Cible } from './lib/creation';
 import type { Membre, Role } from './lib/types';
 import Connexion, { NouveauMotDePasse } from './components/Connexion';
 import Bienvenue from './pages/Bienvenue';
@@ -15,6 +17,7 @@ import Assistant from './components/Assistant';
 import FilAriane from './components/FilAriane';
 import Icone, { Chevron } from './components/Icone';
 import Garde from './components/Garde';
+import { ChoixTon } from './components/Apparence';
 import PageTableauDeBord from './pages/TableauDeBord';
 import PageDemandes from './pages/Demandes';
 import PageTaches from './pages/Taches';
@@ -100,7 +103,14 @@ export default function App() {
     setSession(s);
     memoriserJetonGoogle(s?.provider_token);
     if (!s) { oublierMembre(); setMembre(null); setPret(true); return; }
-    try { setMembre(await chargerMembre(s.user.id)); } catch { setMembre(null); }
+    let m: Membre | null = null;
+    try { m = await chargerMembre(s.user.id); } catch { m = null; }
+    setMembre(m);
+    // Le thème de l'entreprise et le ton de la personne, lus en base avant
+    // d'afficher l'atelier : sinon l'écran s'ouvrirait en graphite et
+    // basculerait une seconde plus tard. Un échec garde le thème par défaut,
+    // l'application reste utilisable — la section Apparence dira pourquoi.
+    if (m) await chargerApparence(m).catch(() => undefined);
     setPret(true);
   }, []);
 
@@ -144,6 +154,9 @@ function Atelier({ membre }: { membre: Membre }) {
   const [menuOuvert, setMenuOuvert] = useState(false);
   const [raccourcis, setRaccourcis] = useState<Record<string, Raccourci[]>>({});
   const [erreurVue, setErreurVue] = useState<string | null>(null);
+  // La feuille « Créer » du téléphone, ouverte par le « + » de la barre d'onglets.
+  const [feuille, setFeuille] = useState(false);
+  const [erreurTon, setErreurTon] = useState<string | null>(null);
 
   function vue(role: Role) {
     setErreurVue(null);
@@ -154,7 +167,7 @@ function Atelier({ membre }: { membre: Membre }) {
     window.localStorage.setItem(CLE_REPLI, replie ? 'oui' : 'non');
   }, [replie]);
 
-  useEffect(() => { setMenuOuvert(false); }, [route.section, route.id]);
+  useEffect(() => { setMenuOuvert(false); setFeuille(false); }, [route.section, route.id]);
 
   useEffect(() => {
     listerDemandes()
@@ -270,9 +283,13 @@ function Atelier({ membre }: { membre: Membre }) {
         <div className="rail-pied">
           {!replie && (
             <div className="statut">
-              {membre.nom}<br />{LIBELLE_ROLE[membre.role]}{enDemonstration() ? ' (démonstration)' : ''}
+              <strong>{membre.nom}</strong>
+              {LIBELLE_ROLE[membre.role]}{enDemonstration() ? ' (démonstration)' : ''}
             </div>
           )}
+          {/* Clair ou sombre, pour soi : ici parce que c'est le seul endroit
+              que tout le monde ouvre, technicien compris. */}
+          <ChoixTon compact={replie} etiquettes={false} onErreur={setErreurTon} />
           {/* Se déconnecter vit ici, sous le nom de la personne connectée. Sur
               téléphone et tablette, c'est le seul endroit : la barre du haut,
               toujours à l'écran, garde sa place pour ce qui sert à chaque page. */}
@@ -297,7 +314,10 @@ function Atelier({ membre }: { membre: Membre }) {
               <path d="M3 5h18M3 12h18M3 19h18" />
             </svg>
           </button>
-          {replie && <div className="marque">Bat<em>inium</em></div>}
+          {/* Toujours rendu : sur téléphone le rail est un tiroir fermé, et c'est le
+              seul endroit où le nom de l'application se lit. Sur ordinateur, le CSS
+              ne le montre que rail replié, quand le rail ne le porte plus. */}
+          <div className="marque marque-barre">Bat<em>inium</em></div>
           <div className="pousse" />
           {/* Le mode démonstration (SQL 38), pour la direction seulement.
               Temporaire : il partira avec le SQL 38. */}
@@ -317,6 +337,7 @@ function Atelier({ membre }: { membre: Membre }) {
         </header>
         <main>
           {erreurVue && <div className="erreur">{erreurVue}</div>}
+          {erreurTon && <div className="erreur">{erreurTon}</div>}
           {enDemonstration() && (
             <div className="bandeau-demo sans-impression">
               <span>
@@ -334,17 +355,112 @@ function Atelier({ membre }: { membre: Membre }) {
               oubliée serait restée sans repère. Les fiches de détail — un
               client, un chantier, une facture — posent le leur, plus riche,
               parce qu'elles seules connaissent le nom de ce qu'elles montrent. */}
-          {!route.id && <FilAriane etapes={ariane(route.section)} />}
+          {/* Pas de fil sur l'accueil : il n'y dirait que « Aujourd'hui », au
+              -dessus d'un bandeau qui le dit déjà en grand. */}
+          {!route.id && route.section !== 'bord' && <FilAriane etapes={ariane(route.section)} />}
           <Garde section={route.section}>
             <Contenu section={route.section} id={route.id} />
           </Garde>
         </main>
       </div>
 
+      <OngletsBas section={route.section} aTraiter={aTraiter}
+                  onPlus={() => setMenuOuvert(true)} onCreer={() => setFeuille(true)} />
+      {feuille && <FeuilleCreer onFermer={() => setFeuille(false)} />}
+
       {/* Au-dessus de tout : on interroge l'assistant sans quitter la page
           où l'on est. C'est justement là qu'on a des questions. */}
       <Assistant />
     </div>
+  );
+}
+
+/**
+ * La barre d'onglets du téléphone et de la tablette (sous 900 px, voir
+ * index.css). Quatre écrans à un pouce, et « Plus » pour le tiroir.
+ *
+ * Le terrain n'a pas les mêmes quatre : pas de demandes ni de devis à
+ * traiter, mais ses chantiers et ses heures. Les entrées sont celles du menu,
+ * avec les mêmes droits — un onglet ne doit jamais mener à une page refusée.
+ */
+function OngletsBas({ section, aTraiter, onPlus, onCreer }: {
+  section: string; aTraiter: number; onPlus: () => void; onCreer: () => void;
+}) {
+  const terrain = !voitLesPrix();
+  const onglets: { cle: string; libelle: string; pastille?: number }[] = terrain
+    ? [{ cle: 'bord', libelle: 'Ma journée' }, { cle: 'chantiers', libelle: 'Chantiers' },
+       { cle: '+', libelle: '' }, { cle: 'heures', libelle: 'Heures' }]
+    : [{ cle: 'bord', libelle: 'Aujourd’hui' }, { cle: 'demandes', libelle: 'Demandes', pastille: aTraiter },
+       { cle: '+', libelle: '' }, { cle: 'chantiers', libelle: 'Chantiers' }];
+
+  return (
+    <nav className="onglets-bas sans-impression" aria-label="Accès rapide">
+      {onglets.map((o) => o.cle === '+' ? (
+        <button key="+" className="onglet-creer" aria-label="Créer" onClick={onCreer}>
+          <Icone nom="plus" taille={24} />
+        </button>
+      ) : (
+        <button key={o.cle} className="onglet" aria-current={section === o.cle ? 'page' : undefined}
+                aria-label={o.pastille ? `${o.libelle}, ${o.pastille} à traiter` : undefined}
+                onClick={() => aller(`/${o.cle}`)}>
+          <Icone nom={o.cle} taille={22} />
+          <span>{o.libelle}</span>
+          {!!o.pastille && <span className="pastille" aria-hidden="true">{o.pastille}</span>}
+        </button>
+      ))}
+      <button className="onglet" onClick={onPlus}>
+        <Icone nom="menu" taille={22} />
+        <span>Plus</span>
+      </button>
+    </nav>
+  );
+}
+
+interface Creation { libelle: string; detail: string; icone: string; vers: string; cible?: Cible }
+
+/**
+ * Ce que le « + » permet de créer sans passer par la liste. Chaque entrée
+ * ouvre directement le formulaire de la page (src/lib/creation.ts). Le
+ * terrain ne crée ni client ni devis : ses entrées mènent à ses heures et au
+ * journal, les deux choses qu'il écrit chaque jour.
+ */
+function FeuilleCreer({ onFermer }: { onFermer: () => void }) {
+  const choix: Creation[] = voitLesPrix()
+    ? [
+        { libelle: 'Noter un appel', detail: 'Une demande reçue au téléphone ou sur place', icone: 'demandes', vers: '/demandes', cible: 'demande' },
+        { libelle: 'Nouveau client', detail: 'Particulier ou professionnel', icone: 'clients', vers: '/clients', cible: 'client' },
+        { libelle: 'Nouveau devis', detail: 'À partir du catalogue', icone: 'devis', vers: '/devis', cible: 'devis' },
+        { libelle: 'Nouveau chantier', detail: 'Pour un client et une adresse', icone: 'chantiers', vers: '/chantiers', cible: 'chantier' },
+      ]
+    : [
+        { libelle: 'Noter mes heures', detail: 'Pour aujourd’hui ou un autre jour', icone: 'heures', vers: '/heures' },
+        { libelle: 'Écrire au journal', detail: 'Une note de chantier, une photo', icone: 'journal', vers: '/journal' },
+      ];
+
+  useEffect(() => {
+    const echap = (e: KeyboardEvent) => { if (e.key === 'Escape') onFermer(); };
+    document.addEventListener('keydown', echap);
+    // Le focus va dans la feuille : au clavier comme au lecteur d'écran, on
+    // doit arriver sur les choix et non rester sur le « + » derrière le voile.
+    document.querySelector<HTMLButtonElement>('.feuille-choix')?.focus();
+    return () => document.removeEventListener('keydown', echap);
+  }, [onFermer]);
+
+  return (
+    <>
+      <button className="voile-feuille sans-impression" aria-label="Fermer" onClick={onFermer} />
+      <div className="feuille sans-impression" role="dialog" aria-modal="true" aria-labelledby="titre-feuille">
+        <div className="feuille-poignee" aria-hidden="true" />
+        <h2 id="titre-feuille">Créer</h2>
+        {choix.map((c) => (
+          <button key={c.libelle} className="feuille-choix"
+                  onClick={() => { onFermer(); aller(c.vers); if (c.cible) demanderCreation(c.cible); }}>
+            <span className="feuille-icone"><Icone nom={c.icone} taille={20} /></span>
+            <span><strong>{c.libelle}</strong><em>{c.detail}</em></span>
+          </button>
+        ))}
+      </div>
+    </>
   );
 }
 

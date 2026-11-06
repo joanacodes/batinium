@@ -93,7 +93,7 @@ export default function PageFacture({ factureId }: { factureId: string }) {
 
         {brouillon ? (
           <div className="panneau" style={{ display: 'block',
-                                            borderLeft: '3px solid #b8860b' }}>
+                                            borderLeft: '3px solid var(--attention)' }}>
             <strong>Ce brouillon n’a pas de numéro.</strong>{' '}
             <span className="statut">
               Il en recevra un à l’émission, et pas avant : un numéro attribué puis

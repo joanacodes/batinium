@@ -158,7 +158,7 @@ export default function PageFicheMembre({ membreId }: { membreId: string }) {
       )}
 
       {bloc('Chantiers en cours', 'en_cours', 'var(--bleu)')}
-      {bloc('Chantiers à venir', 'a_venir', '#b8860b')}
+      {bloc('Chantiers à venir', 'a_venir', 'var(--attention)')}
       {bloc('Chantiers passés', 'passe', 'var(--filet)')}
 
       {horsChantier.length > 0 && (
@@ -204,7 +204,7 @@ export default function PageFicheMembre({ membreId }: { membreId: string }) {
           </thead>
           <tbody>
             {paie.map((x) => (
-              <tr key={x.id} style={!x.paye_le ? { background: '#fdf7ee' } : undefined}>
+              <tr key={x.id} style={!x.paye_le ? { background: 'var(--attention-pale)' } : undefined}>
                 <td className="ref num">{x.periode ?? '—'}</td>
                 <td className="statut">{x.type.replace(/_/g, ' ')}</td>
                 <td>{x.libelle}</td>

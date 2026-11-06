@@ -169,7 +169,7 @@ export default function PageFicheChantier({ chantierId }: { chantierId: string }
       {c.pv_date && (
         <div className="panneau" style={{ display: 'flex', gap: 14, alignItems: 'center',
                                           flexWrap: 'wrap',
-                                          borderLeft: `3px solid ${c.pv_avec_reserves ? '#b8860b' : 'var(--vert)'}` }}>
+                                          borderLeft: `3px solid ${c.pv_avec_reserves ? 'var(--attention)' : 'var(--vert)'}` }}>
           <strong>
             Réception prononcée le {new Date(c.pv_date).toLocaleDateString('fr-FR')}
             {c.pv_avec_reserves ? ' avec réserves' : ' sans réserve'}
@@ -450,7 +450,7 @@ function Interventions({ chantierId, interventions, membres, onErreur, onChange 
               const externe = !salarie && x.sous_traitant_id;
               return (
               <tr key={x.id} style={{
-                borderLeft: `3px solid ${salarie?.role === 'sous_traitant' || externe ? '#7a5ea8'
+                borderLeft: `3px solid ${salarie?.role === 'sous_traitant' || externe ? 'var(--encre-2)'
                   : salarie ? 'var(--bleu)' : 'var(--filet)'}`,
               }}>
                 <td className="num ref">{x.date_prevue ? new Date(x.date_prevue).toLocaleDateString('fr-FR') : '—'}</td>
@@ -496,7 +496,7 @@ function Interventions({ chantierId, interventions, membres, onErreur, onChange 
           <i style={{ width: 9, height: 9, background: 'var(--bleu)', display: 'inline-block',
                       borderRadius: 2, marginRight: 5 }} />
           salarié
-          <i style={{ width: 9, height: 9, background: '#7a5ea8', display: 'inline-block',
+          <i style={{ width: 9, height: 9, background: 'var(--encre-2)', display: 'inline-block',
                       borderRadius: 2, margin: '0 5px 0 14px' }} />
           sous-traitant
         </p>

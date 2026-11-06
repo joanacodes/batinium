@@ -173,7 +173,7 @@ export default function PageFicheFluide({ ficheId }: { ficheId: string }) {
       )}
       {f.statut === 'rectifiee' && (
         <div className="panneau sans-impression" style={{ display: 'block',
-                                                          borderLeft: '3px solid #b8860b' }}>
+                                                          borderLeft: '3px solid var(--attention)' }}>
           Cette fiche a été rectifiée et ne change plus.
           {rectification && <> <a href={`#/fluide/${rectification.id}`}>
             Ouvrir la fiche rectificative {rectification.numero ?? '(brouillon)'}</a></>}
@@ -284,7 +284,7 @@ function Editeur({ f, machine, controles, pret, onPatch, onCorrigerMachine, onSi
     <>
       {/* Toujours en tête : on voit ce qui manque en remplissant, pas en signant. */}
       <div className="panneau" style={{ display: 'block',
-                                        borderLeft: `3px solid ${pret ? 'var(--vert)' : '#b8860b'}` }}>
+                                        borderLeft: `3px solid ${pret ? 'var(--vert)' : 'var(--attention)'}` }}>
         <h3 style={{ marginBottom: 8 }}>Autocontrôles</h3>
         <div style={{ display: 'grid', gap: 4 }}>
           {controles.map((c, i) => (
@@ -788,6 +788,8 @@ function libelleFluide(e: { fluide?: string | null; famille?: string | null; prp
 function TitreRubrique({ n, titre, note }: { n: number | string; titre: string; note?: string }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+                  // Blanc fixe, hors thème : un Cerfa reste noir sur blanc, à l'écran comme
+                  // imprimé. Suppose que .document garde --encre foncée, sinon illisible.
                   background: 'var(--encre)', color: '#fff', padding: '3px 8px', margin: '12px 0 6px',
                   fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.3 }}>
       <span>{n}. {titre}</span>

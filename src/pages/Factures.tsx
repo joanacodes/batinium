@@ -132,7 +132,7 @@ export default function PageFactures() {
                 return (
                   <tr key={f.id} className="cliquable"
                       onClick={() => aller(`/factures/${f.id}`)}
-                      style={retard ? { background: '#fdf3f2' } : undefined}>
+                      style={retard ? { background: 'var(--alerte-pale)' } : undefined}>
                     <td>
                       <strong>{f.numero ?? <span className="statut">brouillon</span>}</strong>
                       {f.titre && <div className="statut">{f.titre}</div>}

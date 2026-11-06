@@ -149,7 +149,7 @@ function Salaries({ onErreur }: { onErreur: (m: string) => void }) {
                     {exp && (
                       <div style={{
                         color: etat === 'retard' ? 'var(--alerte)'
-                          : etat === 'bientot' ? '#b8860b' : 'var(--vert)',
+                          : etat === 'bientot' ? 'var(--attention)' : 'var(--vert)',
                       }}>
                         {etat === 'retard' ? 'expirée le ' : 'jusqu’au '}
                         {new Date(exp).toLocaleDateString('fr-FR')}
@@ -317,7 +317,7 @@ function SousTraitants({ onErreur }: { onErreur: (m: string) => void }) {
               return (
                 <tr key={t.id} className="cliquable"
                     onClick={() => aller(`/soustraitant/${t.id}`)}
-                    style={perime ? { background: '#fdf3f2' } : undefined}>
+                    style={perime ? { background: 'var(--alerte-pale)' } : undefined}>
                   <td><strong>{t.nom}</strong>{t.ville ? <div className="ref">{t.ville}</div> : null}</td>
                   <td className="ref">
                     {t.telephone ?? ''}{t.telephone && t.email ? <br /> : null}{t.email ?? ''}
@@ -595,7 +595,7 @@ function Paie({ onErreur }: { onErreur: (m: string) => void }) {
                 const programme = !!p.paye_le && p.paye_le > aujourdhui;
                 const enRetard = !p.paye_le && p.du_le && p.du_le < aujourdhui;
                 return (
-                  <tr key={p.id} style={enRetard ? { background: '#fdf3f2' } : undefined}>
+                  <tr key={p.id} style={enRetard ? { background: 'var(--alerte-pale)' } : undefined}>
                     <td>
                       <strong>{p.membre?.nom ?? p.tiers?.nom ?? '—'}</strong>
                       <div>

@@ -26,7 +26,7 @@ import type { Document, Membre, TypeDocument } from '../lib/types';
  */
 
 const COULEUR = {
-  perime: 'var(--alerte)', bientot: '#b8860b',
+  perime: 'var(--alerte)', bientot: 'var(--attention)',
   a_jour: 'var(--vert)', sans_echeance: 'var(--encre-pale)',
 } as const;
 
@@ -210,7 +210,7 @@ export default function PiecesJointes({
                 {docs.map((d) => {
                   const etat = etatDocument(d);
                   return (
-                    <tr key={d.id} style={etat === 'perime' ? { background: '#fdf3f2' } : undefined}>
+                    <tr key={d.id} style={etat === 'perime' ? { background: 'var(--alerte-pale)' } : undefined}>
                       <td>
                         <select defaultValue={d.type} style={{ padding: '3px 5px', fontSize: 12 }}
                                 onChange={(e) => void majDocument(d.id,

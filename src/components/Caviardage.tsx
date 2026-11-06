@@ -63,7 +63,7 @@ export default function Caviardage({ texte, onRemplacer }: {
 
       {restants.map((p, i) => (
         <div key={i} style={{ marginTop: 10, padding: 10,
-                              borderLeft: '3px solid var(--alerte)', background: '#fdf3f2' }}>
+                              borderLeft: '3px solid var(--alerte)', background: 'var(--alerte-pale)' }}>
           <div style={{ fontFamily: 'ui-monospace, monospace', fontSize: 12 }}>
             « {p.extrait} »
           </div>

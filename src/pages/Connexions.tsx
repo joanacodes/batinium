@@ -32,7 +32,6 @@ interface Service {
   cle: string;
   nom: string;
   quoi: string;
-  couleur: string;
   glyphe: ReactNode;
   etat: Etat;
   detail: string;
@@ -125,31 +124,31 @@ export default function PageConnexions() {
   const services: Service[] = [
     {
       cle: 'allo', nom: 'Allô', quoi: 'Standard téléphonique',
-      couleur: '#1f7a4d', glyphe: <Telephone />,
+      glyphe: <Telephone />,
       etat: allo, detail: detail.allo ?? '…',
       ouvrir: () => setOuvert('allo'),
     },
     {
       cle: 'ia', nom: 'Assistant IA', quoi: 'Dictée, lecture de tarifs, assistant',
-      couleur: '#8a5cd6', glyphe: <Etincelle />,
+      glyphe: <Etincelle />,
       etat: ia, detail: detail.ia ?? '…',
       ouvrir: () => setOuvert('ia'),
     },
     {
       cle: 'google', nom: 'Google', quoi: 'Boîte mail et agenda',
-      couleur: '#c5442f', glyphe: <Enveloppe />,
+      glyphe: <Enveloppe />,
       etat: gmail, detail: detail.google ?? 'Pas encore connecté.',
       ouvrir: () => setOuvert('google'),
     },
     {
       cle: 'pennylane', nom: 'Pennylane', quoi: 'Comptabilité',
-      couleur: '#2d6ca8', glyphe: <Livre />,
+      glyphe: <Livre />,
       etat: 'inactif', detail: 'Prévu. Envoi des factures au comptable.',
       bientot: true,
     },
     {
       cle: 'dropbox', nom: 'Dropbox', quoi: 'Documents par chantier',
-      couleur: '#1a6fd4', glyphe: <Boite />,
+      glyphe: <Boite />,
       etat: 'inactif', detail: 'Prévu. Les fichiers sont déjà stockés dans Batinium.',
       bientot: true,
     },
@@ -402,7 +401,7 @@ npx supabase functions deploy allo-webhook --no-verify-jwt`}</pre>
 
             {installation && (
               <div style={{ marginTop: 10, padding: 10,
-                            background: installation.ok ? 'var(--bleu-pale)' : '#fdf3f2',
+                            background: installation.ok ? 'var(--bleu-pale)' : 'var(--alerte-pale)',
                             borderLeft: `3px solid ${installation.ok ? 'var(--vert)' : 'var(--alerte)'}` }}>
                 <strong>{installation.titre}</strong>
                 <p className="statut" style={{ margin: '4px 0 0' }}>{installation.quoiFaire}</p>
@@ -433,7 +432,7 @@ npx supabase functions deploy allo-webhook --no-verify-jwt`}</pre>
 
             {test && (
               <div style={{ marginTop: 10, padding: 10,
-                            background: test.ok ? 'var(--bleu-pale)' : '#fdf3f2',
+                            background: test.ok ? 'var(--bleu-pale)' : 'var(--alerte-pale)',
                             borderLeft: `3px solid ${test.ok ? 'var(--vert)' : 'var(--alerte)'}` }}>
                 <strong>{test.titre}</strong>
                 <p className="statut" style={{ margin: '4px 0 0' }}>{test.quoiFaire}</p>
@@ -488,7 +487,7 @@ npx supabase functions deploy allo-webhook --no-verify-jwt`}</pre>
 
             {retourNoms && (
               <div style={{ marginTop: 10, padding: 10,
-                            background: retourNoms.ok ? 'var(--bleu-pale)' : '#fdf3f2',
+                            background: retourNoms.ok ? 'var(--bleu-pale)' : 'var(--alerte-pale)',
                             borderLeft: `3px solid ${retourNoms.ok ? 'var(--vert)' : 'var(--alerte)'}` }}>
                 <p className="statut" style={{ margin: 0 }}>{retourNoms.texte}</p>
               </div>
@@ -685,14 +684,17 @@ const MOTS: Record<Etat, string> = {
 };
 
 const COULEURS: Record<Etat, string> = {
-  actif: 'var(--vert)', partiel: '#b8860b', inactif: 'var(--encre-pale)',
+  actif: 'var(--vert)', partiel: 'var(--attention)', inactif: 'var(--encre-pale)',
   erreur: 'var(--alerte)', inconnu: 'var(--encre-pale)',
 };
 
 function Carte({ service, direction }: { service: Service; direction: boolean }) {
   return (
     <div className="service">
-      <div className="service-logo" style={{ background: service.couleur }}>
+      {/* L'accent du thème pour toutes les tuiles, pas les couleurs des marques :
+          l'application n'affiche qu'une couleur, et une couleur fixe ne suivrait
+          ni le thème ni le mode sombre. */}
+      <div className="service-logo" style={{ background: 'var(--accent)' }}>
         {service.glyphe}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>

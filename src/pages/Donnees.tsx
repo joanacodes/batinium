@@ -219,7 +219,7 @@ function Effacer({ onErreur }: { onErreur: (m: string) => void }) {
 
   return (
     <>
-      <div className="panneau" style={{ display: 'block', borderLeft: '3px solid #b8860b' }}>
+      <div className="panneau" style={{ display: 'block', borderLeft: '3px solid var(--attention)' }}>
         <h3 style={{ marginBottom: 6 }}>Effacer n’est pas supprimer</h3>
         <p className="statut">
           Le droit à l’effacement existe, mais il n’est pas absolu : l’article 17.3.b du
@@ -264,7 +264,7 @@ function Effacer({ onErreur }: { onErreur: (m: string) => void }) {
 
         {portee && cible && (
           <div style={{ marginTop: 12, padding: 10,
-                        borderLeft: `3px solid ${portee.factures > 0 ? '#b8860b' : 'var(--vert)'}`,
+                        borderLeft: `3px solid ${portee.factures > 0 ? 'var(--attention)' : 'var(--vert)'}`,
                         background: 'var(--papier)' }}>
             {portee.factures === 0 ? (
               <>

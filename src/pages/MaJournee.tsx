@@ -101,6 +101,7 @@ export default function PageMaJournee({ apercu = false }: { apercu?: boolean }) 
     / 900000) / 4;
   const ouverteSansIntervention = presences.find((p) => !p.parti_le && !p.intervention_id);
   const aRenouveler = pieces.filter((d) => ['perime', 'bientot'].includes(etatDocument(d, 60)));
+  const dateDuJour = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
 
   async function marquer(i: Intervention, statut: Intervention['statut']) {
     try {
@@ -163,23 +164,58 @@ export default function PageMaJournee({ apercu = false }: { apercu?: boolean }) 
 
   return (
     <>
-      <FilAriane etapes={[
-        { libelle: 'Aujourd’hui', vers: '/bord' },
-        { libelle: apercu ? 'Vue technicien' : 'Ma journée' },
-      ]} />
+      {/* Le fil d'Ariane ne sert qu'à la direction qui regarde cet écran en
+          aperçu : pour le poseur, c'est l'accueil, il n'y a pas d'où revenir. */}
+      {apercu && (
+        <FilAriane etapes={[
+          { libelle: 'Aujourd’hui', vers: '/bord' },
+          { libelle: 'Vue technicien' },
+        ]} />
+      )}
 
-      <div className="entete">
-        <div>
-          <h1>Bonjour {moi().nom.split(' ')[0]}</h1>
-          <div className="statut">
-            {new Date().toLocaleDateString('fr-FR',
-              { weekday: 'long', day: 'numeric', month: 'long' })}
+      {/* Le haut de l'écran : le bonjour et la journée en chiffres. Aucun prix
+          ici, c'est un écran de terrain (règle 8) : des interventions, des
+          tâches et des heures. La tuile des interventions prend l'accent
+          quand il y en a, c'est la première chose à faire de la journée. */}
+      <section className="bandeau" aria-label="Ma journée">
+        <div className="bandeau-tete">
+          <div>
+            <p className="bandeau-date">{dateDuJour.charAt(0).toUpperCase() + dateDuJour.slice(1)}</p>
+            <h1>Bonjour {moi().nom.split(' ')[0]}</h1>
+          </div>
+          <div className="bandeau-actions">
+            <button className="action discret" onClick={() => aller('/heures')}>
+              Mes heures
+            </button>
           </div>
         </div>
-        <button className="action discret" onClick={() => aller('/heures')}>
-          Mes heures
-        </button>
-      </div>
+        <div className="tuiles">
+          <div className="tuile" data-fort={duJour.length > 0 ? 'oui' : undefined}>
+            <span className="tuile-chiffre">{duJour.length}</span>
+            <span className="tuile-libelle">
+              {duJour.length > 1 ? 'Interventions aujourd’hui' : 'Intervention aujourd’hui'}
+            </span>
+          </div>
+          {enRetard.length > 0 && (
+            <div className="tuile" data-point="oui">
+              <span className="tuile-chiffre">{enRetard.length}</span>
+              <span className="tuile-libelle">Restée{enRetard.length > 1 ? 's' : ''} ouverte{enRetard.length > 1 ? 's' : ''}</span>
+            </div>
+          )}
+          <div className="tuile">
+            <span className="tuile-chiffre">{tachesDuJour.length}</span>
+            <span className="tuile-libelle">À faire</span>
+          </div>
+          <button className="tuile" onClick={() => aller('/heures')}>
+            <span className="tuile-chiffre petit">{heuresJour > 0 ? heuresLisibles(heuresJour) : '—'}</span>
+            <span className="tuile-libelle">Heures notées</span>
+          </button>
+          <div className="tuile">
+            <span className="tuile-chiffre">{deDemain.length}</span>
+            <span className="tuile-libelle">Demain</span>
+          </div>
+        </div>
+      </section>
 
       {apercu && (
         <div className="panneau" style={{ display: 'block', borderLeft: '3px solid var(--bleu)' }}>
@@ -252,7 +288,7 @@ export default function PageMaJournee({ apercu = false }: { apercu?: boolean }) 
               )}
 
               {site?.contraintes_acces && (
-                <div style={{ marginTop: 10, borderLeft: '3px solid #b8860b', paddingLeft: 10 }}>
+                <div style={{ marginTop: 10, borderLeft: '3px solid var(--attention)', paddingLeft: 10 }}>
                   <span className="statut">Accès</span>
                   <div>{site.contraintes_acces}</div>
                 </div>

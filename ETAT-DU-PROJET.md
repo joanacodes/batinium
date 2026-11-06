@@ -1,4 +1,4 @@
-# Batinium — état du projet au 13 octobre 2026
+# Batinium — état du projet au 6 novembre 2026
 
 Ce document dit ce qu'est l'application, pour qui, ce qu'elle fait, comment
 elle est construite, et exactement où le travail s'est arrêté. Il accompagne
@@ -68,7 +68,10 @@ trouvés (`REVUE-PHASE-1.md`) : les corrections de la revue devront s'appliquer
 à une base qui les porte déjà. **À exécuter : 34 à 37 et 40** (appels rattachés
 à leur client, arrivées sur chantier, demandes faites sur place, contrats
 d'entretien, numéro de chantier « rue et client » ; 38 se rejoue sans dommage),
-**puis 39** (vidéos de 500 Mo) une fois Supabase passé à l'offre Pro.
+**41 à part** (apparence : il ne dépend que du 01, et ne doit rien annuler
+d'autre s'il échouait), **puis 39** (vidéos de 500 Mo) une fois Supabase
+passé à l'offre Pro. Les sept se copient depuis
+https://claude.ai/artifact/NGPRZBp2wZ57fpRc2G6Eeo.
 
 Premier essai du paquet 34 → 38 + 40, le 3 novembre : arrêté par la
 vérification du 36 (« new row violates row-level security policy for table
@@ -82,7 +85,7 @@ est celle du SQL 01. Les vérifications de 35 à 38 et 40 n'essaient plus que
 des membres qui ont un compte ; reproduit puis corrigé sur une copie locale
 dans le même état (32 et 33 compris).
 
-Depuis le 13 octobre, `sql/` contient 01 à 03 et 12 à 40, plus
+Depuis le 13 octobre, `sql/` contient 01 à 03 et 12 à 41, plus
 `essai_achats.sql` : les scripts 12 à 31 ont été reconstitués depuis la
 conversation où ils avaient été livrés, et tous (01 à 33) ont tourné sans
 erreur, vérifications comprises, sur une base Postgres 16 locale où les
@@ -123,6 +126,7 @@ tiennent entre eux.
 | **38** | **Mode démonstration, temporaire : `membre.apercu_role`, `mon_role()` qui le lit, `entrer_apercu()` / `quitter_apercu()`** — à exécuter, à retirer avant la revente (procédure dans son en-tête) |
 | **39** | **Vidéos : le seau `documents` passe de 50 à 500 Mo par fichier** — à exécuter avec l'offre Pro, après avoir relevé la limite du projet (voir §5) |
 | **40** | **Numéro de chantier « Rue des Lilas – Durand », puis « 2 » pour le deuxième chantier du même client : `numero_chantier()`, réglage `parametres.numerotation_chantier` (ou le compteur)** — à exécuter ; avant, les chantiers suivent le compteur |
+| **41** | **Apparence : `entreprise.theme` (citron, cobalt, minuit), choisi par la direction seule par `choisir_theme()` ; `membre.ton` (auto, clair, sombre), réglé par chacun pour soi par `choisir_ton()`** — à exécuter seul ; avant, Batinium s'ouvre en graphite et citron au ton du téléphone, et un choix ne vaut que pour la session |
 
 Fichiers d'essai : `essai_achats.sql` (jeu de factures fournisseurs, se
 retire par `delete from achat where numero like 'ESSAI-%'`).
@@ -253,6 +257,11 @@ automatique chez Allô par clé d'API), Assistant IA (clé partagée, jauge de
 consommation mensuelle, clé propre possible), Google (bouton de connexion),
 Pennylane et Dropbox marqués « bientôt ».
 
+**Apparence** (en tête de la page Entreprise) — le thème de toute l'équipe,
+choisi par la direction parmi trois (graphite et citron, cobalt, minuit),
+chacun avec son aperçu ; le mode clair, sombre ou automatique, par personne,
+aussi en bas du menu pour ceux qui n'ouvrent jamais cette page (SQL 41).
+
 **Entreprise** — raison sociale, SIRET, TVA, assurances, médiateur,
 attestation de capacité fluides (numéro, organisme, échéance, et depuis la
 phase 1 la catégorie), coefficient de charges, acompte par défaut, délais et
@@ -332,6 +341,53 @@ connexions, sécurité et dette, plan, interface), dont 27 à faire avant
 l'interface. Chaque ligne a sa référence (A1, C7…) et dit qui s'en charge.
 Elle vit dans la base de la page (collection `taches`) : une ligne terminée
 s'y coche, par la page ou par Claude.
+
+### Apparence — codée le 6 novembre, SQL 41 à exécuter
+
+Choisie le 6 novembre parmi huit directions dessinées sur le canevas
+« Styles d'interface Batinium » (https://claude.ai/artifact/8AMvWVKexYzoW7PHUH3yXF) :
+**graphite et citron** par défaut, avec **cobalt** et **minuit** au choix de
+Fabrice. Mode clair et sombre, effets de verre.
+
+- **Trois thèmes, une couleur chacun**, la même sur tous les écrans : elle
+  dit ce qui est choisi ou ce qui attend, jamais une catégorie. Les états se
+  lisent à la forme (plein, contour, gras, icône). Le rouge, l'ambre, le vert
+  et le violet d'avant ont disparu ; une erreur s'affiche avec un trait et un
+  fond, pas en rouge.
+- **Tout passe par des jetons** dans `src/index.css` (`--fond`, `--surface`,
+  `--encre`, `--accent`, `--accent-texte`, `--bandeau`…). Les anciens noms
+  (`--bleu`, `--vert`, `--alerte`, `--papier`) restent, rebranchés, parce que
+  les pages les écrivent en style en ligne. Les 61 couleurs écrites en dur
+  dans 27 pages sont devenues des jetons. Il n'en reste que deux, voulues : le
+  pavé de signature (encre sur papier) et le bandeau du Cerfa fluides.
+- **Le verre** est réservé à ce qui flotte au-dessus du contenu : barre du
+  haut, barre d'onglets du téléphone, menus, volets, modales, tuiles du
+  bandeau. Sans support du flou, ou si le système demande moins de
+  transparence, les surfaces redeviennent pleines.
+- **Accueil** (Aujourd'hui et Ma journée) : un bandeau porte le bonjour et
+  les chiffres du jour en tuiles ; la première qui attend prend l'accent, les
+  autres un point. Ma journée n'y montre aucun prix (règle 8).
+- **Téléphone et tablette** : une barre d'onglets en bas (Aujourd'hui,
+  Demandes, Chantiers ; Ma journée, Chantiers, Heures pour le terrain) avec
+  un « + » qui ouvre les créations courantes directement (appel, client,
+  devis, chantier — `src/lib/creation.ts`), et « Plus » pour le menu complet.
+- **Les documents restent du papier** : devis, factures, PV et fiches fluides
+  gardent le noir sur blanc à l'écran en mode sombre, et l'impression ramène
+  tous les jetons au clair.
+- **Polices servies par Batinium** (`public/polices`, licences OFL) :
+  Bricolage Grotesque, Sora, Geist et Geist Mono. Aucun appel à Google Fonts,
+  qui transmettrait l'adresse IP de chaque visiteur.
+- **Le choix est en base, pas dans le navigateur** (règle 9) : SQL 41. Avant
+  lui, la section Apparence le dit, et un choix vaut pour la session.
+
+Vérifié dans un navigateur simulé, données d'essai : les trois thèmes en clair
+et en sombre, au téléphone (390 px), à la tablette (834, 1180) et à
+l'ordinateur (1280), sur l'accueil, les réglages, les demandes, un devis, une
+facture brouillon et émise, une fiche chantier, les clients, les heures, le
+calendrier, Ma journée, la feuille « + », le menu et l'écran de connexion.
+SQL 41 éprouvé sur la base locale : appliqué deux fois, et cinq mutations
+(contrôle du rôle retiré, ton écrit chez les collègues, etc.) font échouer sa
+vérification.
 
 ### Demandes de Fabrice du 13 octobre — codées, SQL à exécuter
 

@@ -137,7 +137,7 @@ function Factures({ onErreur }: { onErreur: (m: string) => void }) {
                 const complet = a.lignes > 0 && a.rattachees === a.lignes;
                 return (
                   <tr key={a.id} className="cliquable" onClick={() => setOuvert(a)}
-                      style={!complet ? { background: '#fdf7ee' } : undefined}>
+                      style={!complet ? { background: 'var(--attention-pale)' } : undefined}>
                     <td><strong>{a.fournisseur}</strong></td>
                     <td className="ref">{a.numero ?? '—'}</td>
                     <td className="num ref">
@@ -317,7 +317,7 @@ function Lignes({ achat, appros, onErreur }: {
           </thead>
           <tbody>
             {lignes.map((l) => (
-              <tr key={l.id} style={!l.chantier_id ? { background: '#fdf7ee' } : undefined}>
+              <tr key={l.id} style={!l.chantier_id ? { background: 'var(--attention-pale)' } : undefined}>
                 <td>
                   <input defaultValue={l.designation} style={{ padding: '3px 5px' }}
                          onBlur={(e) => e.target.value !== l.designation
@@ -441,7 +441,7 @@ function Ecarts({ onErreur }: { onErreur: (m: string) => void }) {
             <tbody>
               {ecarts.map((e) => (
                 <tr key={e.produit_id}
-                    style={(e.ecart_pct ?? 0) > 3 ? { background: '#fdf3f2' } : undefined}>
+                    style={(e.ecart_pct ?? 0) > 3 ? { background: 'var(--alerte-pale)' } : undefined}>
                   <td className="ref">{e.reference}</td>
                   <td>{e.designation}</td>
                   <td className="num">

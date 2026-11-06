@@ -182,7 +182,7 @@ export default function PageTaches() {
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={() => void deposer(t.id)}
                     style={{
-                      background: retard ? '#fdf3f2' : undefined,
+                      background: retard ? 'var(--alerte-pale)' : undefined,
                       opacity: t.faite ? 0.5 : 1,
                     }}>
                   <td style={{ textAlign: 'center' }}>

@@ -424,7 +424,7 @@ function Achats({ onErreur, edition, setEdition }: {
         </thead>
         <tbody>
           {visibles.map((d) => (
-            <tr key={d.id} style={!d.facture_au_nom_entreprise ? { background: '#fdf7ee' } : undefined}>
+            <tr key={d.id} style={!d.facture_au_nom_entreprise ? { background: 'var(--attention-pale)' } : undefined}>
               <td className="num ref">{new Date(d.date_achat).toLocaleDateString('fr-FR')}</td>
               <td>
                 {d.libelle}
@@ -566,7 +566,7 @@ function FormulaireDepense({ depense, chantiers, membres, onEnregistre, onErreur
           {chantiers.map((c) => <option key={c.id} value={c.id}>{c.numero} — {c.libelle}</option>)}
         </select>
         {materielDeChantier ? (
-          <p className="statut" style={{ color: '#b8860b' }}>
+          <p className="statut" style={{ color: 'var(--attention)' }}>
             Du matériel rattaché à un chantier passe par <a href="#/achats">Achats</a>,
             où il se rapproche de ce qui était prévu. Saisi ici <em>et</em> là-bas, il
             compterait deux fois dans le coût du chantier. Le « ticket de comptoir »

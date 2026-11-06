@@ -1,6 +1,6 @@
 import { aller } from '../lib/router';
 import { eur } from '../lib/calcul';
-import { basculerVue, roleReel, useChargement, voitLesPrix } from '../lib/session';
+import { basculerVue, membre, roleReel, useChargement, voitLesPrix } from '../lib/session';
 import {
   basculerTache, chargerTousLesDevis, listerChantiers, listerDemandes, listerTaches,
   listerDocumentsAEcheance,
@@ -32,20 +32,20 @@ export default function PageTableauDeBord() {
                     * (1 - Number(l.remise_pct) / 100), 0,
       ) - Number(g.devis.remise_montant ?? 0);
     }
-    return { demandes, devis, chantiers, vigilance, totaux, taches };
+    return { demandes, devis, chantiers, vigilance, totaux, taches, lu: new Date() };
   });
 
   if (erreur) return <div className="erreur">{erreur}</div>;
   if (!valeur) {
     return (
       <>
-        <div className="entete"><h1>Aujourd’hui</h1></div>
-        <Squelette chiffres={4} lignes={6} colonnes={5} />
+        <Bandeau />
+        <Squelette chiffres={0} lignes={6} colonnes={5} />
       </>
     );
   }
 
-  const { demandes, devis, chantiers, vigilance, totaux, taches } = valeur;
+  const { demandes, devis, chantiers, vigilance, totaux, taches, lu } = valeur;
   const aujourdhui = new Date().toISOString().slice(0, 10);
 
   const sansReponse = demandes.filter((d) => !d.repondu && !['perdue', 'spam'].includes(d.statut));
@@ -58,38 +58,34 @@ export default function PageTableauDeBord() {
     .filter((d) => ['envoye', 'relance'].includes(d.statut))
     .reduce((s, d) => s + (totaux[d.id] ?? 0), 0);
 
+  // Une seule tuile prend l'accent : la première qui attend, dans l'ordre où
+  // l'argent se perd — quelqu'un sans réponse, un rappel promis, un devis
+  // jamais relancé. Les autres qui attendent portent un point, pas l'accent :
+  // trois tuiles allumées, c'est n'en allumer aucune.
+  const attentes = [
+    { cle: 'sansReponse', n: sansReponse.length },
+    { cle: 'aRappeler', n: aRappeler.length },
+    { cle: 'aRelancer', n: voitLesPrix() ? aRelancer.length : 0 },
+  ];
+  const forte = attentes.find((a) => a.n > 0)?.cle ?? null;
+  const etat = (cle: string, n: number) => ({ fort: forte === cle, point: forte !== cle && n > 0 });
+
   return (
     <>
-      <div className="entete">
-        <h1>Aujourd’hui</h1>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'baseline' }}>
-          <div className="statut">
-            {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
-          </div>
-          {/* Cet écran-ci est celui du gérant. Le bouton montre celui du poseur,
-              qui n'a rien à voir : ni devis, ni impayés, ni relances — et avec
-              ses droits à lui, en base, grâce au mode démonstration (SQL 38). */}
-          {roleReel() === 'direction' && (
-            <button className="action discret"
-                    onClick={() => basculerVue('technicien').catch((e) => window.alert((e as Error).message))}>
-              Voir comme un technicien
-            </button>
+      <Bandeau lu={lu}>
+        <div className="tuiles">
+          <Tuile libelle="Sans réponse" valeur={sansReponse.length} {...etat('sansReponse', sansReponse.length)}
+                 onClick={() => aller('/demandes')} />
+          <Tuile libelle="À rappeler" valeur={aRappeler.length} {...etat('aRappeler', aRappeler.length)}
+                 onClick={() => aller('/demandes')} />
+          {voitLesPrix() && (
+            <Tuile libelle="Devis à relancer" valeur={aRelancer.length} {...etat('aRelancer', aRelancer.length)}
+                   onClick={() => aller('/devis')} />
           )}
+          <Tuile libelle="Chantiers à lancer" valeur={bloques.length} onClick={() => aller('/chantiers')} />
+          {voitLesPrix() && <Tuile libelle="Devis en attente" valeur={eur(enCoursTtc)} petit />}
         </div>
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 12, marginBottom: 20 }}>
-        <Compteur libelle="Sans réponse" valeur={sansReponse.length} alerte={sansReponse.length > 0}
-                  onClick={() => aller('/demandes')} />
-        <Compteur libelle="À rappeler" valeur={aRappeler.length} alerte={aRappeler.length > 0}
-                  onClick={() => aller('/demandes')} />
-        {voitLesPrix() && (
-          <Compteur libelle="Devis à relancer" valeur={aRelancer.length} alerte={aRelancer.length > 0}
-                    onClick={() => aller('/devis')} />
-        )}
-        <Compteur libelle="Chantiers à lancer" valeur={bloques.length} onClick={() => aller('/chantiers')} />
-        {voitLesPrix() && <Compteur libelle="Devis en attente" valeur={eur(enCoursTtc)} />}
-      </div>
+      </Bandeau>
 
       {perimes.length > 0 && (
         <div className="erreur">
@@ -161,30 +157,59 @@ export default function PageTableauDeBord() {
 }
 
 /**
- * Un compteur, cliquable ou non.
+ * Le haut de l'écran : la date, le bonjour, et les chiffres du jour en tuiles.
  *
- * Il était rendu en `<button disabled>` quand il n'y avait rien à cliquer :
- * le navigateur grisait alors le chiffre, et « Devis en attente » avait l'air
- * en panne alors qu'il était juste. Un élément non interactif doit être un
+ * Le bouton « Voir comme un technicien » reste ici : cet écran-ci est celui du
+ * gérant, et le bouton montre celui du poseur, qui n'a rien à voir — ni devis,
+ * ni impayés, ni relances — avec ses droits à lui, en base, grâce au mode
+ * démonstration (SQL 38).
+ */
+function Bandeau({ lu, children }: { lu?: Date; children?: React.ReactNode }) {
+  const date = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+  const heure = lu ? ` · à jour à ${lu.getHours()} h ${String(lu.getMinutes()).padStart(2, '0')}` : '';
+  return (
+    <section className="bandeau" aria-label="Aujourd’hui">
+      <div className="bandeau-tete">
+        <div>
+          <p className="bandeau-date">{date.charAt(0).toUpperCase() + date.slice(1)}{heure}</p>
+          <h1>Bonjour {membre().nom.split(' ')[0]}</h1>
+        </div>
+        {roleReel() === 'direction' && (
+          <div className="bandeau-actions">
+            <button className="action discret"
+                    onClick={() => basculerVue('technicien').catch((e) => window.alert((e as Error).message))}>
+              Voir comme un technicien
+            </button>
+          </div>
+        )}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+/**
+ * Une tuile du bandeau, cliquable ou non.
+ *
+ * Un compteur sans destination était rendu en `<button disabled>` : le
+ * navigateur grisait alors le chiffre, et « Devis en attente » avait l'air en
+ * panne alors qu'il était juste. Un élément non interactif doit être un
  * élément non interactif, pas un bouton désactivé.
  */
-function Compteur({ libelle, valeur, alerte, onClick }:
-  { libelle: string; valeur: number | string; alerte?: boolean; onClick?: () => void }) {
-  const style = {
-    textAlign: 'left' as const, font: 'inherit', color: 'var(--encre)',
-    background: 'var(--surface)', border: '1px solid var(--filet)',
-    borderLeft: `3px solid ${alerte ? 'var(--alerte)' : 'var(--filet)'}`,
-    padding: '12px 14px',
-  };
+function Tuile({ libelle, valeur, fort, point, petit, onClick }: {
+  libelle: string; valeur: number | string; fort?: boolean; point?: boolean; petit?: boolean;
+  onClick?: () => void;
+}) {
   const contenu = (
     <>
-      <div className="statut">{libelle}</div>
-      <div className="num" style={{ fontSize: 26, fontWeight: 600, textAlign: 'left' }}>{valeur}</div>
+      <span className={petit ? 'tuile-chiffre petit' : 'tuile-chiffre'}>{valeur}</span>
+      <span className="tuile-libelle">{libelle}</span>
     </>
   );
+  const attributs = { 'data-fort': fort ? 'oui' : undefined, 'data-point': point ? 'oui' : undefined };
   return onClick
-    ? <button onClick={onClick} style={{ ...style, cursor: 'pointer' }}>{contenu}</button>
-    : <div style={style}>{contenu}</div>;
+    ? <button className="tuile" onClick={onClick} {...attributs}>{contenu}</button>
+    : <div className="tuile" {...attributs}>{contenu}</div>;
 }
 
 function depuis(iso: string): string {
@@ -221,7 +246,7 @@ function BlocTaches({ taches, onChange }: { taches: Tache[]; onChange: () => voi
           {visibles.map((t) => {
             const retard = t.echeance && t.echeance < aujourdhui;
             return (
-              <tr key={t.id} style={retard ? { background: '#fdf3f2' } : undefined}>
+              <tr key={t.id} style={retard ? { background: 'var(--alerte-pale)' } : undefined}>
                 <td style={{ width: 40, textAlign: 'center' }}>
                   <input type="checkbox" style={{ width: 'auto' }}
                          onChange={() => void basculerTache(t.id, true).then(onChange)} />

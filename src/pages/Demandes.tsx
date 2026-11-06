@@ -15,6 +15,7 @@ import { IANonConfiguree } from '../lib/ia';
 import { creerBrouillonDicte, lireDictee, type PropositionDevis } from '../lib/devisDicte';
 import { audioDemande, compteRenduNoms, retrouverNomsAllo } from '../lib/connecteurs';
 import Vignettes from '../components/Vignettes';
+import { useCreation } from '../lib/creation';
 
 /**
  * Le nom à afficher : celui de la demande, sinon celui de la fiche client.
@@ -34,7 +35,7 @@ export default function PageDemandes() {
   const [demandes, setDemandes] = useState<DemandeAvecTiers[]>([]);
   const [erreur, setErreur] = useState<string | null>(null);
   const [charge, setCharge] = useState(false);
-  const [saisie, setSaisie] = useState(false);
+  const [saisie, setSaisie] = useCreation('demande');
   const [filtre, setFiltre] = useState<'attente' | 'ouvertes' | 'toutes'>('attente');
   const [selection, setSelection] = useState<string[]>([]);
   const [recherche, setRecherche] = useState('');
@@ -358,7 +359,7 @@ export default function PageDemandes() {
               return (
                 <tr key={d.id} style={
                   selection.includes(d.id) ? { background: 'var(--bleu-pale)' }
-                    : retard ? { background: '#fdf3f2' } : undefined
+                    : retard ? { background: 'var(--alerte-pale)' } : undefined
                 }>
                   <td style={{ textAlign: 'center' }}>
                     <input type="checkbox" style={{ width: 'auto' }}
@@ -600,7 +601,7 @@ function DevisDepuisDemande({ demande, onCree, onErreur }: {
       </div>
 
       {!demande.tiers_id && (
-        <p className="statut" style={{ color: '#b8860b' }}>
+        <p className="statut" style={{ color: 'var(--attention)' }}>
           Cette demande n’est rattachée à aucune fiche client. Le brouillon sera créé sans
           client : vous le choisirez dans l’éditeur, existant ou nouveau.
         </p>

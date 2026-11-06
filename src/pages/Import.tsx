@@ -224,7 +224,7 @@ export default function PageImport() {
                   const exemple = i === undefined ? '' : tableau.lignes[0]?.[i] ?? '';
                   const absent = c.obligatoire && i === undefined;
                   return (
-                    <tr key={c.cle} style={absent ? { background: '#fdf3f2' } : undefined}>
+                    <tr key={c.cle} style={absent ? { background: 'var(--alerte-pale)' } : undefined}>
                       <td>
                         {c.libelle}
                         {c.obligatoire && <span style={{ color: 'var(--alerte)' }}> *</span>}

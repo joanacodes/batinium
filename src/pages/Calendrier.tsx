@@ -17,12 +17,16 @@ interface Evenement {
   lien?: string;
 }
 
+// Une seule couleur dans le thème : elle va aux interventions, ce qu'on
+// cherche d'abord dans un planning. Les quatre autres sources se distinguent
+// par la valeur du gris, de l'encre pleine au filet — cinq valeurs qui ne se
+// confondent pas, là où deux sources sur la même teinte se confondaient.
 const COULEUR: Record<Source, string> = {
   intervention: 'var(--bleu)',
-  chantier: '#7a5ea8',
-  tache: '#b8860b',
-  rappel: 'var(--alerte)',
-  google: 'var(--encre-pale)',
+  rappel: 'var(--encre)',
+  chantier: 'var(--encre-2)',
+  tache: 'var(--encre-pale)',
+  google: 'var(--filet-fort)',
 };
 
 const LIBELLE: Record<Source, string> = {

@@ -175,7 +175,7 @@ export default function PageFicheSousTraitant({ tiersId }: { tiersId: string }) 
                 </thead>
                 <tbody>
                   {paie.map((p) => (
-                    <tr key={p.id} style={!p.paye_le ? { background: '#fdf7ee' } : undefined}>
+                    <tr key={p.id} style={!p.paye_le ? { background: 'var(--attention-pale)' } : undefined}>
                       <td>{p.libelle}</td>
                       <td className="ref">
                         {p.chantier

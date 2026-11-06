@@ -8,6 +8,7 @@ import {
 import ChampAdresse from '../components/ChampAdresse';
 import PiecesJointes from '../components/PiecesJointes';
 import Modale from '../components/Modale';
+import Apparence from '../components/Apparence';
 import type {
   Entreprise, Membre, Parametres, Prealable, Rattachement, Role, TypeDocument,
 } from '../lib/types';
@@ -82,10 +83,15 @@ export default function PageParametres() {
 
       {erreur && <div className="erreur">{erreur}</div>}
       {message && (
-        <div className="erreur" style={{ borderColor: 'var(--vert)', color: 'var(--vert)', background: '#f1f7f3' }}>
+        <div className="erreur" style={{ borderColor: 'var(--vert)', color: 'var(--vert)', background: 'var(--ok-pale)' }}>
           {message}
         </div>
       )}
+
+      {/* En tête de page : c'est ici que Fabrice choisit le thème de toute
+          l'équipe, et on ne doit pas avoir à le chercher sous les mentions
+          légales. Elle s'enregistre seule, sans le bouton « Enregistrer ». */}
+      <Apparence />
 
       <h2 style={{ marginBottom: 8 }}>Entreprise</h2>
       <div className="panneau" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
@@ -183,8 +189,8 @@ export default function PageParametres() {
       {confirmation !== null && (
         <Modale titre="Confirmer la reprise de numérotation" taille="petite"
                 onFermer={() => setConfirmation(null)}>
-          <div className="erreur" style={{ borderColor: '#b8860b', color: 'var(--encre)',
-                                           background: '#fdf7ee' }}>
+          <div className="erreur" style={{ borderColor: 'var(--attention)', color: 'var(--encre)',
+                                           background: 'var(--attention-pale)' }}>
             Cette opération n’est pas réversible.
           </div>
           <p>
@@ -352,7 +358,7 @@ export default function PageParametres() {
                 (new Date(p.attestation_capacite_expire_le).getTime() - Date.now()) / 86400000);
               return (
                 <p className="statut" style={{
-                  color: jours <= 0 ? 'var(--alerte)' : jours <= 90 ? '#b8860b' : undefined,
+                  color: jours <= 0 ? 'var(--alerte)' : jours <= 90 ? 'var(--attention)' : undefined,
                 }}>
                   {jours <= 0 ? 'Périmée.' : `Encore ${jours} jours.`}
                 </p>

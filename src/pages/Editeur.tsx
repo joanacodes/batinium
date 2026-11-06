@@ -376,7 +376,7 @@ function EnteteEditable({ devis, onChange }: { devis: Devis; onChange: (p: Parti
           </label>
           <textarea
             rows={4}
-            style={{ background: '#fdfaf3' }}
+            style={{ background: 'var(--attention-pale)' }}
             value={devis.notes_internes ?? ''}
             onChange={(e) => onChange({ notes_internes: e.target.value })}
             placeholder="Le syndic est exigeant sur le bruit. Prévoir large sur le caisson."
@@ -599,7 +599,7 @@ function Menu({ actions }: { actions: [string, () => void][] }) {
               zIndex: 21,
               background: 'var(--surface)',
               border: '1px solid var(--filet)',
-              boxShadow: '0 6px 20px rgba(22,32,43,.14)',
+              boxShadow: 'var(--ombre)',
               minWidth: 190,
               display: 'block',
             }}
@@ -686,7 +686,7 @@ function Signature({ onAnnuler, onValider }: {
   const [acompte, setAcompte] = useState(30);
   return (
     <div style={{
-      position: 'fixed', inset: 0, background: 'rgba(22,32,43,.35)',
+      position: 'fixed', inset: 0, background: 'var(--voile)',
       display: 'grid', placeItems: 'center', zIndex: 50,
     }} onClick={onAnnuler}>
       <div onClick={(e) => e.stopPropagation()} className="panneau"
@@ -802,7 +802,7 @@ function Envoi({ devis, nomClient, emailClient, onAnnuler, onEnvoye }: {
         </div>
 
         <div className="panneau" style={{ display: 'block', margin: 0,
-                                          borderLeft: '3px solid #b8860b' }}>
+                                          borderLeft: '3px solid var(--attention)' }}>
           <strong style={{ fontSize: 13 }}>Avant d’envoyer</strong>
           <p className="statut">
             Le PDF n’est pas encore joint automatiquement. Passez par « Aperçu et PDF »,

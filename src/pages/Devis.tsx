@@ -12,6 +12,7 @@ import Dictee from '../components/Dictee';
 import Squelette from '../components/Squelette';
 import Survol from '../components/Survol';
 import type { Devis, Site, Tiers } from '../lib/types';
+import { useCreation } from '../lib/creation';
 
 const STATUTS: Record<Devis['statut'], string> = {
   brouillon: 'Brouillon', envoye: 'Envoyé', relance: 'Relancé',
@@ -23,7 +24,7 @@ export default function PageDevis() {
   const [totaux, setTotaux] = useState<Record<string, number>>({});
   const [erreur, setErreur] = useState<string | null>(null);
   const [charge, setCharge] = useState(false);
-  const [creation, setCreation] = useState(false);
+  const [creation, setCreation] = useCreation('devis');
   const [voix, setVoix] = useState(false);
   const [recherche, setRecherche] = useState('');
   const [parStatut, setParStatut] = useState('');
@@ -173,7 +174,7 @@ export default function PageDevis() {
                 (!d.relance_prochaine_le || d.relance_prochaine_le <= aujourdhui);
               return (
                 <tr key={d.id} className="cliquable" onClick={() => aller(`/devis/${d.id}`)}
-                    style={aRelancer ? { background: '#fdf7ee' } : undefined}>
+                    style={aRelancer ? { background: 'var(--attention-pale)' } : undefined}>
                   <td>{d.numero}</td>
                   <td>{d.tiers?.nom ?? '—'}</td>
                   <td>{d.titre ?? '—'}</td>

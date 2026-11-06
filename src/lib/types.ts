@@ -14,6 +14,8 @@ export interface Entreprise {
   id: string;
   nom: string;
   code_invitation: string;
+  /** Le thème de toute l'équipe, choisi par la direction (SQL 41). Absent avant le SQL 41. */
+  theme?: 'citron' | 'cobalt' | 'minuit';
 }
 
 export interface Rattachement {
@@ -40,6 +42,8 @@ export interface Membre {
   apercu_role?: Exclude<Role, 'direction'> | null;
   /** Combien de jours avant une échéance d'entretien prévenir ce membre (SQL 37). */
   preavis_entretien_jours?: number;
+  /** Clair, sombre ou celui du téléphone : un réglage par personne (SQL 41). */
+  ton?: 'auto' | 'clair' | 'sombre';
 }
 
 export type Priorite = 'basse' | 'normale' | 'haute' | 'urgente';

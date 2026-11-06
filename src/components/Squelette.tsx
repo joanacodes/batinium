@@ -14,7 +14,7 @@ export function Chiffres({ nombre = 4 }: { nombre?: number }) {
     <div style={{ display: 'grid', gap: 12, marginBottom: 20,
                   gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
       {Array.from({ length: nombre }, (_, i) => (
-        <div key={i} style={{ background: 'var(--surface)', border: '1px solid var(--filet)',
+        <div key={i} style={{ background: 'var(--surface)', border: '1px solid var(--filet)', borderRadius: 'var(--rayon-l)',
                               padding: '12px 14px' }}>
           <Barre largeur="55%" hauteur={11} />
           <div style={{ height: 8 }} />
