@@ -389,6 +389,15 @@ SQL 41 éprouvé sur la base locale : appliqué deux fois, et cinq mutations
 (contrôle du rôle retiré, ton écrit chez les collègues, etc.) font échouer sa
 vérification.
 
+**Les maquettes suivent** (7 novembre) : les 112 écrans du canevas de
+maquettes (https://claude.ai/artifact/HT5FFCUr3Zt3PHDKSTUTQ5) portent les
+mêmes jetons, tirés d'une seule feuille déposée dans le canevas. Le bouton
+Tweaks de chaque écran choisit le thème (citron, cobalt, minuit) et le ton
+(clair, sombre). Le menu de l'ordinateur et la barre d'onglets prennent la
+couleur du thème, les six écrans d'accueil ont leur bandeau, et la facture
+affichée reste du papier blanc. « Le rouge d'abord » y devient « l'urgent
+d'abord », puisqu'il n'y a plus de rouge.
+
 ### Demandes de Fabrice du 13 octobre — codées, SQL à exécuter
 
 Quatre demandes du client, plus un mode démonstration :
